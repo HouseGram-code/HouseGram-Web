@@ -43,7 +43,11 @@ export default function SettingsView() {
         } else {
           date = new Date(userProfile.lastSeen);
         }
-        return `был(а) ${formatDistanceToNow(date, { addSuffix: true, locale: ru })}`;
+        const distance = formatDistanceToNow(date, { addSuffix: true, locale: ru });
+        if (distance === 'меньше минуты назад') {
+          return 'был(а) только что';
+        }
+        return `был(а) ${distance}`;
       } catch (e) {
         return 'был(а) недавно';
       }

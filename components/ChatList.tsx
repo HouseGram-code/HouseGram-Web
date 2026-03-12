@@ -5,8 +5,10 @@ import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle } from 'lucide-re
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 export default function ChatList() {
   const { contacts, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact } = useChat();
@@ -19,7 +21,10 @@ export default function ChatList() {
       const searchUsers = async () => {
         const q = query(collection(db, 'users'), where('username', '>=', searchQuery), where('username', '<=', searchQuery + '\uf8ff'));
         const snapshot = await getDocs(q);
-        setSearchResults(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const results = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(user => user.id !== auth.currentUser?.uid);
+        setSearchResults(results);
       };
       searchUsers();
     } else {
@@ -28,6 +33,30 @@ export default function ChatList() {
   }, [searchQuery]);
 
   const handleSearchResultClick = (user: any) => {
+    let statusText = 'был(а) недавно';
+    if (user.status === 'online') {
+      statusText = 'в сети';
+    } else if (user.lastSeen) {
+      try {
+        let date;
+        if (user.lastSeen.toDate) {
+          date = user.lastSeen.toDate();
+        } else if (user.lastSeen instanceof Date) {
+          date = user.lastSeen;
+        } else {
+          date = new Date(user.lastSeen);
+        }
+        const distance = formatDistanceToNow(date, { addSuffix: true, locale: ru });
+        if (distance === 'меньше минуты назад') {
+          statusText = 'был(а) только что';
+        } else {
+          statusText = `был(а) ${distance}`;
+        }
+      } catch (e) {
+        statusText = 'был(а) недавно';
+      }
+    }
+
     addContact({
       id: user.id,
       name: user.name,
@@ -35,7 +64,7 @@ export default function ChatList() {
       avatarColor: '#517da2', // Default color
       avatarUrl: user.avatarUrl,
       statusOnline: 'в сети',
-      statusOffline: 'был(а) недавно',
+      statusOffline: statusText,
       phone: user.phone || '',
       bio: user.bio || '',
       username: user.username || '',
@@ -51,7 +80,6 @@ export default function ChatList() {
   };
 
   const sortedContacts = Object.values(contacts)
-    .filter(c => c.id !== 'saved_messages' || c.messages.length > 0)
     .filter(c => {
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
@@ -147,7 +175,7 @@ export default function ChatList() {
             </div>
             <div className="flex-grow overflow-hidden flex flex-col justify-center">
               <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate">{user.name}</div>
-              <div className="text-[14px] text-tg-secondary-text truncate leading-snug">@{user.username}</div>
+              <div className="text-[14px] text-tg-secondary-text truncate leading-snug">{user.username ? (user.username.startsWith('@') ? user.username : `@${user.username}`) : ''}</div>
             </div>
           </div>
         ))}

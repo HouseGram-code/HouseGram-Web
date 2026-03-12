@@ -1,20 +1,6 @@
 import { Contact } from '@/types';
 
 export const initialContacts: Record<string, Contact> = {
-  saved_messages: {
-    id: 'saved_messages',
-    name: 'Избранное',
-    initial: 'И',
-    avatarColor: '#517da2',
-    statusOnline: '',
-    statusOffline: '',
-    phone: '',
-    bio: 'Здесь можно сохранять сообщения, медиа и другие файлы.',
-    username: '',
-    messages: [],
-    isTyping: false,
-    unread: 0,
-  },
   test_bot: {
     id: 'test_bot',
     name: 'HouseGram Bot',

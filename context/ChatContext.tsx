@@ -5,7 +5,7 @@ import { Contact, ViewState, Message, UserProfile } from '@/types';
 import { initialContacts, generateBotResponse } from '@/lib/mockData';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 interface ChatContextType {
   view: ViewState;
@@ -111,8 +111,37 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           } catch (e) {
             console.error('Failed to update presence', e);
           }
-        } else if (currentUser.email === 'goh@gmail.com') {
-          setIsAdmin(true);
+        } else {
+          // Create user document if it doesn't exist
+          const rawUsername = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
+          const finalUsername = rawUsername.startsWith('@') ? rawUsername : '@' + rawUsername.replace(/@/g, '');
+          
+          try {
+            await setDoc(doc(db, 'users', currentUser.uid), {
+              uid: currentUser.uid,
+              email: currentUser.email,
+              name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
+              username: finalUsername.substring(0, 15),
+              bio: '',
+              role: currentUser.email === 'goh@gmail.com' ? 'admin' : 'user',
+              isBanned: false,
+              createdAt: serverTimestamp(),
+              status: 'online',
+              lastSeen: serverTimestamp()
+            });
+            setIsAdmin(currentUser.email === 'goh@gmail.com');
+            setUserProfile({
+              name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
+              username: finalUsername.substring(0, 15),
+              bio: '',
+              phone: '+7 9XX XXX XX XX',
+              avatarUrl: '',
+              status: 'online',
+              lastSeen: new Date()
+            });
+          } catch (e) {
+            console.error('Failed to create user document', e);
+          }
         }
         setView('menu');
       } else {
@@ -266,7 +295,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const sendMessage = useCallback((text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string }) => {
-    if (!activeChatId) return;
+    if (!activeChatId || (auth.currentUser && activeChatId === auth.currentUser.uid)) return;
 
     const now = new Date();
     const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -371,13 +400,13 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     setUserProfile(profile);
     if (auth.currentUser) {
       try {
-        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), {
           name: profile.name || 'User',
           username: profile.username || '',
           bio: profile.bio || '',
           phone: profile.phone || '',
           avatarUrl: profile.avatarUrl || ''
-        });
+        }, { merge: true });
       } catch (e: any) {
         console.error('Failed to update profile in Firestore', e);
         alert('Ошибка при сохранении профиля: ' + e.message);
