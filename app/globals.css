@@ -29,7 +29,7 @@
 @layer base {
   body {
     font-family: var(--font-roboto), sans-serif;
-    @apply bg-[#e5e5e5] flex justify-center items-center min-h-screen overflow-hidden m-0;
+    @apply bg-[#e5e5e5] min-h-[100dvh] m-0 p-0 overflow-hidden sm:flex sm:justify-center sm:items-center;
   }
 }
 
