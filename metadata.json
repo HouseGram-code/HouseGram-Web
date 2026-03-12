@@ -1,0 +1,5 @@
+{
+  "name": "HouseGram Web",
+  "description": "A Telegram-like web messenger clone built with Next.js and Tailwind CSS.",
+  "requestFramePermissions": ["microphone"]
+}

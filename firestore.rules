@@ -1,0 +1,137 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'goh@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+    
+    function isNotBanned() {
+      return !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBanned == false;
+    }
+    
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+    
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'name', 'role', 'isBanned', 'createdAt']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             (data.username == null || (data.username is string && data.username.size() <= 50)) &&
+             (data.bio == null || (data.bio is string && data.bio.size() <= 200)) &&
+             data.role in ['user', 'admin'] &&
+             data.isBanned is bool &&
+             data.createdAt is timestamp;
+    }
+    
+    function isValidChat(data) {
+      return data.keys().hasAll(['participants', 'updatedAt']) &&
+             data.participants is list && data.participants.size() >= 1 && data.participants.size() <= 100 &&
+             data.updatedAt is timestamp &&
+             (data.lastMessage == null || (data.lastMessage is string && data.lastMessage.size() <= 1000));
+    }
+    
+    function isValidMessage(data) {
+      return data.keys().hasAll(['chatId', 'senderId', 'text', 'createdAt', 'status']) &&
+             data.chatId is string &&
+             data.senderId is string && data.senderId == request.auth.uid &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 4000 &&
+             data.createdAt is timestamp &&
+             data.status in ['sent', 'read'];
+    }
+    
+    function isValidSettings(data) {
+      return data.keys().hasAll(['maintenanceMode']) &&
+             data.maintenanceMode is bool;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      
+      // User can create their own profile. They cannot make themselves admin unless they are goh@gmail.com
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (
+        (request.resource.data.role == 'user' && request.resource.data.isBanned == false) ||
+        (request.auth.token.email == 'goh@gmail.com')
+      );
+      
+      // User can update their own profile (name, username, bio) but not role/isBanned. Admin can update anything.
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (
+        isAdmin() || 
+        (isOwner(userId) && isNotBanned() && 
+         request.resource.data.role == resource.data.role && 
+         request.resource.data.isBanned == resource.data.isBanned &&
+         request.resource.data.createdAt == resource.data.createdAt)
+      );
+      
+      allow delete: if isAdmin();
+    }
+    
+    match /chats/{chatId} {
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
+      
+      allow create: if isAuthenticated() && isNotBanned() && isValidChat(request.resource.data) && 
+                    request.auth.uid in request.resource.data.participants;
+                    
+      allow update: if isAuthenticated() && isNotBanned() && isValidChat(request.resource.data) && 
+                    (request.auth.uid in resource.data.participants || isAdmin()) &&
+                    request.resource.data.participants == resource.data.participants; // Cannot change participants for now
+                    
+      allow delete: if isAdmin();
+    }
+    
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        (exists(/databases/$(database)/documents/chats/$(resource.data.chatId)) && 
+         request.auth.uid in get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.participants)
+      );
+      
+      allow create: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) && (
+        exists(/databases/$(database)/documents/chats/$(request.resource.data.chatId)) && 
+        request.auth.uid in get(/databases/$(database)/documents/chats/$(request.resource.data.chatId)).data.participants
+      );
+      
+      allow update: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) && (
+        (isOwner(resource.data.senderId) && request.resource.data.text != resource.data.text && request.resource.data.createdAt == resource.data.createdAt) ||
+        (exists(/databases/$(database)/documents/chats/$(resource.data.chatId)) && 
+         request.auth.uid in get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.participants &&
+         request.resource.data.status == 'read' && request.resource.data.text == resource.data.text)
+      );
+      
+      allow delete: if isAdmin();
+    }
+    
+    match /settings/global {
+      allow read: if true; // Anyone can read maintenance mode
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
+    }
+  }
+}
