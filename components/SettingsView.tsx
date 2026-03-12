@@ -9,6 +9,7 @@ import { storage, auth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import imageCompression from 'browser-image-compression';
 
 export default function SettingsView() {
   const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile } = useChat();
@@ -51,8 +52,14 @@ export default function SettingsView() {
     if (file && auth.currentUser) {
       setIsUploading(true);
       try {
+        const options = {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 800,
+          useWebWorker: true
+        };
+        const compressedFile = await imageCompression(file, options);
         const storageRef = ref(storage, `avatars/${auth.currentUser.uid}`);
-        await uploadBytes(storageRef, file);
+        await uploadBytes(storageRef, compressedFile);
         const url = await getDownloadURL(storageRef);
         setEditProfile({ ...editProfile, avatarUrl: url });
       } catch (error) {
