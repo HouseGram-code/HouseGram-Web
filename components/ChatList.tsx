@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function ChatList() {
-  const { contacts, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled } = useChat();
+  const { contacts, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact } = useChat();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -26,6 +26,29 @@ export default function ChatList() {
       setSearchResults([]);
     }
   }, [searchQuery]);
+
+  const handleSearchResultClick = (user: any) => {
+    addContact({
+      id: user.id,
+      name: user.name,
+      initial: user.name.charAt(0).toUpperCase(),
+      avatarColor: '#517da2', // Default color
+      avatarUrl: user.avatarUrl,
+      statusOnline: 'в сети',
+      statusOffline: 'был(а) недавно',
+      phone: user.phone || '',
+      bio: user.bio || '',
+      username: user.username || '',
+      messages: [],
+      isTyping: false,
+      unread: 0,
+      isChannel: false,
+    });
+    setActiveChatId(user.id);
+    setView('chat');
+    setIsSearching(false);
+    setSearchQuery('');
+  };
 
   const sortedContacts = Object.values(contacts)
     .filter(c => c.id !== 'saved_messages' || c.messages.length > 0)
@@ -116,6 +139,7 @@ export default function ChatList() {
         {isSearching && searchQuery.trim().length > 2 && searchResults.map(user => (
           <div 
             key={user.id} 
+            onClick={() => handleSearchResultClick(user)}
             className="flex items-center px-4 py-2 cursor-pointer border-b border-tg-divider hover:bg-gray-50 active:bg-gray-100 transition-colors gap-3"
           >
             <div className="w-[50px] h-[50px] rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium shrink-0">

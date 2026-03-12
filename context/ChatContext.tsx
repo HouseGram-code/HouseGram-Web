@@ -5,7 +5,7 @@ import { Contact, ViewState, Message, UserProfile } from '@/types';
 import { initialContacts, generateBotResponse } from '@/lib/mockData';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 interface ChatContextType {
   view: ViewState;
@@ -40,6 +40,7 @@ interface ChatContextType {
   isAdmin: boolean;
   isMaintenance: boolean;
   logout: () => void;
+  addContact: (contact: Contact) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -87,15 +88,31 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        if (currentUser.email === 'goh@gmail.com') {
-          setIsAdmin(true);
-        } else {
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-          if (userDoc.exists() && userDoc.data().role === 'admin') {
-            setIsAdmin(true);
-          } else {
-            setIsAdmin(false);
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setIsAdmin(currentUser.email === 'goh@gmail.com' || data.role === 'admin');
+          setUserProfile({
+            name: data.name || 'Ваше Имя',
+            username: data.username || '',
+            bio: data.bio || '',
+            phone: data.phone || '+7 9XX XXX XX XX',
+            avatarUrl: data.avatarUrl || '',
+            status: 'online',
+            lastSeen: data.lastSeen
+          });
+          
+          // Set online status
+          try {
+            await updateDoc(doc(db, 'users', currentUser.uid), {
+              status: 'online',
+              lastSeen: serverTimestamp()
+            });
+          } catch (e) {
+            console.error('Failed to update presence', e);
           }
+        } else if (currentUser.email === 'goh@gmail.com') {
+          setIsAdmin(true);
         }
         setView('menu');
       } else {
@@ -104,6 +121,46 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       }
       setAuthReady(true);
     });
+
+    const handleVisibilityChange = async () => {
+      if (auth.currentUser) {
+        try {
+          if (document.visibilityState === 'visible') {
+            await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+              status: 'online',
+              lastSeen: serverTimestamp()
+            });
+          } else {
+            await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+              status: 'offline',
+              lastSeen: serverTimestamp()
+            });
+          }
+        } catch (e) {
+          console.error('Failed to update presence', e);
+        }
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      if (auth.currentUser) {
+        // Use keepalive fetch or just try to update
+        const data = JSON.stringify({
+          fields: {
+            status: { stringValue: 'offline' },
+            lastSeen: { timestampValue: new Date().toISOString() }
+          }
+        });
+        // We can't easily use updateDoc in beforeunload reliably, but we can try
+        updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          status: 'offline',
+          lastSeen: serverTimestamp()
+        }).catch(() => {});
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (doc) => {
       if (doc.exists()) {
@@ -114,10 +171,22 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       unsubscribeAuth();
       unsubscribeSettings();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
   const logout = useCallback(async () => {
+    if (auth.currentUser) {
+      try {
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          status: 'offline',
+          lastSeen: serverTimestamp()
+        });
+      } catch (e) {
+        console.error('Failed to update presence on logout', e);
+      }
+    }
     await signOut(auth);
     setView('auth');
   }, []);
@@ -291,6 +360,30 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
   }, [activeChatId]);
 
+  const addContact = useCallback((contact: Contact) => {
+    setContacts(prev => {
+      if (prev[contact.id]) return prev;
+      return { ...prev, [contact.id]: contact };
+    });
+  }, []);
+
+  const updateUserProfile = useCallback(async (profile: UserProfile) => {
+    setUserProfile(profile);
+    if (auth.currentUser) {
+      try {
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          name: profile.name,
+          username: profile.username,
+          bio: profile.bio,
+          phone: profile.phone,
+          avatarUrl: profile.avatarUrl || ''
+        });
+      } catch (e) {
+        console.error('Failed to update profile in Firestore', e);
+      }
+    }
+  }, []);
+
   return (
     <ChatContext.Provider value={{
       view, setView,
@@ -302,8 +395,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       wallpaper, setWallpaper,
       isGlassEnabled, setIsGlassEnabled,
       clearHistory, deleteChat,
-      userProfile, setUserProfile,
-      blockContact,
+      userProfile, setUserProfile: updateUserProfile,
+      blockContact, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode,

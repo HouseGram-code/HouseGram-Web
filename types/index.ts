@@ -35,6 +35,8 @@ export interface UserProfile {
   bio: string;
   phone: string;
   avatarUrl?: string;
+  status?: 'online' | 'offline';
+  lastSeen?: any; // Firestore timestamp
 }
 
 export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'notifications' | 'security' | 'admin' | 'auth';

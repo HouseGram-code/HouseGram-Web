@@ -49,7 +49,9 @@ export default function AuthView() {
           bio: '',
           role: email === 'goh@gmail.com' ? 'admin' : 'user',
           isBanned: false,
-          createdAt: new Date()
+          createdAt: new Date(),
+          status: 'online',
+          lastSeen: new Date()
         });
       }
     } catch (err: any) {
@@ -86,7 +88,9 @@ export default function AuthView() {
           bio: '',
           role: user.email === 'goh@gmail.com' ? 'admin' : 'user',
           isBanned: false,
-          createdAt: new Date()
+          createdAt: new Date(),
+          status: 'online',
+          lastSeen: new Date()
         });
       }
     } catch (err: any) {

@@ -5,11 +5,16 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck } from 'lucide-react';
 import { useState, useRef } from 'react';
 import Image from 'next/image';
+import { storage, auth } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 export default function SettingsView() {
   const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile } = useChat();
   const [isEditing, setIsEditing] = useState(false);
   const [editProfile, setEditProfile] = useState(userProfile);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,11 +26,40 @@ export default function SettingsView() {
     setIsEditing(false);
   };
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const getStatusText = () => {
+    if (userProfile.status === 'online') return 'в сети';
+    if (userProfile.lastSeen) {
+      try {
+        let date;
+        if (userProfile.lastSeen.toDate) {
+          date = userProfile.lastSeen.toDate();
+        } else if (userProfile.lastSeen instanceof Date) {
+          date = userProfile.lastSeen;
+        } else {
+          date = new Date(userProfile.lastSeen);
+        }
+        return `был(а) ${formatDistanceToNow(date, { addSuffix: true, locale: ru })}`;
+      } catch (e) {
+        return 'был(а) недавно';
+      }
+    }
+    return 'был(а) недавно';
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setEditProfile({ ...editProfile, avatarUrl: url });
+    if (file && auth.currentUser) {
+      setIsUploading(true);
+      try {
+        const storageRef = ref(storage, `avatars/${auth.currentUser.uid}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        setEditProfile({ ...editProfile, avatarUrl: url });
+      } catch (error) {
+        console.error("Error uploading avatar:", error);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -100,7 +134,7 @@ export default function SettingsView() {
             ) : (
               <div className="text-[24px] font-medium leading-tight">{userProfile.name}</div>
             )}
-            <div className="text-[14px] text-white/70 mt-1">online</div>
+            <div className="text-[14px] text-white/70 mt-1">{getStatusText()}</div>
           </div>
         </div>
         
@@ -116,9 +150,14 @@ export default function SettingsView() {
             />
             <button 
               onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
               className="absolute -bottom-7 right-6 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors border border-gray-100 z-10"
             >
-              <Camera size={28} strokeWidth={1.5} />
+              {isUploading ? (
+                <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Camera size={28} strokeWidth={1.5} />
+              )}
             </button>
           </>
         )}
