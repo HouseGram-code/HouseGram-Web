@@ -378,8 +378,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           phone: profile.phone || '',
           avatarUrl: profile.avatarUrl || ''
         });
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to update profile in Firestore', e);
+        alert('Ошибка при сохранении профиля: ' + e.message);
       }
     }
   }, []);
