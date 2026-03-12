@@ -80,7 +80,7 @@ export default function ChatList() {
   };
 
   const sortedContacts = Object.values(contacts)
-    .filter(c => c.id === 'saved_messages' || c.messages.length > 0)
+    .filter(c => c.id === 'saved_messages' || c.id === 'housegram_announcements' || c.messages.length > 0)
     .filter(c => {
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
