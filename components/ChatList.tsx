@@ -135,7 +135,7 @@ export default function ChatList() {
             <div 
               key={contact.id} 
               onClick={() => handleChatClick(contact.id)}
-              className="flex items-center px-4 py-2 cursor-pointer border-b border-tg-divider hover:bg-gray-50 active:bg-gray-100 transition-colors gap-3"
+              className="flex items-center px-4 py-3 cursor-pointer border-b border-tg-divider hover:bg-gray-50 active:bg-gray-100 transition-colors gap-3"
             >
               {contact.id === 'saved_messages' ? (
                 <div 

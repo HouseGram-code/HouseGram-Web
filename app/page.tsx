@@ -21,7 +21,7 @@ function AppContent() {
 
   if (view === 'auth' || !user) {
     return (
-      <div className="relative w-full max-w-[420px] h-[100dvh] bg-tg-bg-light shadow-2xl overflow-hidden sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+      <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
         <AuthView />
       </div>
     );
@@ -29,14 +29,14 @@ function AppContent() {
 
   if (isLocked) {
     return (
-      <div className="relative w-full max-w-[420px] h-[100dvh] bg-tg-bg-light shadow-2xl overflow-hidden sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+      <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
         <PasscodeScreen />
       </div>
     );
   }
 
   return (
-    <div className="relative w-full max-w-[420px] h-[100dvh] bg-tg-bg-light shadow-2xl overflow-hidden sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+    <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
       <AnimatePresence initial={false} mode="popLayout">
         {view === 'menu' && <ChatList key="menu" />}
         {view === 'chat' && <ChatView key="chat" />}
