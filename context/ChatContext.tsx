@@ -372,10 +372,10 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     if (auth.currentUser) {
       try {
         await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          name: profile.name,
-          username: profile.username,
-          bio: profile.bio,
-          phone: profile.phone,
+          name: profile.name || 'User',
+          username: profile.username || '',
+          bio: profile.bio || '',
+          phone: profile.phone || '',
           avatarUrl: profile.avatarUrl || ''
         });
       } catch (e) {

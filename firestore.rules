@@ -43,7 +43,7 @@ service cloud.firestore {
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
              (data.username == null || (data.username is string && data.username.size() <= 50)) &&
              (data.bio == null || (data.bio is string && data.bio.size() <= 200)) &&
-             (data.avatarUrl == null || (data.avatarUrl is string && data.avatarUrl.size() <= 1000)) &&
+             (data.avatarUrl == null || (data.avatarUrl is string && data.avatarUrl.size() <= 1000000)) &&
              (data.phone == null || (data.phone is string && data.phone.size() <= 20)) &&
              (data.status == null || (data.status is string && data.status in ['online', 'offline'])) &&
              (data.lastSeen == null || data.lastSeen is timestamp) &&

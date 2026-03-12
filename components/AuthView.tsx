@@ -44,8 +44,8 @@ export default function AuthView() {
         await setDoc(doc(db, 'users', user.uid), {
           uid: user.uid,
           email: user.email,
-          name: username,
-          username: username,
+          name: name.substring(0, 45),
+          username: username.substring(0, 15),
           bio: '',
           role: email === 'goh@gmail.com' ? 'admin' : 'user',
           isBanned: false,
@@ -80,11 +80,14 @@ export default function AuthView() {
       
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (!userDoc.exists()) {
+        const rawUsername = user.displayName || user.email?.split('@')[0] || 'User';
+        const finalUsername = rawUsername.startsWith('@') ? rawUsername : '@' + rawUsername.replace(/@/g, '');
+        
         await setDoc(doc(db, 'users', user.uid), {
           uid: user.uid,
           email: user.email,
-          name: user.displayName || user.email?.split('@')[0] || 'User',
-          username: user.displayName || user.email?.split('@')[0] || 'User',
+          name: (user.displayName || user.email?.split('@')[0] || 'User').substring(0, 45),
+          username: finalUsername.substring(0, 15),
           bio: '',
           role: user.email === 'goh@gmail.com' ? 'admin' : 'user',
           isBanned: false,
@@ -126,6 +129,7 @@ export default function AuthView() {
                   placeholder="Ваше имя"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  maxLength={45}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 transition-shadow"
                   style={{ '--tw-ring-color': themeColor } as React.CSSProperties}
                   required
@@ -135,8 +139,13 @@ export default function AuthView() {
                 <input
                   type="text"
                   placeholder="Имя пользователя"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={username.startsWith('@') ? username : (username ? '@' + username : '')}
+                  onChange={(e) => {
+                    let val = e.target.value;
+                    if (val && !val.startsWith('@')) val = '@' + val.replace(/@/g, '');
+                    setUsername(val);
+                  }}
+                  maxLength={15}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 transition-shadow"
                   style={{ '--tw-ring-color': themeColor } as React.CSSProperties}
                   required

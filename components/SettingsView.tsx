@@ -23,6 +23,10 @@ export default function SettingsView() {
   const currentProfile = isEditing ? editProfile : userProfile;
 
   const handleSave = () => {
+    if (!editProfile.name.trim()) {
+      alert('Имя не может быть пустым');
+      return;
+    }
     setUserProfile(editProfile);
     setIsEditing(false);
   };
@@ -53,18 +57,25 @@ export default function SettingsView() {
       setIsUploading(true);
       try {
         const options = {
-          maxSizeMB: 0.5,
-          maxWidthOrHeight: 800,
+          maxSizeMB: 0.05, // 50 KB max for base64
+          maxWidthOrHeight: 400,
           useWebWorker: true
         };
         const compressedFile = await imageCompression(file, options);
-        const storageRef = ref(storage, `avatars/${auth.currentUser.uid}`);
-        await uploadBytes(storageRef, compressedFile);
-        const url = await getDownloadURL(storageRef);
-        setEditProfile({ ...editProfile, avatarUrl: url });
+        
+        // Convert to Base64
+        const reader = new FileReader();
+        reader.readAsDataURL(compressedFile);
+        reader.onloadend = async () => {
+          const base64data = reader.result as string;
+          setEditProfile({ ...editProfile, avatarUrl: base64data });
+          
+          // Optionally auto-save avatar immediately
+          setUserProfile({ ...editProfile, avatarUrl: base64data });
+          setIsUploading(false);
+        };
       } catch (error) {
-        console.error("Error uploading avatar:", error);
-      } finally {
+        console.error("Error compressing avatar:", error);
         setIsUploading(false);
       }
     }
@@ -135,6 +146,7 @@ export default function SettingsView() {
                 type="text" 
                 value={editProfile.name}
                 onChange={e => setEditProfile({...editProfile, name: e.target.value})}
+                maxLength={45}
                 className="bg-white/20 text-white placeholder-white/50 border-none outline-none rounded px-2 py-1 text-[20px] font-medium w-full"
                 placeholder="Имя"
               />
@@ -179,8 +191,13 @@ export default function SettingsView() {
             {isEditing ? (
               <input 
                 type="text" 
-                value={editProfile.username}
-                onChange={e => setEditProfile({...editProfile, username: e.target.value})}
+                value={editProfile.username.startsWith('@') ? editProfile.username : '@' + editProfile.username}
+                onChange={e => {
+                  let val = e.target.value;
+                  if (!val.startsWith('@')) val = '@' + val.replace(/@/g, '');
+                  setEditProfile({...editProfile, username: val});
+                }}
+                maxLength={15}
                 className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1"
                 placeholder="Имя пользователя"
               />
@@ -196,6 +213,7 @@ export default function SettingsView() {
                 type="text" 
                 value={editProfile.bio}
                 onChange={e => setEditProfile({...editProfile, bio: e.target.value})}
+                maxLength={50}
                 className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1"
                 placeholder="О себе"
               />
