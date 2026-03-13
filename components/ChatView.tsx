@@ -6,6 +6,8 @@ import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
+import { auth, storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const isOnlyEmojis = (str: string) => {
   const noSpace = str.replace(/\s/g, '');
@@ -76,11 +78,19 @@ export default function ChatView() {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        sendMessage('Голосовое сообщение', { audioUrl });
         stream.getTracks().forEach(track => track.stop());
+        
+        try {
+          const storageRef = ref(storage, `audio/${auth.currentUser?.uid}/${Date.now()}.webm`);
+          await uploadBytes(storageRef, audioBlob);
+          const audioUrl = await getDownloadURL(storageRef);
+          sendMessage('Голосовое сообщение', { audioUrl });
+        } catch (error) {
+          console.error('Error uploading audio:', error);
+          alert('Ошибка при загрузке голосового сообщения');
+        }
       };
 
       mediaRecorder.start();
@@ -109,13 +119,20 @@ export default function ChatView() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const fileUrl = URL.createObjectURL(file);
-      sendMessage(`Файл: ${file.name}`, { fileUrl, fileName: file.name });
+      setShowAttachMenu(false);
+      try {
+        const storageRef = ref(storage, `files/${auth.currentUser?.uid}/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        const fileUrl = await getDownloadURL(storageRef);
+        sendMessage(`Файл: ${file.name}`, { fileUrl, fileName: file.name });
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('Ошибка при загрузке файла');
+      }
     }
-    setShowAttachMenu(false);
   };
 
   return (
@@ -508,11 +525,14 @@ function AppleEmoji({ emoji }: { emoji: string }) {
   }
 
   return (
-    <img
+    <Image
       src={`https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/64/${unified}.png`}
       alt={emoji}
+      width={64}
+      height={64}
       className="w-16 h-16 object-contain"
       onError={() => setError(true)}
+      unoptimized
     />
   );
 }

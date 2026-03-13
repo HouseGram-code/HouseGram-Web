@@ -61,26 +61,23 @@ export default function SettingsView() {
       setIsUploading(true);
       try {
         const options = {
-          maxSizeMB: 0.05, // 50 KB max for base64
-          maxWidthOrHeight: 400,
+          maxSizeMB: 0.5, // 500 KB max
+          maxWidthOrHeight: 800,
           useWebWorker: true
         };
         const compressedFile = await imageCompression(file, options);
         
-        // Convert to Base64
-        const reader = new FileReader();
-        reader.readAsDataURL(compressedFile);
-        reader.onloadend = async () => {
-          const base64data = reader.result as string;
-          setEditProfile({ ...editProfile, avatarUrl: base64data });
-          
-          // Optionally auto-save avatar immediately
-          setUserProfile({ ...editProfile, avatarUrl: base64data });
-          setIsUploading(false);
-        };
-      } catch (error) {
-        console.error("Error compressing avatar:", error);
+        const storageRef = ref(storage, `avatars/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, compressedFile);
+        const avatarUrl = await getDownloadURL(storageRef);
+        
+        setEditProfile({ ...editProfile, avatarUrl });
+        setUserProfile({ ...editProfile, avatarUrl });
         setIsUploading(false);
+      } catch (error) {
+        console.error("Error uploading avatar:", error);
+        setIsUploading(false);
+        alert('Ошибка при загрузке аватара');
       }
     }
   };

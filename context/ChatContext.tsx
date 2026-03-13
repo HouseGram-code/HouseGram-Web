@@ -77,13 +77,18 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const savedPasscode = localStorage.getItem('housegram_passcode');
     if (savedPasscode) {
-      setPasscode(savedPasscode);
-      setIsLocked(true);
+      Promise.resolve().then(() => {
+        setPasscode(savedPasscode);
+        setIsLocked(true);
+      });
     }
     const savedNotif = localStorage.getItem('housegram_notif');
-    if (savedNotif !== null) setNotificationsEnabled(savedNotif === 'true');
     const savedSound = localStorage.getItem('housegram_sound');
-    if (savedSound !== null) setSoundEnabled(savedSound === 'true');
+    
+    Promise.resolve().then(() => {
+      if (savedNotif !== null) setNotificationsEnabled(savedNotif === 'true');
+      if (savedSound !== null) setSoundEnabled(savedSound === 'true');
+    });
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
@@ -345,17 +350,21 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!activeChatId || !auth.currentUser) return;
+    if (!activeChatId || !user) return;
 
-    const chatId = [auth.currentUser.uid, activeChatId].sort().join('_');
+    const chatId = [user.uid, activeChatId].sort().join('_');
     const messagesRef = collection(db, 'chats', chatId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messages: Message[] = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Message));
+      const messages: Message[] = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          type: data.senderId === user.uid ? 'sent' : 'received',
+        } as Message;
+      });
 
       setContacts(prev => {
         const contact = prev[activeChatId];
@@ -372,7 +381,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [activeChatId, auth.currentUser]);
+  }, [activeChatId, user]);
 
   const updateUserProfile = useCallback(async (profile: UserProfile) => {
     setUserProfile(profile);

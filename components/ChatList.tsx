@@ -17,6 +17,7 @@ export default function ChatList() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
   useEffect(() => {
+    let isMounted = true;
     if (searchQuery.trim().length > 0) {
       const searchUsers = async () => {
         const queryText = searchQuery.trim().toLowerCase();
@@ -25,6 +26,7 @@ export default function ChatList() {
         
         const q = query(collection(db, 'users'), where('username', '>=', usernameQuery), where('username', '<=', usernameQuery + '\uf8ff'));
         const snapshot = await getDocs(q);
+        if (!isMounted) return;
         const results = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(user => user.id !== auth.currentUser?.uid);
@@ -32,8 +34,11 @@ export default function ChatList() {
       };
       searchUsers();
     } else {
-      setSearchResults([]);
+      Promise.resolve().then(() => {
+        if (isMounted) setSearchResults([]);
+      });
     }
+    return () => { isMounted = false; };
   }, [searchQuery]);
 
   const handleSearchResultClick = (user: any) => {
