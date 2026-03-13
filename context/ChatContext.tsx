@@ -325,7 +325,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       playSound('send');
     } catch (e) {
       console.error('Failed to send message', e);
-      alert('Ошибка при отправке сообщения');
+      alert(`Ошибка при отправке сообщения: ${e instanceof Error ? e.message : String(e)}`);
     }
   }, [activeChatId, playSound]);
 
