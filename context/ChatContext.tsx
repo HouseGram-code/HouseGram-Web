@@ -300,29 +300,31 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     const now = serverTimestamp();
     const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
     
+    const chatId = [auth.currentUser.uid, activeChatId].sort().join('_');
+
     const newMessage: Omit<Message, 'id'> = {
       type: 'sent',
       text,
       time: timeString,
       status: 'sending',
       senderId: auth.currentUser.uid,
-      chatId: activeChatId,
+      chatId: chatId,
       createdAt: now,
       ...options,
     };
 
     try {
       // Ensure chat document exists
-      await setDoc(doc(db, 'chats', activeChatId), {
+      await setDoc(doc(db, 'chats', chatId), {
         updatedAt: now,
         participants: [auth.currentUser.uid, activeChatId]
       }, { merge: true });
 
       // Add message to Firestore
-      await addDoc(collection(db, 'chats', activeChatId, 'messages'), newMessage);
+      await addDoc(collection(db, 'chats', chatId, 'messages'), newMessage);
       
       // Update last message in chat document
-      await updateDoc(doc(db, 'chats', activeChatId), {
+      await updateDoc(doc(db, 'chats', chatId), {
         lastMessage: text,
         updatedAt: now
       });
@@ -342,9 +344,10 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!activeChatId) return;
+    if (!activeChatId || !auth.currentUser) return;
 
-    const messagesRef = collection(db, 'chats', activeChatId, 'messages');
+    const chatId = [auth.currentUser.uid, activeChatId].sort().join('_');
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -368,7 +371,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [activeChatId]);
+  }, [activeChatId, auth.currentUser]);
 
   const updateUserProfile = useCallback(async (profile: UserProfile) => {
     setUserProfile(profile);
