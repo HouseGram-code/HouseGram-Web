@@ -5,7 +5,7 @@ import { Contact, ViewState, Message, UserProfile } from '@/types';
 import { initialContacts, generateBotResponse } from '@/lib/mockData';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where } from 'firebase/firestore';
 
 interface ChatContextType {
   view: ViewState;
@@ -334,6 +334,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       // Update last message in chat document
       await updateDoc(doc(db, 'chats', chatId), {
         lastMessage: text,
+        lastMessageSenderId: auth.currentUser.uid,
         updatedAt: now
       });
 
@@ -350,6 +351,78 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       return { ...prev, [contact.id]: contact };
     });
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const chatsRef = collection(db, 'chats');
+    const q = query(chatsRef, where('participants', 'array-contains', user.uid));
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const newContacts: Record<string, Contact> = {};
+      
+      for (const docSnapshot of snapshot.docs) {
+        const data = docSnapshot.data();
+        const otherUserId = data.participants.find((id: string) => id !== user.uid);
+        if (!otherUserId) continue;
+
+        const userDoc = await getDoc(doc(db, 'users', otherUserId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          
+          let timeString = '';
+          if (data.updatedAt) {
+            try {
+              const date = data.updatedAt.toDate();
+              timeString = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            } catch (e) {}
+          }
+
+          const dummyMessages: Message[] = [];
+          if (data.lastMessage) {
+            dummyMessages.push({
+              id: 'dummy',
+              type: data.lastMessageSenderId === user.uid ? 'sent' : 'received',
+              text: data.lastMessage,
+              time: timeString,
+            });
+          }
+
+          newContacts[otherUserId] = {
+            id: otherUserId,
+            name: userData.name || 'User',
+            initial: (userData.name || 'U').charAt(0).toUpperCase(),
+            avatarColor: '#517da2',
+            avatarUrl: userData.avatarUrl || '',
+            statusOnline: 'в сети',
+            statusOffline: 'был(а) недавно',
+            phone: userData.phone || '',
+            bio: userData.bio || '',
+            username: userData.username || '',
+            messages: dummyMessages,
+            isTyping: false,
+            unread: 0,
+            isChannel: false,
+            isOfficial: userData.role === 'admin' || userData.email === 'goh@gmail.com'
+          };
+        }
+      }
+
+      setContacts(prev => {
+        const updated = { ...prev };
+        for (const [id, contact] of Object.entries(newContacts)) {
+          if (!updated[id]) {
+            updated[id] = contact;
+          } else if (updated[id].messages.length <= 1) {
+            updated[id] = { ...updated[id], messages: contact.messages };
+          }
+        }
+        return updated;
+      });
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   useEffect(() => {
     if (!activeChatId || !user) return;

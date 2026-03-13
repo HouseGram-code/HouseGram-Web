@@ -30,7 +30,6 @@ export const initialContacts: Record<string, Contact> = {
     ],
     isTyping: false,
     unread: 1,
-    isOfficial: true,
   },
   housegram_announcements: {
     id: 'housegram_announcements',
@@ -47,7 +46,6 @@ export const initialContacts: Record<string, Contact> = {
     isTyping: false,
     unread: 0,
     isChannel: true,
-    isOfficial: true,
   }
 };
 
