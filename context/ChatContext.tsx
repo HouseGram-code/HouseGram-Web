@@ -5,7 +5,7 @@ import { Contact, ViewState, Message, UserProfile } from '@/types';
 import { initialContacts, generateBotResponse } from '@/lib/mockData';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy } from 'firebase/firestore';
 
 interface ChatContextType {
   view: ViewState;
@@ -294,100 +294,39 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }));
   }, []);
 
-  const sendMessage = useCallback((text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string }) => {
-    if (!activeChatId || (auth.currentUser && activeChatId === auth.currentUser.uid)) return;
+  const sendMessage = useCallback(async (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string }) => {
+    if (!activeChatId || !auth.currentUser) return;
 
-    const now = new Date();
-    const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const now = serverTimestamp();
+    const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
     
-    const messageId = Date.now().toString();
-    const newMessage: Message = {
-      id: messageId,
+    const newMessage: Omit<Message, 'id'> = {
       type: 'sent',
       text,
       time: timeString,
       status: 'sending',
+      senderId: auth.currentUser.uid,
+      createdAt: now,
       ...options,
     };
 
-    setContacts(prev => {
-      const contact = prev[activeChatId];
-      if (contact.isBlocked) return prev;
+    try {
+      // Add message to Firestore
+      await addDoc(collection(db, 'chats', activeChatId, 'messages'), newMessage);
       
-      return {
-        ...prev,
-        [activeChatId]: {
-          ...contact,
-          messages: [...contact.messages, newMessage],
-          isTyping: activeChatId !== 'saved_messages',
-        }
-      };
-    });
+      // Update last message in chat document
+      await setDoc(doc(db, 'chats', activeChatId), {
+        lastMessage: text,
+        updatedAt: now,
+        participants: [auth.currentUser.uid, activeChatId] // Simplified for now
+      }, { merge: true });
 
-    playSound('send');
-
-    // Simulate sending delay
-    setTimeout(() => {
-      setContacts(prev => {
-        const contact = prev[activeChatId];
-        if (!contact) return prev;
-        
-        const updatedMessages = contact.messages.map(m => 
-          m.id === messageId ? { ...m, status: 'sent' as const } : m
-        );
-        
-        return {
-          ...prev,
-          [activeChatId]: {
-            ...contact,
-            messages: updatedMessages,
-          }
-        };
-      });
-    }, 600);
-
-    // Simulate bot response
-    if (activeChatId !== 'saved_messages') {
-      setTimeout(() => {
-        setContacts(prev => {
-          const contact = prev[activeChatId];
-          if (!contact || contact.isBlocked) return prev;
-
-          const responseText = generateBotResponse(activeChatId, text);
-          const responseTime = new Date();
-          const responseTimeString = `${responseTime.getHours().toString().padStart(2, '0')}:${responseTime.getMinutes().toString().padStart(2, '0')}`;
-          
-          const responseMsg: Message = {
-            id: (Date.now() + 1).toString(),
-            type: 'received',
-            text: responseText,
-            time: responseTimeString,
-          };
-
-          const updatedMessages = contact.messages.map(m => 
-            m.type === 'sent' ? { ...m, status: 'read' as const } : m
-          );
-
-          playSound('receive');
-          if (settingsRef.current.notificationsEnabled && document.hidden) {
-            if (Notification.permission === 'granted') {
-              new Notification(contact.name || 'HouseGram', { body: responseText });
-            }
-          }
-
-          return {
-            ...prev,
-            [activeChatId]: {
-              ...contact,
-              messages: [...updatedMessages, responseMsg],
-              isTyping: false,
-            }
-          };
-        });
-      }, 1500 + Math.random() * 1000);
+      playSound('send');
+    } catch (e) {
+      console.error('Failed to send message', e);
+      alert('Ошибка при отправке сообщения');
     }
-
-  }, [activeChatId]);
+  }, [activeChatId, playSound]);
 
   const addContact = useCallback((contact: Contact) => {
     setContacts(prev => {
@@ -395,6 +334,35 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       return { ...prev, [contact.id]: contact };
     });
   }, []);
+
+  useEffect(() => {
+    if (!activeChatId) return;
+
+    const messagesRef = collection(db, 'chats', activeChatId, 'messages');
+    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messages: Message[] = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Message));
+
+      setContacts(prev => {
+        const contact = prev[activeChatId];
+        if (!contact) return prev;
+        
+        return {
+          ...prev,
+          [activeChatId]: {
+            ...contact,
+            messages: messages,
+          }
+        };
+      });
+    });
+
+    return () => unsubscribe();
+  }, [activeChatId]);
 
   const updateUserProfile = useCallback(async (profile: UserProfile) => {
     setUserProfile(profile);

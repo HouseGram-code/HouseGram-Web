@@ -17,9 +17,13 @@ export default function ChatList() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
   useEffect(() => {
-    if (searchQuery.trim().length > 2) {
+    if (searchQuery.trim().length > 0) {
       const searchUsers = async () => {
-        const q = query(collection(db, 'users'), where('username', '>=', searchQuery), where('username', '<=', searchQuery + '\uf8ff'));
+        const queryText = searchQuery.trim().toLowerCase();
+        // Try searching by username (with or without @)
+        const usernameQuery = queryText.startsWith('@') ? queryText : `@${queryText}`;
+        
+        const q = query(collection(db, 'users'), where('username', '>=', usernameQuery), where('username', '<=', usernameQuery + '\uf8ff'));
         const snapshot = await getDocs(q);
         const results = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
