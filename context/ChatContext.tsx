@@ -306,6 +306,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       time: timeString,
       status: 'sending',
       senderId: auth.currentUser.uid,
+      chatId: activeChatId,
       createdAt: now,
       ...options,
     };

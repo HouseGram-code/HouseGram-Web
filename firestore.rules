@@ -65,7 +65,7 @@ service cloud.firestore {
              data.senderId is string && data.senderId == request.auth.uid &&
              data.text is string && data.text.size() > 0 && data.text.size() <= 4000 &&
              data.createdAt is timestamp &&
-             data.status in ['sent', 'read'];
+             data.status in ['sending', 'sent', 'read'];
     }
     
     function isValidSettings(data) {
@@ -111,22 +111,22 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    match /messages/{messageId} {
+    match /chats/{chatId}/messages/{messageId} {
       allow read: if isAuthenticated() && (
         isAdmin() || 
-        (exists(/databases/$(database)/documents/chats/$(resource.data.chatId)) && 
-         request.auth.uid in get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.participants)
+        (exists(/databases/$(database)/documents/chats/$(chatId)) && 
+         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants)
       );
       
       allow create: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) && (
-        exists(/databases/$(database)/documents/chats/$(request.resource.data.chatId)) && 
-        request.auth.uid in get(/databases/$(database)/documents/chats/$(request.resource.data.chatId)).data.participants
+        exists(/databases/$(database)/documents/chats/$(chatId)) && 
+        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
       );
       
       allow update: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) && (
         (isOwner(resource.data.senderId) && request.resource.data.text != resource.data.text && request.resource.data.createdAt == resource.data.createdAt) ||
-        (exists(/databases/$(database)/documents/chats/$(resource.data.chatId)) && 
-         request.auth.uid in get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.participants &&
+        (exists(/databases/$(database)/documents/chats/$(chatId)) && 
+         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
          request.resource.data.status == 'read' && request.resource.data.text == resource.data.text)
       );
       
