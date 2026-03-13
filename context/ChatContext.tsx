@@ -311,7 +311,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       type: 'sent',
       text,
       time: timeString,
-      status: 'sending',
+      status: 'sent',
       senderId: auth.currentUser.uid,
       chatId: chatId,
       createdAt: now,
@@ -356,13 +356,14 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     const messagesRef = collection(db, 'chats', chatId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
       const messages: Message[] = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
           ...data,
           type: data.senderId === user.uid ? 'sent' : 'received',
+          status: doc.metadata.hasPendingWrites ? 'sending' : (data.status === 'sending' ? 'sent' : data.status),
         } as Message;
       });
 
