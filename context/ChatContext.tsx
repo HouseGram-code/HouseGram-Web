@@ -314,6 +314,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     try {
+      console.log('Sending message to chatId:', chatId, 'newMessage:', newMessage);
       // Ensure chat document exists
       await setDoc(doc(db, 'chats', chatId), {
         updatedAt: now,

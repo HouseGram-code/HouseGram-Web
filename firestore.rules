@@ -118,10 +118,8 @@ service cloud.firestore {
          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants)
       );
       
-      allow create: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) && (
-        exists(/databases/$(database)/documents/chats/$(chatId)) && 
-        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
-      );
+      allow create: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) &&
+                    request.resource.data.chatId == chatId;
       
       allow update: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) && (
         (isOwner(resource.data.senderId) && request.resource.data.text != resource.data.text && request.resource.data.createdAt == resource.data.createdAt) ||
