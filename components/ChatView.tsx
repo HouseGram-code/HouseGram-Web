@@ -186,7 +186,6 @@ export default function ChatView() {
           <div className="flex-grow leading-tight pointer-events-none">
             <div className="font-medium text-[16px] flex items-center gap-1">
               {contact.name}
-              {contact.isChannel && <CheckCircle size={14} className="text-blue-500 fill-blue-500 text-white" />}
               {contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
             </div>
             <div className="text-[13px] text-[#d1e0ec]">

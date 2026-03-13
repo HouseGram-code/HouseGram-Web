@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info } from 'lucide-react';
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { storage, auth } from '@/lib/firebase';
@@ -61,19 +61,22 @@ export default function SettingsView() {
       setIsUploading(true);
       try {
         const options = {
-          maxSizeMB: 0.5, // 500 KB max
-          maxWidthOrHeight: 800,
+          maxSizeMB: 0.05, // 50 KB max for base64
+          maxWidthOrHeight: 400,
           useWebWorker: false
         };
         const compressedFile = await imageCompression(file, options);
         
-        const storageRef = ref(storage, `avatars/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, compressedFile);
-        const avatarUrl = await getDownloadURL(storageRef);
-        
-        setEditProfile({ ...editProfile, avatarUrl });
-        setUserProfile({ ...editProfile, avatarUrl });
-        setIsUploading(false);
+        // Convert to base64 to bypass Firebase Storage CORS issues
+        const reader = new FileReader();
+        reader.readAsDataURL(compressedFile);
+        reader.onloadend = async () => {
+          const base64data = reader.result as string;
+          
+          setEditProfile({ ...editProfile, avatarUrl: base64data });
+          setUserProfile({ ...editProfile, avatarUrl: base64data });
+          setIsUploading(false);
+        };
       } catch (error) {
         console.error("Error uploading avatar:", error);
         setIsUploading(false);
@@ -254,6 +257,11 @@ export default function SettingsView() {
             icon={<ShieldCheck size={24} />} 
             text="Правила и политика конфиденциальности" 
             onClick={() => setView('privacy')} 
+          />
+          <SettingsItem 
+            icon={<Info size={24} />} 
+            text="О приложении" 
+            onClick={() => setView('info')} 
           />
           <div 
             className="flex items-center py-3 gap-5 cursor-pointer hover:bg-gray-50 transition-colors"

@@ -82,7 +82,6 @@ export default function ProfileView() {
           <div className="flex flex-col">
             <div className="text-[20px] font-medium text-tg-text-primary mb-1 flex items-center gap-1">
               {contact.name}
-              {contact.isChannel && <CheckCircle size={18} className="text-blue-500 fill-blue-500 text-white" />}
               {contact.isOfficial && <BadgeCheck size={20} className="text-blue-500 fill-blue-500 text-white" />}
             </div>
             <div className="text-[14px] text-tg-secondary-text">{contact.statusOffline}</div>

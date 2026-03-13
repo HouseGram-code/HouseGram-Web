@@ -15,6 +15,7 @@ import SecurityView from '@/components/SecurityView';
 import PasscodeScreen from '@/components/PasscodeScreen';
 import AuthView from '@/components/AuthView';
 import AdminView from '@/components/AdminView';
+import InfoView from '@/components/InfoView';
 
 function AppContent() {
   const { view, isLocked, user } = useChat();
@@ -48,6 +49,7 @@ function AppContent() {
         {view === 'notifications' && <NotificationsView key="notifications" />}
         {view === 'security' && <SecurityView key="security" />}
         {view === 'admin' && <AdminView key="admin" />}
+        {view === 'info' && <InfoView key="info" />}
       </AnimatePresence>
       <SideMenu />
     </div>

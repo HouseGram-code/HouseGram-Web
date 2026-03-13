@@ -230,7 +230,6 @@ export default function ChatList() {
               <div className="flex-grow overflow-hidden flex flex-col justify-center">
                 <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1">
                   {contact.name}
-                  {contact.isChannel && <CheckCircle size={14} className="text-blue-500 fill-blue-500 text-white" />}
                   {contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
                 </div>
                 <div className="text-[14px] text-tg-secondary-text truncate leading-snug">{previewText}</div>

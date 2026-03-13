@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut, BadgeCheck } from 'lucide-react';
+import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut, BadgeCheck, Info } from 'lucide-react';
 import Image from 'next/image';
 
 export default function SideMenu() {
@@ -69,6 +69,11 @@ export default function SideMenu() {
                 icon={<HelpCircle size={24} />} 
                 text="Возможности HouseGram" 
                 onClick={() => { setView('features'); setSideMenuOpen(false); }} 
+              />
+              <MenuItem 
+                icon={<Info size={24} />} 
+                text="О приложении" 
+                onClick={() => { setView('info'); setSideMenuOpen(false); }} 
               />
               {isAdmin && (
                 <MenuItem 

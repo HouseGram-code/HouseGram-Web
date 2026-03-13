@@ -48,6 +48,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [view, setView] = useState<ViewState>('menu');
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const activeChatIdRef = useRef<string | null>(null);
   const [contacts, setContacts] = useState<Record<string, Contact>>(initialContacts);
   const [isSideMenuOpen, setSideMenuOpen] = useState(false);
   const [themeColor, setThemeColor] = useState('#517da2');
@@ -73,6 +74,10 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     settingsRef.current = { soundEnabled, notificationsEnabled };
   }, [soundEnabled, notificationsEnabled]);
+
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
 
   useEffect(() => {
     const savedPasscode = localStorage.getItem('housegram_passcode');
@@ -224,6 +229,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
     await signOut(auth);
+    setContacts(initialContacts);
     setView('auth');
   }, []);
 
@@ -413,8 +419,30 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         for (const [id, contact] of Object.entries(newContacts)) {
           if (!updated[id]) {
             updated[id] = contact;
-          } else if (updated[id].messages.length <= 1) {
-            updated[id] = { ...updated[id], messages: contact.messages };
+          } else {
+            // Update contact info
+            updated[id] = {
+              ...updated[id],
+              name: contact.name,
+              avatarUrl: contact.avatarUrl,
+              statusOnline: contact.statusOnline,
+              statusOffline: contact.statusOffline,
+              isOfficial: contact.isOfficial,
+            };
+            
+            // If we have a new last message from the chats collection, and the chat is not currently active
+            // (meaning the messages subcollection listener is not running for it), we should update the preview.
+            if (contact.messages.length > 0 && id !== activeChatIdRef.current) {
+              const newLastMsg = contact.messages[0];
+              const currentMessages = updated[id].messages;
+              
+              if (currentMessages.length === 0 || currentMessages[currentMessages.length - 1].text !== newLastMsg.text || currentMessages[currentMessages.length - 1].time !== newLastMsg.time) {
+                // Replace or append the dummy message to update the chat list preview
+                updated[id].messages = [...currentMessages.filter(m => m.id !== 'dummy'), newLastMsg];
+              }
+            } else if (updated[id].messages.length === 0) {
+              updated[id].messages = contact.messages;
+            }
           }
         }
         return updated;
