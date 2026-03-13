@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -81,6 +81,7 @@ export default function ChatList() {
       isTyping: false,
       unread: 0,
       isChannel: false,
+      isOfficial: user.role === 'admin' || user.email === 'goh@gmail.com',
     });
     setActiveChatId(user.id);
     setView('chat');
@@ -184,7 +185,10 @@ export default function ChatList() {
               {user.name?.charAt(0) || '?'}
             </div>
             <div className="flex-grow overflow-hidden flex flex-col justify-center">
-              <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate">{user.name}</div>
+              <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1">
+                {user.name}
+                {(user.role === 'admin' || user.email === 'goh@gmail.com') && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
+              </div>
               <div className="text-[14px] text-tg-secondary-text truncate leading-snug">{user.username ? (user.username.startsWith('@') ? user.username : `@${user.username}`) : ''}</div>
             </div>
           </div>
@@ -227,6 +231,7 @@ export default function ChatList() {
                 <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1">
                   {contact.name}
                   {contact.isChannel && <CheckCircle size={14} className="text-blue-500 fill-blue-500 text-white" />}
+                  {contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
                 </div>
                 <div className="text-[14px] text-tg-secondary-text truncate leading-snug">{previewText}</div>
               </div>

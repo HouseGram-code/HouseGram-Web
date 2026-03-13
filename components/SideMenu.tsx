@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut } from 'lucide-react';
+import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut, BadgeCheck } from 'lucide-react';
 import Image from 'next/image';
 
 export default function SideMenu() {
@@ -44,7 +44,10 @@ export default function SideMenu() {
                 )}
               </div>
               <div>
-                <div className="font-medium text-[15px]">{userProfile.name}</div>
+                <div className="font-medium text-[15px] flex items-center gap-1">
+                  {userProfile.name}
+                  {userProfile.isOfficial && <BadgeCheck size={16} className="text-white fill-blue-500" />}
+                </div>
               </div>
             </div>
             <ul className="py-2 flex-grow overflow-y-auto">

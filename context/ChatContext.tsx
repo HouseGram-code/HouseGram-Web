@@ -104,7 +104,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             phone: data.phone || '+7 9XX XXX XX XX',
             avatarUrl: data.avatarUrl || '',
             status: 'online',
-            lastSeen: data.lastSeen
+            lastSeen: data.lastSeen,
+            isOfficial: currentUser.email === 'goh@gmail.com' || data.role === 'admin'
           });
           
           // Set online status
@@ -142,7 +143,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
               phone: '+7 9XX XXX XX XX',
               avatarUrl: '',
               status: 'online',
-              lastSeen: new Date()
+              lastSeen: new Date(),
+              isOfficial: currentUser.email === 'goh@gmail.com'
             });
           } catch (e) {
             console.error('Failed to create user document', e);

@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File, Square, Bookmark, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File, Square, Bookmark, CheckCircle, BadgeCheck } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
@@ -187,6 +187,7 @@ export default function ChatView() {
             <div className="font-medium text-[16px] flex items-center gap-1">
               {contact.name}
               {contact.isChannel && <CheckCircle size={14} className="text-blue-500 fill-blue-500 text-white" />}
+              {contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
             </div>
             <div className="text-[13px] text-[#d1e0ec]">
               {contact.isChannel ? contact.statusOffline : (contact.isTyping ? 'печатает...' : contact.statusOffline)}

@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck } from 'lucide-react';
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { storage, auth } from '@/lib/firebase';
@@ -63,7 +63,7 @@ export default function SettingsView() {
         const options = {
           maxSizeMB: 0.5, // 500 KB max
           maxWidthOrHeight: 800,
-          useWebWorker: true
+          useWebWorker: false
         };
         const compressedFile = await imageCompression(file, options);
         
@@ -152,7 +152,10 @@ export default function SettingsView() {
                 placeholder="Имя"
               />
             ) : (
-              <div className="text-[24px] font-medium leading-tight">{userProfile.name}</div>
+              <div className="text-[24px] font-medium leading-tight flex items-center gap-1">
+                {userProfile.name}
+                {userProfile.isOfficial && <BadgeCheck size={24} className="text-white fill-blue-500" />}
+              </div>
             )}
             <div className="text-[14px] text-white/70 mt-1">{getStatusText()}</div>
           </div>

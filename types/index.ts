@@ -30,6 +30,7 @@ export interface Contact {
   unread: number;
   isBlocked?: boolean;
   isChannel?: boolean;
+  isOfficial?: boolean;
 }
 
 export interface UserProfile {
@@ -40,6 +41,7 @@ export interface UserProfile {
   avatarUrl?: string;
   status?: 'online' | 'offline';
   lastSeen?: any; // Firestore timestamp
+  isOfficial?: boolean;
 }
 
 export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'notifications' | 'security' | 'admin' | 'auth';

@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Bookmark } from 'lucide-react';
+import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -80,12 +80,25 @@ export default function ProfileView() {
             </div>
           )}
           <div className="flex flex-col">
-            <div className="text-[20px] font-medium text-tg-text-primary mb-1">{contact.name}</div>
+            <div className="text-[20px] font-medium text-tg-text-primary mb-1 flex items-center gap-1">
+              {contact.name}
+              {contact.isChannel && <CheckCircle size={18} className="text-blue-500 fill-blue-500 text-white" />}
+              {contact.isOfficial && <BadgeCheck size={20} className="text-blue-500 fill-blue-500 text-white" />}
+            </div>
             <div className="text-[14px] text-tg-secondary-text">{contact.statusOffline}</div>
           </div>
         </div>
 
         <div className="bg-tg-bg-light border-y border-tg-divider mb-2.5">
+          {contact.isOfficial && (
+            <div className="px-4 py-3 flex items-center gap-3 border-b border-tg-divider">
+              <BadgeCheck size={24} className="text-blue-500 fill-blue-500 text-white shrink-0" />
+              <div>
+                <div className="text-[16px] text-tg-text-primary">Официальный аккаунт</div>
+                <div className="text-[13px] text-tg-secondary-text">Подтверждено администрацией</div>
+              </div>
+            </div>
+          )}
           <InfoItem label="О себе" value={contact.bio} />
           {!contact.isChannel && contact.username && <InfoItem label="Имя пользователя" value={contact.username} isLink color={themeColor} />}
         </div>
