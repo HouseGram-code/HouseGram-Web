@@ -9,6 +9,8 @@ export interface Message {
   audioUrl?: string;
   fileUrl?: string;
   fileName?: string;
+  senderId?: string;
+  createdAt?: any;
 }
 
 export interface Contact {
