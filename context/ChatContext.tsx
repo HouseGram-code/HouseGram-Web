@@ -312,15 +312,20 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     try {
+      // Ensure chat document exists
+      await setDoc(doc(db, 'chats', activeChatId), {
+        updatedAt: now,
+        participants: [auth.currentUser.uid, activeChatId]
+      }, { merge: true });
+
       // Add message to Firestore
       await addDoc(collection(db, 'chats', activeChatId, 'messages'), newMessage);
       
       // Update last message in chat document
-      await setDoc(doc(db, 'chats', activeChatId), {
+      await updateDoc(doc(db, 'chats', activeChatId), {
         lastMessage: text,
-        updatedAt: now,
-        participants: [auth.currentUser.uid, activeChatId] // Simplified for now
-      }, { merge: true });
+        updatedAt: now
+      });
 
       playSound('send');
     } catch (e) {
