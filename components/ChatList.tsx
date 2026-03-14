@@ -218,6 +218,7 @@ export default function ChatList() {
                   height={50} 
                   className="rounded-full object-cover shrink-0" 
                   referrerPolicy="no-referrer"
+                  unoptimized
                 />
               ) : (
                 <div 

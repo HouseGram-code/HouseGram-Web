@@ -7,8 +7,8 @@ import Image from 'next/image';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 
-export default function SideMenu() {
-  const { setView, themeColor } = useChat();
+export default function Menu() {
+  const { setView, contacts, themeColor } = useChat();
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -32,7 +32,7 @@ export default function SideMenu() {
       <div className="flex-grow py-2">
         <MenuItem icon={Users} label="Создать группу" onClick={() => {}} />
         <MenuItem icon={Megaphone} label="Создать канал" onClick={() => {}} />
-        <MenuItem icon={Bookmark} label="Избранное" onClick={() => {}} />
+        <MenuItem icon={Bookmark} label="Избранное" onClick={() => setView('chat')} />
         <div className="h-px bg-gray-100 my-2" />
         <MenuItem icon={Settings} label="Настройки" onClick={() => setView('settings')} />
       </div>
