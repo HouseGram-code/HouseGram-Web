@@ -6,6 +6,8 @@ import { initialContacts, generateBotResponse } from '@/lib/mockData';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where } from 'firebase/firestore';
+import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 interface ChatContextType {
   view: ViewState;
@@ -15,7 +17,7 @@ interface ChatContextType {
   contacts: Record<string, Contact>;
   isSideMenuOpen: boolean;
   setSideMenuOpen: (open: boolean) => void;
-  sendMessage: (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string }) => void;
+  sendMessage: (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string; fileType?: string }) => void;
   markAsRead: (contactId: string) => void;
   themeColor: string;
   setThemeColor: (color: string) => void;
@@ -307,7 +309,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }));
   }, []);
 
-  const sendMessage = useCallback(async (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string }) => {
+  const sendMessage = useCallback(async (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string; fileType?: string }) => {
     if (!activeChatId || !auth.currentUser) return;
 
     const now = serverTimestamp();
@@ -394,6 +396,30 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             });
           }
 
+          let statusText = '';
+          if (userData.status === 'online') {
+            statusText = 'в сети';
+          } else if (userData.lastSeen) {
+            try {
+              let date;
+              if (userData.lastSeen.toDate) {
+                date = userData.lastSeen.toDate();
+              } else if (userData.lastSeen instanceof Date) {
+                date = userData.lastSeen;
+              } else {
+                date = new Date(userData.lastSeen);
+              }
+              const distance = formatDistanceToNow(date, { addSuffix: true, locale: ru });
+              if (distance === 'меньше минуты назад') {
+                statusText = 'был(а) только что';
+              } else {
+                statusText = `был(а) ${distance}`;
+              }
+            } catch (e) {
+              statusText = '';
+            }
+          }
+
           newContacts[otherUserId] = {
             id: otherUserId,
             name: userData.name || 'User',
@@ -401,7 +427,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             avatarColor: '#517da2',
             avatarUrl: userData.avatarUrl || '',
             statusOnline: 'в сети',
-            statusOffline: 'был(а) недавно',
+            statusOffline: statusText,
             phone: userData.phone || '',
             bio: userData.bio || '',
             username: userData.username || '',

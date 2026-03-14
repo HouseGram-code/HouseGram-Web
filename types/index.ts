@@ -9,6 +9,7 @@ export interface Message {
   audioUrl?: string;
   fileUrl?: string;
   fileName?: string;
+  fileType?: string;
   senderId?: string;
   createdAt?: any;
   chatId?: string;

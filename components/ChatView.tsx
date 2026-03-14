@@ -8,6 +8,7 @@ import Image from 'next/image';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { auth, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import ReactPlayer from 'react-player';
 
 const isOnlyEmojis = (str: string) => {
   const noSpace = str.replace(/\s/g, '');
@@ -120,14 +121,30 @@ export default function ChatView() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    let file = e.target.files?.[0];
     if (file) {
       setShowAttachMenu(false);
       try {
+        if (file.type.startsWith('image/')) {
+          const imageCompression = (await import('browser-image-compression')).default;
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          };
+          file = await imageCompression(file, options);
+        }
+
         const storageRef = ref(storage, `files/${auth.currentUser?.uid}/${Date.now()}_${file.name}`);
         await uploadBytes(storageRef, file);
         const fileUrl = await getDownloadURL(storageRef);
-        sendMessage(`Файл: ${file.name}`, { fileUrl, fileName: file.name });
+        
+        let messageText = `Файл: ${file.name}`;
+        if (file.type.startsWith('image/')) messageText = 'Фото';
+        else if (file.type.startsWith('video/')) messageText = 'Видео';
+        else if (file.type.startsWith('audio/')) messageText = 'Аудио';
+
+        sendMessage(messageText, { fileUrl, fileName: file.name, fileType: file.type });
       } catch (error) {
         console.error('Error uploading file:', error);
         alert('Ошибка при загрузке файла');
@@ -284,9 +301,25 @@ export default function ChatView() {
                   <audio controls src={msg.audioUrl} className="h-8 w-48" />
                 </div>
               ) : msg.fileUrl ? (
-                <div className="flex items-center gap-2 mb-1 bg-black/5 p-2 rounded-lg">
-                  <div className="p-2 bg-blue-500 text-white rounded-full"><File size={16} /></div>
-                  <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline truncate max-w-[150px]">{msg.fileName}</a>
+                <div className="mb-1">
+                  {msg.fileType?.startsWith('image/') ? (
+                    <img src={msg.fileUrl} alt={msg.fileName} className="max-w-full rounded-lg object-contain max-h-[300px]" />
+                  ) : msg.fileType?.startsWith('video/') || msg.fileType?.startsWith('audio/') ? (
+                    <div className="rounded-lg overflow-hidden max-w-full">
+                      <ReactPlayer 
+                        src={msg.fileUrl} 
+                        controls 
+                        width="100%" 
+                        height={msg.fileType?.startsWith('audio/') ? "50px" : "auto"}
+                        style={{ maxWidth: '300px' }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-black/5 p-2 rounded-lg">
+                      <div className="p-2 bg-blue-500 text-white rounded-full"><File size={16} /></div>
+                      <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline truncate max-w-[150px]">{msg.fileName}</a>
+                    </div>
+                  )}
                 </div>
               ) : isJumbo ? (
                 <div className={`flex flex-wrap gap-1 items-center ${msg.type === 'sent' ? 'justify-end' : 'justify-start'}`}>

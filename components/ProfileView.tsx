@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle, MoreVertical, Download } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -12,6 +12,8 @@ export default function ProfileView() {
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
+  const [showAvatar, setShowAvatar] = useState(false);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
 
   if (!contact) return null;
 
@@ -67,9 +69,10 @@ export default function ProfileView() {
               alt={contact.name} 
               width={70} 
               height={70} 
-              className="rounded-full object-cover shrink-0" 
+              className="rounded-full object-cover shrink-0 cursor-pointer" 
               referrerPolicy="no-referrer"
               unoptimized
+              onClick={() => setShowAvatar(true)}
             />
           ) : (
             <div 
@@ -112,6 +115,66 @@ export default function ProfileView() {
           )}
         </div>
       </div>
+
+      {/* Avatar Fullscreen Viewer */}
+      <AnimatePresence>
+        {showAvatar && contact.avatarUrl && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black flex flex-col"
+          >
+            <div className="flex items-center justify-between p-4 text-white bg-gradient-to-b from-black/50 to-transparent absolute top-0 left-0 w-full z-10">
+              <button 
+                onClick={() => setShowAvatar(false)}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <ArrowLeft size={24} />
+              </button>
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setShowAvatarMenu(!showAvatarMenu)}
+                  className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <MoreVertical size={24} />
+                </button>
+                
+                {showAvatarMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowAvatarMenu(false)} />
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-50 text-black">
+                      <a 
+                        href={contact.avatarUrl}
+                        download={`avatar_${contact.name}.jpg`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setShowAvatarMenu(false)}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px] flex items-center gap-2"
+                      >
+                        <Download size={18} />
+                        Скачать
+                      </a>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex-grow flex items-center justify-center p-4 relative">
+              <Image 
+                src={contact.avatarUrl} 
+                alt={contact.name} 
+                fill
+                className="object-contain" 
+                referrerPolicy="no-referrer"
+                unoptimized
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Share Modal */}
       <AnimatePresence>

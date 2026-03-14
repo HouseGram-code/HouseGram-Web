@@ -70,11 +70,6 @@ export default function SideMenu() {
                 text="Возможности HouseGram" 
                 onClick={() => { setView('features'); setSideMenuOpen(false); }} 
               />
-              <MenuItem 
-                icon={<Info size={24} />} 
-                text="О приложении" 
-                onClick={() => { setView('info'); setSideMenuOpen(false); }} 
-              />
               {isAdmin && (
                 <MenuItem 
                   icon={<Shield size={24} />} 

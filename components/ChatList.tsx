@@ -42,7 +42,7 @@ export default function ChatList() {
   }, [searchQuery]);
 
   const handleSearchResultClick = (user: any) => {
-    let statusText = 'был(а) недавно';
+    let statusText = '';
     if (user.status === 'online') {
       statusText = 'в сети';
     } else if (user.lastSeen) {
@@ -62,7 +62,7 @@ export default function ChatList() {
           statusText = `был(а) ${distance}`;
         }
       } catch (e) {
-        statusText = 'был(а) недавно';
+        statusText = '';
       }
     }
 

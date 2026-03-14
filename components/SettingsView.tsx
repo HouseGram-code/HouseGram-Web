@@ -49,10 +49,10 @@ export default function SettingsView() {
         }
         return `был(а) ${distance}`;
       } catch (e) {
-        return 'был(а) недавно';
+        return '';
       }
     }
-    return 'был(а) недавно';
+    return '';
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,11 +257,6 @@ export default function SettingsView() {
             icon={<ShieldCheck size={24} />} 
             text="Правила и политика конфиденциальности" 
             onClick={() => setView('privacy')} 
-          />
-          <SettingsItem 
-            icon={<Info size={24} />} 
-            text="О приложении" 
-            onClick={() => setView('info')} 
           />
           <div 
             className="flex items-center py-3 gap-5 cursor-pointer hover:bg-gray-50 transition-colors"
