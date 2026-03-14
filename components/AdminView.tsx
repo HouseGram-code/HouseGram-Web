@@ -54,6 +54,18 @@ export default function AdminView() {
     }
   };
 
+  const setAsAdmin = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'admin'
+      });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'admin' } : u));
+    } catch (err) {
+      console.error('Error setting as admin', err);
+      alert('Ошибка при назначении администратором');
+    }
+  };
+
   const toggleMaintenance = async () => {
     try {
       await setDoc(doc(db, 'settings', 'global'), {
@@ -192,20 +204,28 @@ export default function AdminView() {
                   </div>
                   
                   {user.role !== 'admin' && (
-                    <button
-                      onClick={() => toggleBan(user.id, user.isBanned)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                        user.isBanned 
-                          ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                          : 'bg-red-100 text-red-700 hover:bg-red-200'
-                      }`}
-                    >
-                      {user.isBanned ? (
-                        <><CheckCircle size={16} /> Разбанить</>
-                      ) : (
-                        <><Ban size={16} /> Забанить</>
-                      )}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setAsAdmin(user.id)}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      >
+                        <Shield size={16} /> Админ
+                      </button>
+                      <button
+                        onClick={() => toggleBan(user.id, user.isBanned)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                          user.isBanned 
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        }`}
+                      >
+                        {user.isBanned ? (
+                          <><CheckCircle size={16} /> Разбанить</>
+                        ) : (
+                          <><Ban size={16} /> Забанить</>
+                        )}
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}

@@ -294,11 +294,25 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }));
   }, []);
 
-  const clearHistory = useCallback((contactId: string) => {
-    setContacts(prev => ({
-      ...prev,
-      [contactId]: { ...prev[contactId], messages: [] }
-    }));
+  const clearHistory = useCallback(async (contactId: string) => {
+    if (!auth.currentUser) return;
+    const chatId = [auth.currentUser.uid, contactId].sort().join('_');
+    
+    try {
+      const messagesRef = collection(db, 'chats', chatId, 'messages');
+      const snapshot = await getDocs(messagesRef);
+      for (const docSnapshot of snapshot.docs) {
+        await deleteDoc(docSnapshot.ref);
+      }
+      
+      setContacts(prev => ({
+        ...prev,
+        [contactId]: { ...prev[contactId], messages: [] }
+      }));
+    } catch (e) {
+      console.error('Failed to clear history', e);
+      alert('Ошибка при очистке истории');
+    }
   }, []);
 
   const deleteChat = useCallback((contactId: string) => {
