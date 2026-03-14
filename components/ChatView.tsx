@@ -9,6 +9,7 @@ import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { auth, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import ReactPlayer from 'react-player';
+import { useDropzone } from 'react-dropzone';
 
 const isOnlyEmojis = (str: string) => {
   const noSpace = str.replace(/\s/g, '');
@@ -17,7 +18,7 @@ const isOnlyEmojis = (str: string) => {
 };
 
 export default function ChatView() {
-  const { contacts, activeChatId, setView, sendMessage, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat } = useChat();
+  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat } = useChat();
   const [inputText, setInputText] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
@@ -25,9 +26,15 @@ export default function ChatView() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   
+  // Message actions state
+  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [editingMessage, setEditingMessage] = useState<any>(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,11 +61,63 @@ export default function ChatView() {
     };
   }, []);
 
+  const handleFileUpload = async (file: File) => {
+    if (file) {
+      setShowAttachMenu(false);
+      setIsUploadingFile(true);
+      try {
+        let fileToUpload = file;
+        if (file.type.startsWith('image/')) {
+          const imageCompression = (await import('browser-image-compression')).default;
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          };
+          fileToUpload = await imageCompression(file, options);
+        }
+
+        const storageRef = ref(storage, `files/${auth.currentUser?.uid}/${Date.now()}_${fileToUpload.name}`);
+        await uploadBytes(storageRef, fileToUpload);
+        const fileUrl = await getDownloadURL(storageRef);
+        
+        let messageText = `Файл: ${fileToUpload.name}`;
+        if (fileToUpload.type.startsWith('image/')) messageText = 'Фото';
+        else if (fileToUpload.type.startsWith('video/')) messageText = 'Видео';
+        else if (fileToUpload.type.startsWith('audio/')) messageText = 'Аудио';
+
+        sendMessage(messageText, { fileUrl, fileName: fileToUpload.name, fileType: fileToUpload.type });
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('Ошибка при загрузке файла');
+      } finally {
+        setIsUploadingFile(false);
+      }
+    }
+  };
+
+  const onDrop = (acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      handleFileUpload(acceptedFiles[0]);
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+    onDrop,
+    noClick: true,
+    noKeyboard: true
+  });
+
   if (!contact) return null;
 
   const handleSend = () => {
     if (inputText.trim() && !contact.isBlocked) {
-      sendMessage(inputText.trim());
+      if (editingMessage) {
+        editMessage(editingMessage.id, inputText.trim());
+        setEditingMessage(null);
+      } else {
+        sendMessage(inputText.trim());
+      }
       setInputText('');
       setShowEmojiPicker(false);
     }
@@ -118,38 +177,6 @@ export default function ChatView() {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    let file = e.target.files?.[0];
-    if (file) {
-      setShowAttachMenu(false);
-      try {
-        if (file.type.startsWith('image/')) {
-          const imageCompression = (await import('browser-image-compression')).default;
-          const options = {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1920,
-            useWebWorker: true,
-          };
-          file = await imageCompression(file, options);
-        }
-
-        const storageRef = ref(storage, `files/${auth.currentUser?.uid}/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, file);
-        const fileUrl = await getDownloadURL(storageRef);
-        
-        let messageText = `Файл: ${file.name}`;
-        if (file.type.startsWith('image/')) messageText = 'Фото';
-        else if (file.type.startsWith('video/')) messageText = 'Видео';
-        else if (file.type.startsWith('audio/')) messageText = 'Аудио';
-
-        sendMessage(messageText, { fileUrl, fileName: file.name, fileType: file.type });
-      } catch (error) {
-        console.error('Error uploading file:', error);
-        alert('Ошибка при загрузке файла');
-      }
-    }
   };
 
   return (
@@ -246,6 +273,7 @@ export default function ChatView() {
       </div>
 
       <div 
+        {...getRootProps()}
         className="flex-grow overflow-y-auto p-2.5 pt-14 flex flex-col no-scrollbar relative z-10"
         style={{ 
           backgroundImage: wallpaper ? `url('${wallpaper}')` : 'none',
@@ -253,8 +281,25 @@ export default function ChatView() {
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
-        onClick={() => { setShowEmojiPicker(false); setShowAttachMenu(false); }}
+        onClick={(e) => { 
+          setShowEmojiPicker(false); 
+          setShowAttachMenu(false); 
+          const onClick = getRootProps().onClick;
+          if (onClick) onClick(e as any);
+        }}
       >
+        <input {...getInputProps()} />
+        {isDragActive && (
+          <div className="absolute inset-0 z-50 bg-blue-500/20 backdrop-blur-sm flex items-center justify-center border-4 border-dashed border-blue-500 rounded-lg m-2">
+            <div className="bg-white px-6 py-4 rounded-2xl shadow-lg flex flex-col items-center gap-3">
+              <div className="w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center">
+                <File size={32} />
+              </div>
+              <p className="text-lg font-medium text-gray-900">Отпустите файлы здесь</p>
+              <p className="text-sm text-gray-500">для отправки в чат</p>
+            </div>
+          </div>
+        )}
         {contact.id === 'saved_messages' && contact.messages.length === 0 && (
           <div className="flex-grow flex items-center justify-center p-4">
             <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 max-w-sm text-center shadow-sm">
@@ -288,7 +333,11 @@ export default function ChatView() {
           return (
             <div 
               key={msg.id} 
-              className={`message max-w-[75%] px-3 py-1.5 mb-1.5 rounded-[18px] relative break-words flex flex-col ${
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedMessage(msg);
+              }}
+              className={`message max-w-[75%] px-3 py-1.5 mb-1.5 rounded-[18px] relative break-words flex flex-col cursor-pointer ${
                 isJumbo 
                   ? `bg-transparent ${msg.type === 'sent' ? 'self-end' : 'self-start'}`
                   : msg.type === 'sent' 
@@ -296,6 +345,11 @@ export default function ChatView() {
                     : 'bg-tg-received-bubble self-start rounded-bl-[5px] message-tail-received shadow-sm text-[15px] leading-snug'
               }`}
             >
+              {msg.forwardedFrom && (
+                <div className="text-[12px] text-tg-secondary-text mb-1 italic">
+                  Переслано от: {msg.forwardedFrom}
+                </div>
+              )}
               {msg.audioUrl ? (
                 <div className="mb-1">
                   <audio controls src={msg.audioUrl} className="h-8 w-48" />
@@ -337,6 +391,7 @@ export default function ChatView() {
                 isJumbo ? 'bg-black/20 text-white px-1.5 py-0.5 rounded-full backdrop-blur-sm mt-1' :
                 msg.type === 'sent' ? 'text-[#70a050]' : 'text-tg-secondary-text'
               }`}>
+                {msg.isEdited && <span className="mr-1 italic">изменено</span>}
                 <span>{msg.time}</span>
                 {msg.type === 'sent' && (
                   msg.status === 'sending' ? <Clock size={12} /> :
@@ -386,9 +441,24 @@ export default function ChatView() {
           </span>
         </div>
       ) : (
-        <div className={`flex items-end px-2.5 py-2 border-t border-tg-divider shrink-0 gap-1.5 z-30 transition-colors relative ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
-          
-          {/* Attachment Menu */}
+        <div className="flex flex-col shrink-0 z-30">
+          {editingMessage && (
+            <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-t border-gray-200">
+              <div className="flex flex-col overflow-hidden">
+                <span className="text-blue-500 text-xs font-medium">Редактирование</span>
+                <span className="text-sm text-gray-600 truncate">{editingMessage.text || 'Вложение'}</span>
+              </div>
+              <button 
+                onClick={() => { setEditingMessage(null); setInputText(''); }}
+                className="p-1 text-gray-400 hover:text-gray-600"
+              >
+                <Square size={16} />
+              </button>
+            </div>
+          )}
+          <div className={`flex items-end px-2.5 py-2 border-t border-tg-divider gap-1.5 transition-colors relative ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
+            
+            {/* Attachment Menu */}
           <AnimatePresence>
             {showAttachMenu && (
               <motion.div 
@@ -397,7 +467,11 @@ export default function ChatView() {
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 className="absolute bottom-14 left-2 bg-white rounded-xl shadow-lg border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[160px]"
               >
-                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    handleFileUpload(e.target.files[0]);
+                  }
+                }} />
                 <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
                   <div className="text-blue-500"><ImageIcon size={20} /></div>
                   <span>Фото / Видео</span>
@@ -441,7 +515,11 @@ export default function ChatView() {
             )}
           </div>
 
-          {isRecording ? (
+          {isUploadingFile ? (
+            <div className="w-10 h-10 p-2 rounded-full mb-0.5 flex items-center justify-center text-white" style={{ backgroundColor: themeColor }}>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : isRecording ? (
             <div className="flex items-center gap-2 mb-0.5">
               <div className="flex items-center gap-1.5 px-2 text-red-500 font-medium">
                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -470,6 +548,7 @@ export default function ChatView() {
               <Mic size={24} />
             </button>
           )}
+        </div>
         </div>
       )}
 
@@ -542,6 +621,109 @@ export default function ChatView() {
           </div>
         )}
       </AnimatePresence>
+      {/* Message Context Menu */}
+      <AnimatePresence>
+        {selectedMessage && (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50" onClick={() => setSelectedMessage(null)}
+            />
+            <motion.div 
+              initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }}
+              className="bg-white rounded-t-2xl sm:rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10 pb-6 sm:pb-0"
+            >
+              <div className="p-4 border-b border-gray-100">
+                <p className="text-gray-500 text-sm truncate">{selectedMessage.text || 'Вложение'}</p>
+              </div>
+              <div className="flex flex-col">
+                {selectedMessage.type === 'sent' && (
+                  <button 
+                    onClick={() => {
+                      setEditingMessage(selectedMessage);
+                      setInputText(selectedMessage.text);
+                      setSelectedMessage(null);
+                    }}
+                    className="w-full text-left px-5 py-3.5 hover:bg-gray-50 text-[16px] border-b border-gray-100 flex items-center gap-3"
+                  >
+                    <span className="text-blue-500">Изменить</span>
+                  </button>
+                )}
+                <button 
+                  onClick={() => {
+                    setShowForwardModal(true);
+                  }}
+                  className="w-full text-left px-5 py-3.5 hover:bg-gray-50 text-[16px] border-b border-gray-100 flex items-center gap-3"
+                >
+                  <span className="text-gray-800">Переслать</span>
+                </button>
+                {selectedMessage.type === 'sent' && (
+                  <button 
+                    onClick={() => {
+                      deleteMessage(selectedMessage.id);
+                      setSelectedMessage(null);
+                    }}
+                    className="w-full text-left px-5 py-3.5 hover:bg-gray-50 text-[16px] flex items-center gap-3"
+                  >
+                    <span className="text-red-500">Удалить</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Forward Modal */}
+      <AnimatePresence>
+        {showForwardModal && selectedMessage && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50" onClick={() => setShowForwardModal(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10 flex flex-col max-h-[80vh]"
+            >
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-[18px] font-medium text-black">Переслать сообщение</h3>
+              </div>
+              <div className="overflow-y-auto flex-grow p-2">
+                {Object.values(contacts).map(c => (
+                  <div 
+                    key={c.id}
+                    onClick={() => {
+                      forwardMessage(selectedMessage, c.id);
+                      setShowForwardModal(false);
+                      setSelectedMessage(null);
+                    }}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                  >
+                    {c.avatarUrl ? (
+                      <Image src={c.avatarUrl} alt={c.name} width={40} height={40} className="rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: c.avatarColor }}>
+                        {c.initial}
+                      </div>
+                    )}
+                    <div className="font-medium">{c.name}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 border-t border-gray-200">
+                <button 
+                  onClick={() => setShowForwardModal(false)}
+                  className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Отмена
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </motion.div>
   );
 }

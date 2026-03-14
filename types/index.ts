@@ -13,6 +13,8 @@ export interface Message {
   senderId?: string;
   createdAt?: any;
   chatId?: string;
+  isEdited?: boolean;
+  forwardedFrom?: string;
 }
 
 export interface Contact {
@@ -45,4 +47,4 @@ export interface UserProfile {
   isOfficial?: boolean;
 }
 
-export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'notifications' | 'security' | 'admin' | 'auth' | 'info';
+export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'notifications' | 'security' | 'admin' | 'auth' | 'info' | 'system-status';

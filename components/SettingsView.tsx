@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Activity } from 'lucide-react';
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { storage, auth } from '@/lib/firebase';
@@ -246,6 +246,11 @@ export default function SettingsView() {
             icon={<Lock size={24} />} 
             text="Конфиденциальность" 
             onClick={() => setView('security')} 
+          />
+          <SettingsItem 
+            icon={<Activity size={24} />} 
+            text="Состояние мессенджера" 
+            onClick={() => setView('system-status')} 
           />
           <SettingsItem icon={<Database size={24} />} text="Данные и память" soon />
           <SettingsItem 

@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 
 export default function AdminView() {
-  const { setView, themeColor, isGlassEnabled, isAdmin } = useChat();
+  const { setView, themeColor, isGlassEnabled, isAdmin, systemStatus } = useChat();
   const [users, setUsers] = useState<any[]>([]);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -65,6 +65,17 @@ export default function AdminView() {
     }
   };
 
+  const updateSystemStatus = async (status: 'green' | 'yellow' | 'red' | 'blue', message: string) => {
+    try {
+      await setDoc(doc(db, 'settings', 'global'), {
+        systemStatus: { status, message }
+      }, { merge: true });
+    } catch (err) {
+      console.error('Error updating system status', err);
+      alert('Ошибка при изменении статуса системы');
+    }
+  };
+
   if (!isAdmin) return null;
 
   return (
@@ -104,6 +115,56 @@ export default function AdminView() {
             <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isMaintenance ? 'bg-orange-500' : 'bg-gray-300'}`}>
               <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isMaintenance ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white border-y border-gray-100 mb-4">
+          <div className="px-4 py-2 text-[14px] font-medium" style={{ color: themeColor }}>Статус мессенджера</div>
+          
+          <div className="p-4 flex flex-col gap-3">
+            <button 
+              onClick={() => updateSystemStatus('green', 'Все системы работают в штатном режиме')}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${systemStatus?.status === 'green' ? 'bg-green-50 border-green-200' : 'border-gray-100 hover:bg-gray-50'}`}
+            >
+              <CheckCircle size={24} className="text-green-500" />
+              <div className="text-left">
+                <div className="font-medium text-gray-900">В норме (Зеленый)</div>
+                <div className="text-sm text-gray-500">Все работает стабильно</div>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => updateSystemStatus('yellow', 'Наблюдается повышенная нагрузка на серверы')}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${systemStatus?.status === 'yellow' ? 'bg-yellow-50 border-yellow-200' : 'border-gray-100 hover:bg-gray-50'}`}
+            >
+              <AlertTriangle size={24} className="text-yellow-500" />
+              <div className="text-left">
+                <div className="font-medium text-gray-900">Нагрузка (Желтый)</div>
+                <div className="text-sm text-gray-500">Возможны задержки</div>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => updateSystemStatus('red', 'Произошел критический сбой. Мы уже работаем над решением.')}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${systemStatus?.status === 'red' ? 'bg-red-50 border-red-200' : 'border-gray-100 hover:bg-gray-50'}`}
+            >
+              <Ban size={24} className="text-red-500" />
+              <div className="text-left">
+                <div className="font-medium text-gray-900">Сбой (Красный)</div>
+                <div className="text-sm text-gray-500">Критическая ошибка</div>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => updateSystemStatus('blue', 'Системы восстанавливаются после сбоя')}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${systemStatus?.status === 'blue' ? 'bg-blue-50 border-blue-200' : 'border-gray-100 hover:bg-gray-50'}`}
+            >
+              <Settings size={24} className="text-blue-500" />
+              <div className="text-left">
+                <div className="font-medium text-gray-900">Восстановление (Синий)</div>
+                <div className="text-sm text-gray-500">Возврат в штатный режим</div>
+              </div>
+            </button>
           </div>
         </div>
 

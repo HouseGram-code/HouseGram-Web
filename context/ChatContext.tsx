@@ -5,7 +5,7 @@ import { Contact, ViewState, Message, UserProfile } from '@/types';
 import { initialContacts, generateBotResponse } from '@/lib/mockData';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where, deleteDoc } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -17,7 +17,10 @@ interface ChatContextType {
   contacts: Record<string, Contact>;
   isSideMenuOpen: boolean;
   setSideMenuOpen: (open: boolean) => void;
-  sendMessage: (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string; fileType?: string }) => void;
+  sendMessage: (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string; fileType?: string; forwardedFrom?: string }) => void;
+  editMessage: (messageId: string, newText: string) => void;
+  deleteMessage: (messageId: string) => void;
+  forwardMessage: (message: Message, targetChatId: string) => void;
   markAsRead: (contactId: string) => void;
   themeColor: string;
   setThemeColor: (color: string) => void;
@@ -41,6 +44,7 @@ interface ChatContextType {
   user: User | null;
   isAdmin: boolean;
   isMaintenance: boolean;
+  systemStatus: { status: 'green' | 'yellow' | 'red' | 'blue'; message: string };
   logout: () => void;
   addContact: (contact: Contact) => void;
 }
@@ -69,6 +73,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMaintenance, setIsMaintenance] = useState(false);
+  const [systemStatus, setSystemStatus] = useState<{ status: 'green' | 'yellow' | 'red' | 'blue'; message: string }>({ status: 'green', message: 'Все системы работают в штатном режиме' });
   const [authReady, setAuthReady] = useState(false);
 
   const settingsRef = useRef({ soundEnabled, notificationsEnabled });
@@ -207,7 +212,11 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (doc) => {
       if (doc.exists()) {
-        setIsMaintenance(doc.data().maintenanceMode || false);
+        const data = doc.data();
+        setIsMaintenance(data.maintenanceMode || false);
+        if (data.systemStatus) {
+          setSystemStatus(data.systemStatus);
+        }
       }
     });
 
@@ -309,7 +318,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }));
   }, []);
 
-  const sendMessage = useCallback(async (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string; fileType?: string }) => {
+  const sendMessage = useCallback(async (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string; fileType?: string; forwardedFrom?: string }) => {
     if (!activeChatId || !auth.currentUser) return;
 
     const now = serverTimestamp();
@@ -353,6 +362,67 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [activeChatId, playSound]);
 
+  const editMessage = useCallback(async (messageId: string, newText: string) => {
+    if (!activeChatId || !auth.currentUser) return;
+    const chatId = [auth.currentUser.uid, activeChatId].sort().join('_');
+    try {
+      await updateDoc(doc(db, 'chats', chatId, 'messages', messageId), {
+        text: newText,
+        isEdited: true
+      });
+    } catch (e) {
+      console.error('Failed to edit message', e);
+    }
+  }, [activeChatId]);
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    if (!activeChatId || !auth.currentUser) return;
+    const chatId = [auth.currentUser.uid, activeChatId].sort().join('_');
+    try {
+      await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
+    } catch (e) {
+      console.error('Failed to delete message', e);
+    }
+  }, [activeChatId]);
+
+  const forwardMessage = useCallback(async (message: Message, targetChatId: string) => {
+    if (!auth.currentUser) return;
+    const chatId = [auth.currentUser.uid, targetChatId].sort().join('_');
+    const now = serverTimestamp();
+    const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
+    
+    const newMessage: Omit<Message, 'id'> = {
+      type: 'sent',
+      text: message.text,
+      time: timeString,
+      status: 'sent',
+      senderId: auth.currentUser.uid,
+      chatId: chatId,
+      createdAt: now,
+      audioUrl: message.audioUrl,
+      fileUrl: message.fileUrl,
+      fileName: message.fileName,
+      fileType: message.fileType,
+      forwardedFrom: message.forwardedFrom || message.senderId || 'Unknown',
+    };
+
+    try {
+      await setDoc(doc(db, 'chats', chatId), {
+        updatedAt: now,
+        participants: [auth.currentUser.uid, targetChatId]
+      }, { merge: true });
+      await addDoc(collection(db, 'chats', chatId, 'messages'), newMessage);
+      await updateDoc(doc(db, 'chats', chatId), {
+        lastMessage: message.text || 'Пересланное сообщение',
+        lastMessageSenderId: auth.currentUser.uid,
+        updatedAt: now
+      });
+      playSound('send');
+    } catch (e) {
+      console.error('Failed to forward message', e);
+    }
+  }, [playSound]);
+
   const addContact = useCallback((contact: Contact) => {
     setContacts(prev => {
       if (prev[contact.id]) return prev;
@@ -375,28 +445,42 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         if (!otherUserId) continue;
 
         const userDoc = await getDoc(doc(db, 'users', otherUserId));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
+        let userData: any = {};
+        let isSavedMessages = false;
+
+        if (otherUserId === 'saved_messages') {
+          isSavedMessages = true;
+          userData = {
+            name: 'Избранное',
+            avatarColor: '#517da2',
+            role: 'user'
+          };
+        } else if (userDoc.exists()) {
+          userData = userDoc.data();
+        } else {
+          continue;
+        }
           
-          let timeString = '';
-          if (data.updatedAt) {
-            try {
-              const date = data.updatedAt.toDate();
-              timeString = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-            } catch (e) {}
-          }
+        let timeString = '';
+        if (data.updatedAt) {
+          try {
+            const date = data.updatedAt.toDate();
+            timeString = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+          } catch (e) {}
+        }
 
-          const dummyMessages: Message[] = [];
-          if (data.lastMessage) {
-            dummyMessages.push({
-              id: 'dummy',
-              type: data.lastMessageSenderId === user.uid ? 'sent' : 'received',
-              text: data.lastMessage,
-              time: timeString,
-            });
-          }
+        const dummyMessages: Message[] = [];
+        if (data.lastMessage) {
+          dummyMessages.push({
+            id: 'dummy',
+            type: data.lastMessageSenderId === user.uid ? 'sent' : 'received',
+            text: data.lastMessage,
+            time: timeString,
+          });
+        }
 
-          let statusText = '';
+        let statusText = '';
+        if (!isSavedMessages) {
           if (userData.status === 'online') {
             statusText = 'в сети';
           } else if (userData.lastSeen) {
@@ -419,25 +503,25 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
               statusText = '';
             }
           }
-
-          newContacts[otherUserId] = {
-            id: otherUserId,
-            name: userData.name || 'User',
-            initial: (userData.name || 'U').charAt(0).toUpperCase(),
-            avatarColor: '#517da2',
-            avatarUrl: userData.avatarUrl || '',
-            statusOnline: 'в сети',
-            statusOffline: statusText,
-            phone: userData.phone || '',
-            bio: userData.bio || '',
-            username: userData.username || '',
-            messages: dummyMessages,
-            isTyping: false,
-            unread: 0,
-            isChannel: false,
-            isOfficial: userData.role === 'admin' || userData.email === 'goh@gmail.com'
-          };
         }
+
+        newContacts[otherUserId] = {
+          id: otherUserId,
+          name: userData.name || 'User',
+          initial: (userData.name || 'U').charAt(0).toUpperCase(),
+          avatarColor: userData.avatarColor || '#517da2',
+          avatarUrl: userData.avatarUrl || '',
+          statusOnline: isSavedMessages ? '' : 'в сети',
+          statusOffline: statusText,
+          phone: userData.phone || '',
+          bio: userData.bio || '',
+          username: userData.username || '',
+          messages: dummyMessages,
+          isTyping: false,
+          unread: 0,
+          isChannel: false,
+          isOfficial: userData.role === 'admin' || userData.email === 'goh@gmail.com'
+        };
       }
 
       setContacts(prev => {
@@ -537,7 +621,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       activeChatId, setActiveChatId,
       contacts,
       isSideMenuOpen, setSideMenuOpen,
-      sendMessage, markAsRead,
+      sendMessage, editMessage, deleteMessage, forwardMessage, markAsRead,
       themeColor, setThemeColor,
       wallpaper, setWallpaper,
       isGlassEnabled, setIsGlassEnabled,
@@ -547,7 +631,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode,
-      user, isAdmin, isMaintenance, logout
+      user, isAdmin, isMaintenance, systemStatus, logout
     }}>
       {!authReady ? (
         <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
