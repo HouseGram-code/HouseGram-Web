@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, User, Search, MessageSquare, Bookmark, Users, Megaphone, X, ShieldAlert } from 'lucide-react';
+import { Settings, User, Search, MessageSquare, Bookmark, Users, Megaphone, X, ShieldAlert, BadgeCheck } from 'lucide-react';
 import Image from 'next/image';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -51,8 +51,13 @@ export default function SideMenu() {
                   <User size={32} />
                 )}
               </div>
-              <div className="font-medium text-[18px]">{userProfile?.name || auth.currentUser?.displayName || 'Пользователь'}</div>
-              <div className="text-[14px] opacity-80">{userProfile?.username ? `@${userProfile.username}` : auth.currentUser?.email}</div>
+              <div className="font-medium text-[18px] flex items-center gap-1">
+                {userProfile?.name || auth.currentUser?.displayName || 'Пользователь'}
+                {userProfile?.isOfficial && <BadgeCheck size={18} className="text-blue-400" />}
+              </div>
+              <div className="text-[14px] opacity-80">
+                {userProfile?.username ? (userProfile.username.startsWith('@') ? userProfile.username : `@${userProfile.username}`) : auth.currentUser?.email}
+              </div>
             </div>
 
             <div className="flex-grow py-2 overflow-y-auto">
