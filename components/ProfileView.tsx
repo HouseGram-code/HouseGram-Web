@@ -2,11 +2,11 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, MoreVertical, Phone, Video, Search, Bell, Ban, Trash2 } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Bell, Ban, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function ProfileView() {
-  const { setView, contacts, activeChatId, themeColor, isGlassEnabled, blockContact } = useChat();
+  const { setView, contacts, activeChatId, themeColor, isGlassEnabled, blockContact, toggleMute, deleteChat } = useChat();
   const contact = activeChatId ? contacts[activeChatId] : null;
 
   if (!contact) return null;
@@ -49,20 +49,33 @@ export default function ProfileView() {
         </div>
 
         <div className="bg-white p-2 mb-4">
-          <ProfileAction icon={Phone} label="Позвонить" />
-          <ProfileAction icon={Video} label="Видеозвонок" />
           <ProfileAction icon={Search} label="Поиск" />
         </div>
 
         <div className="bg-white p-2">
-          <ProfileAction icon={Bell} label="Уведомления" />
           <ProfileAction 
-            icon={Ban} 
-            label={contact.isBlocked ? "Разблокировать" : "Заблокировать"} 
-            onClick={() => blockContact(contact.id)}
-            className={contact.isBlocked ? "text-blue-500" : "text-red-500"}
+            icon={Bell} 
+            label={contact.isMuted ? "Включить уведомления" : "Выключить уведомления"} 
+            onClick={() => toggleMute(contact.id)}
+            className={contact.isMuted ? "text-gray-500" : ""}
           />
-          <ProfileAction icon={Trash2} label="Удалить чат" className="text-red-500" />
+          {contact.id !== 'saved_messages' && !contact.isChannel && (
+            <ProfileAction 
+              icon={Ban} 
+              label={contact.isBlocked ? "Разблокировать" : "Заблокировать"} 
+              onClick={() => blockContact(contact.id)}
+              className={contact.isBlocked ? "text-blue-500" : "text-red-500"}
+            />
+          )}
+          <ProfileAction 
+            icon={Trash2} 
+            label="Удалить чат" 
+            className="text-red-500" 
+            onClick={() => {
+              deleteChat(contact.id);
+              setView('menu');
+            }}
+          />
         </div>
       </div>
     </motion.div>

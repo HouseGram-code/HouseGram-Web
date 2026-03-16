@@ -8,7 +8,7 @@ import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 
 export default function SideMenu() {
-  const { setView, themeColor, isSideMenuOpen, setSideMenuOpen, isAdmin } = useChat();
+  const { setView, themeColor, isSideMenuOpen, setSideMenuOpen, isAdmin, userProfile } = useChat();
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -44,11 +44,15 @@ export default function SideMenu() {
               >
                 <X size={24} />
               </button>
-              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-3">
-                <User size={32} />
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-3 overflow-hidden relative">
+                {userProfile?.avatarUrl ? (
+                  <Image src={userProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
+                ) : (
+                  <User size={32} />
+                )}
               </div>
-              <div className="font-medium text-[18px]">{auth.currentUser?.displayName || 'Пользователь'}</div>
-              <div className="text-[14px] opacity-80">{auth.currentUser?.email}</div>
+              <div className="font-medium text-[18px]">{userProfile?.name || auth.currentUser?.displayName || 'Пользователь'}</div>
+              <div className="text-[14px] opacity-80">{userProfile?.username ? `@${userProfile.username}` : auth.currentUser?.email}</div>
             </div>
 
             <div className="flex-grow py-2 overflow-y-auto">

@@ -33,6 +33,7 @@ interface ChatContextType {
   userProfile: UserProfile;
   setUserProfile: (profile: UserProfile) => void;
   blockContact: (contactId: string) => void;
+  toggleMute: (contactId: string) => void;
   notificationsEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
   soundEnabled: boolean;
@@ -332,7 +333,14 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const blockContact = useCallback((contactId: string) => {
     setContacts(prev => ({
       ...prev,
-      [contactId]: { ...prev[contactId], isBlocked: true }
+      [contactId]: { ...prev[contactId], isBlocked: !prev[contactId].isBlocked }
+    }));
+  }, []);
+
+  const toggleMute = useCallback((contactId: string) => {
+    setContacts(prev => ({
+      ...prev,
+      [contactId]: { ...prev[contactId], isMuted: !prev[contactId].isMuted }
     }));
   }, []);
 
@@ -645,7 +653,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       isGlassEnabled, setIsGlassEnabled,
       clearHistory, deleteChat,
       userProfile, setUserProfile: updateUserProfile,
-      blockContact, addContact,
+      blockContact, toggleMute, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode,

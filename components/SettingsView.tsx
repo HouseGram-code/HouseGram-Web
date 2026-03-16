@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Activity } from 'lucide-react';
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { storage, auth } from '@/lib/firebase';
@@ -257,6 +257,11 @@ export default function SettingsView() {
             icon={<ShieldCheck size={24} />} 
             text="Правила и политика конфиденциальности" 
             onClick={() => setView('privacy')} 
+          />
+          <SettingsItem 
+            icon={<Activity size={24} />} 
+            text="Статистика мессенджера" 
+            onClick={() => setView('system-status')} 
           />
           <div 
             className="flex items-center py-3 gap-5 cursor-pointer hover:bg-gray-50 transition-colors"
