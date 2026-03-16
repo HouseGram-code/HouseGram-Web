@@ -357,7 +357,15 @@ export default function ChatView() {
               ) : msg.fileUrl ? (
                 <div className="mb-1">
                   {msg.fileType?.startsWith('image/') ? (
-                    <img src={msg.fileUrl} alt={msg.fileName} className="max-w-full rounded-lg object-contain max-h-[300px]" />
+                    <Image 
+                      src={msg.fileUrl} 
+                      alt={msg.fileName || 'Image'} 
+                      width={300} 
+                      height={300} 
+                      className="max-w-full rounded-lg object-contain max-h-[300px]" 
+                      style={{ width: 'auto', height: 'auto' }}
+                      unoptimized
+                    />
                   ) : msg.fileType?.startsWith('video/') || msg.fileType?.startsWith('audio/') ? (
                     <div className="rounded-lg overflow-hidden max-w-full">
                       <ReactPlayer 
