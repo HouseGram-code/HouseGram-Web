@@ -2,10 +2,10 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Bell } from 'lucide-react';
+import { ArrowLeft, Bell, Volume2, MessageSquare } from 'lucide-react';
 
 export default function NotificationsView() {
-  const { setView, themeColor, isGlassEnabled } = useChat();
+  const { setView, themeColor, isGlassEnabled, notificationsEnabled, setNotificationsEnabled, soundEnabled, setSoundEnabled } = useChat();
 
   return (
     <motion.div 
@@ -20,16 +20,54 @@ export default function NotificationsView() {
         <button onClick={() => setView('settings')} className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors">
           <ArrowLeft size={24} />
         </button>
-        <div className="text-[17px] font-medium flex-grow">Уведомления</div>
+        <div className="text-[17px] font-medium flex-grow">Уведомления и звуки</div>
       </div>
 
-      <div className="flex-grow overflow-y-auto pt-14 p-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <Bell size={48} className="text-orange-400 mx-auto mb-4" />
-          <h2 className="text-[20px] font-medium text-center mb-2">Уведомления</h2>
-          <p className="text-[15px] text-gray-600 text-center">
-            Настройте уведомления для каждого чата отдельно или для всех сразу.
-          </p>
+      <div className="flex-grow overflow-y-auto pt-16 p-4">
+        <div className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden">
+          <div className="px-4 py-2 text-[14px] font-medium text-gray-500 bg-gray-50 border-b border-gray-100">
+            Уведомления для чатов
+          </div>
+          
+          <div 
+            className="flex items-center justify-between px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+          >
+            <div className="flex items-center gap-3">
+              <MessageSquare size={24} className="text-blue-500" />
+              <div className="flex flex-col">
+                <span className="text-[16px] text-black">Личные чаты</span>
+                <span className="text-[13px] text-gray-500">
+                  {notificationsEnabled ? 'Включены' : 'Выключены'}
+                </span>
+              </div>
+            </div>
+            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${notificationsEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${notificationsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+            </div>
+          </div>
+
+          <div 
+            className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setSoundEnabled(!soundEnabled)}
+          >
+            <div className="flex items-center gap-3">
+              <Volume2 size={24} className="text-green-500" />
+              <div className="flex flex-col">
+                <span className="text-[16px] text-black">Звук в приложении</span>
+                <span className="text-[13px] text-gray-500">
+                  {soundEnabled ? 'Включен' : 'Выключен'}
+                </span>
+              </div>
+            </div>
+            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${soundEnabled ? 'bg-green-500' : 'bg-gray-300'}`}>
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+            </div>
+          </div>
+        </div>
+        
+        <div className="text-[13px] text-gray-500 px-2 text-center">
+          При включенных уведомлениях вы будете получать push-уведомления о новых сообщениях. Звук воспроизводится при получении сообщения, если приложение открыто.
         </div>
       </div>
     </motion.div>

@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, User, Search, MessageSquare, Bookmark, Users, Megaphone, X, ShieldAlert, BadgeCheck } from 'lucide-react';
+import { Settings, User, Search, MessageSquare, Bookmark, Users, Megaphone, X, ShieldAlert, BadgeCheck, Lock } from 'lucide-react';
 import Image from 'next/image';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -61,8 +61,8 @@ export default function SideMenu() {
             </div>
 
             <div className="flex-grow py-2 overflow-y-auto">
-              <MenuItem icon={Users} label="Создать группу" onClick={() => setSideMenuOpen(false)} />
-              <MenuItem icon={Megaphone} label="Создать канал" onClick={() => setSideMenuOpen(false)} />
+              <MenuItem icon={Users} label="Создать группу" onClick={() => {}} isSoon isLocked />
+              <MenuItem icon={Megaphone} label="Создать канал" onClick={() => {}} isSoon isLocked />
               <MenuItem icon={Bookmark} label="Избранное" onClick={() => setSideMenuOpen(false)} />
               <div className="h-px bg-gray-100 my-2" />
               <MenuItem icon={Settings} label="Настройки" onClick={() => handleNavigation('settings')} />
@@ -89,14 +89,24 @@ export default function SideMenu() {
   );
 }
 
-function MenuItem({ icon: Icon, label, onClick }: { icon: any, label: string, onClick: () => void }) {
+function MenuItem({ icon: Icon, label, onClick, isSoon, isLocked }: { icon: any, label: string, onClick: () => void, isSoon?: boolean, isLocked?: boolean }) {
   return (
     <button 
       onClick={onClick}
-      className="w-full flex items-center gap-6 px-5 py-3.5 hover:bg-gray-50 transition-colors text-[16px] text-gray-800"
+      className={`w-full flex items-center px-5 py-3.5 transition-colors text-[16px] ${isLocked ? 'text-gray-400 cursor-not-allowed' : 'text-gray-800 hover:bg-gray-50'}`}
     >
-      <Icon size={24} className="text-gray-400" />
-      {label}
+      <div className="flex items-center gap-6 flex-grow">
+        <Icon size={24} className={isLocked ? 'text-gray-300' : 'text-gray-400'} />
+        <span className="flex items-center gap-2">
+          {label}
+          {isLocked && <Lock size={14} className="text-gray-400" />}
+        </span>
+      </div>
+      {isSoon && (
+        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+          Soon!
+        </span>
+      )}
     </button>
   );
 }
