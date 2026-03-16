@@ -105,62 +105,66 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setIsAdmin(currentUser.email === 'goh@gmail.com' || data.role === 'admin');
-          setUserProfile({
-            name: data.name || 'Ваше Имя',
-            username: data.username || '',
-            bio: data.bio || '',
-            phone: data.phone || '+7 9XX XXX XX XX',
-            avatarUrl: data.avatarUrl || '',
-            status: 'online',
-            lastSeen: data.lastSeen,
-            isOfficial: currentUser.email === 'goh@gmail.com' || data.role === 'admin'
-          });
-          
-          // Set online status
-          try {
-            await updateDoc(doc(db, 'users', currentUser.uid), {
-              status: 'online',
-              lastSeen: serverTimestamp()
-            });
-          } catch (e) {
-            console.error('Failed to update presence', e);
-          }
-        } else {
-          // Create user document if it doesn't exist
-          const rawUsername = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
-          const finalUsername = rawUsername.startsWith('@') ? rawUsername : '@' + rawUsername.replace(/@/g, '');
-          
-          try {
-            await setDoc(doc(db, 'users', currentUser.uid), {
-              uid: currentUser.uid,
-              email: currentUser.email,
-              name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
-              username: finalUsername.substring(0, 15),
-              bio: '',
-              role: currentUser.email === 'goh@gmail.com' ? 'admin' : 'user',
-              isBanned: false,
-              createdAt: serverTimestamp(),
-              status: 'online',
-              lastSeen: serverTimestamp()
-            });
-            setIsAdmin(currentUser.email === 'goh@gmail.com');
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setIsAdmin(currentUser.email === 'goh@gmail.com' || data.role === 'admin');
             setUserProfile({
-              name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
-              username: finalUsername.substring(0, 15),
-              bio: '',
-              phone: '+7 9XX XXX XX XX',
-              avatarUrl: '',
+              name: data.name || 'Ваше Имя',
+              username: data.username || '',
+              bio: data.bio || '',
+              phone: data.phone || '+7 9XX XXX XX XX',
+              avatarUrl: data.avatarUrl || '',
               status: 'online',
-              lastSeen: new Date(),
-              isOfficial: currentUser.email === 'goh@gmail.com'
+              lastSeen: data.lastSeen,
+              isOfficial: currentUser.email === 'goh@gmail.com' || data.role === 'admin'
             });
-          } catch (e) {
-            console.error('Failed to create user document', e);
+            
+            // Set online status
+            try {
+              await updateDoc(doc(db, 'users', currentUser.uid), {
+                status: 'online',
+                lastSeen: serverTimestamp()
+              });
+            } catch (e) {
+              console.error('Failed to update presence', e);
+            }
+          } else {
+            // Create user document if it doesn't exist
+            const rawUsername = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
+            const finalUsername = rawUsername.startsWith('@') ? rawUsername : '@' + rawUsername.replace(/@/g, '');
+            
+            try {
+              await setDoc(doc(db, 'users', currentUser.uid), {
+                uid: currentUser.uid,
+                email: currentUser.email,
+                name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
+                username: finalUsername.substring(0, 15),
+                bio: '',
+                role: currentUser.email === 'goh@gmail.com' ? 'admin' : 'user',
+                isBanned: false,
+                createdAt: serverTimestamp(),
+                status: 'online',
+                lastSeen: serverTimestamp()
+              });
+              setIsAdmin(currentUser.email === 'goh@gmail.com');
+              setUserProfile({
+                name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
+                username: finalUsername.substring(0, 15),
+                bio: '',
+                phone: '+7 9XX XXX XX XX',
+                avatarUrl: '',
+                status: 'online',
+                lastSeen: new Date(),
+                isOfficial: currentUser.email === 'goh@gmail.com'
+              });
+            } catch (e) {
+              console.error('Failed to create user document', e);
+            }
           }
+        } catch (error) {
+          console.error('Error fetching user document:', error);
         }
         setView('menu');
       } else {
