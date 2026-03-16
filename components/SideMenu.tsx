@@ -2,13 +2,13 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, User, Search, MessageSquare, Bookmark, Users, Megaphone, X } from 'lucide-react';
+import { Settings, User, Search, MessageSquare, Bookmark, Users, Megaphone, X, ShieldAlert } from 'lucide-react';
 import Image from 'next/image';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 
 export default function SideMenu() {
-  const { setView, themeColor, isSideMenuOpen, setSideMenuOpen } = useChat();
+  const { setView, themeColor, isSideMenuOpen, setSideMenuOpen, isAdmin } = useChat();
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -57,15 +57,21 @@ export default function SideMenu() {
               <MenuItem icon={Bookmark} label="Избранное" onClick={() => setSideMenuOpen(false)} />
               <div className="h-px bg-gray-100 my-2" />
               <MenuItem icon={Settings} label="Настройки" onClick={() => handleNavigation('settings')} />
+              {isAdmin && (
+                <MenuItem icon={ShieldAlert} label="Админ панель" onClick={() => handleNavigation('admin')} />
+              )}
             </div>
 
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4 border-t border-gray-100 flex flex-col gap-2">
               <button 
                 onClick={handleSignOut}
                 className="w-full py-3 text-center text-red-500 font-medium hover:bg-red-50 rounded-lg transition-colors"
               >
                 Выйти
               </button>
+              <div className="text-center text-gray-400 text-xs mt-2">
+                HouseGram Web 1.0 beta
+              </div>
             </div>
           </motion.div>
         </>

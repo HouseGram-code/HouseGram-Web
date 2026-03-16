@@ -31,20 +31,21 @@ export default function ProfileView() {
       </div>
 
       <div className="flex-grow overflow-y-auto pt-12 no-scrollbar">
-        <div className="relative h-64 bg-gray-300 flex items-center justify-center">
+        <div className="relative h-64 bg-gray-300 flex items-center justify-center overflow-hidden">
           {contact.avatarUrl ? (
             <Image src={contact.avatarUrl} alt={contact.name} fill className="object-cover" referrerPolicy="no-referrer" unoptimized />
           ) : (
-            <div className="text-white text-[80px] font-medium" style={{ backgroundColor: contact.avatarColor }}>
+            <div className="w-full h-full flex items-center justify-center text-white text-[80px] font-medium" style={{ backgroundColor: contact.avatarColor }}>
               {contact.initial}
             </div>
           )}
-          <div className="absolute bottom-4 left-4 text-white font-medium text-[20px]">{contact.name}</div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+          <div className="absolute bottom-4 left-4 text-white font-medium text-[24px] z-10">{contact.name}</div>
         </div>
 
         <div className="bg-white p-4 mb-4">
           <div className="text-[14px] text-gray-500 mb-1">О себе</div>
-          <div className="text-[16px] text-gray-900">{contact.statusOffline || 'Нет информации'}</div>
+          <div className="text-[16px] text-gray-900">{contact.bio || 'Нет информации'}</div>
         </div>
 
         <div className="bg-white p-2 mb-4">
@@ -74,7 +75,7 @@ function ProfileAction({ icon: Icon, label, onClick, className = "" }: { icon: a
       onClick={onClick}
       className={`w-full flex items-center gap-6 px-4 py-3 hover:bg-gray-50 transition-colors text-[16px] ${className}`}
     >
-      <Icon size={24} className="text-gray-400" />
+      <Icon size={24} className={className ? "" : "text-gray-400"} />
       {label}
     </button>
   );

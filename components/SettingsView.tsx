@@ -258,11 +258,6 @@ export default function SettingsView() {
             text="Правила и политика конфиденциальности" 
             onClick={() => setView('privacy')} 
           />
-          <SettingsItem 
-            icon={<Info size={24} />} 
-            text="О приложении" 
-            onClick={() => setView('info')} 
-          />
           <div 
             className="flex items-center py-3 gap-5 cursor-pointer hover:bg-gray-50 transition-colors"
             onClick={() => setIsGlassEnabled(!isGlassEnabled)}
