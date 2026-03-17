@@ -42,6 +42,11 @@ interface ChatContextType {
   soundEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
   setSoundEnabled: (enabled: boolean) => void;
+  passcode: string | null;
+  updatePasscode: (passcode: string | null) => void;
+  isLocked: boolean;
+  setIsLocked: (isLocked: boolean) => void;
+  systemStatus: any;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -61,6 +66,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [passcode, setPasscode] = useState<string | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
+  const [systemStatus, setSystemStatus] = useState({ status: 'green' });
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('themeColor');
@@ -78,6 +86,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     if (savedNotif) setNotificationsEnabled(savedNotif === 'true');
     const savedSound = localStorage.getItem('soundEnabled');
     if (savedSound) setSoundEnabled(savedSound === 'true');
+    const savedPasscode = localStorage.getItem('passcode');
+    if (savedPasscode) {
+      setPasscode(savedPasscode);
+      setIsLocked(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -349,10 +362,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('soundEnabled', enabled.toString());
   };
 
+  const updatePasscode = (code: string | null) => {
+    setPasscode(code);
+    if (code) {
+      localStorage.setItem('passcode', code);
+    } else {
+      localStorage.removeItem('passcode');
+      setIsLocked(false);
+    }
+  };
+
   return (
     <ChatContext.Provider value={{
-      contacts, activeChatId, view, themeColor, isSideMenuOpen, isAdmin, userProfile, authReady, wallpaper, isGlassEnabled, searchQuery, isDarkMode, notificationsEnabled, soundEnabled,
-      setSearchQuery, setView, setActiveChatId, setThemeColor: handleSetThemeColor, setSideMenuOpen, sendMessage, editMessage, deleteMessage, forwardMessage, clearHistory, deleteChat, markAsRead, addContact, togglePin, setWallpaper: handleSetWallpaper, setIsGlassEnabled: handleSetIsGlassEnabled, setIsDarkMode: handleSetIsDarkMode, updateProfile, addReaction, setNotificationsEnabled: handleSetNotificationsEnabled, setSoundEnabled: handleSetSoundEnabled
+      contacts, activeChatId, view, themeColor, isSideMenuOpen, isAdmin, userProfile, authReady, wallpaper, isGlassEnabled, searchQuery, isDarkMode, notificationsEnabled, soundEnabled, passcode, isLocked, systemStatus,
+      setSearchQuery, setView, setActiveChatId, setThemeColor: handleSetThemeColor, setSideMenuOpen, sendMessage, editMessage, deleteMessage, forwardMessage, clearHistory, deleteChat, markAsRead, addContact, togglePin, setWallpaper: handleSetWallpaper, setIsGlassEnabled: handleSetIsGlassEnabled, setIsDarkMode: handleSetIsDarkMode, updateProfile, addReaction, setNotificationsEnabled: handleSetNotificationsEnabled, setSoundEnabled: handleSetSoundEnabled, updatePasscode, setIsLocked
     }}>
       {children}
     </ChatContext.Provider>

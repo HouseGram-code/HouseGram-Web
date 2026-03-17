@@ -14,6 +14,7 @@ export const initialContacts: Record<string, Contact> = {
     messages: [],
     isTyping: false,
     unread: 0,
+    isChannel: false,
   },
   test_bot: {
     id: 'test_bot',
@@ -30,6 +31,7 @@ export const initialContacts: Record<string, Contact> = {
     ],
     isTyping: false,
     unread: 1,
+    isChannel: false,
   },
   housegram_announcements: {
     id: 'housegram_announcements',
