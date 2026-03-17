@@ -2,7 +2,7 @@
 
 import { motion } from 'motion/react';
 
-export default function Skeleton({ className }: { className?: string }) {
+export function Skeleton({ className }: { className?: string }) {
   return (
     <motion.div
       initial={{ opacity: 0.5 }}
@@ -12,3 +12,5 @@ export default function Skeleton({ className }: { className?: string }) {
     />
   );
 }
+
+export default Skeleton;
