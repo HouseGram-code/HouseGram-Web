@@ -230,7 +230,6 @@ export default function ChatList() {
               )}
               <div className="flex-grow overflow-hidden flex flex-col justify-center">
                 <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1">
-                  {contact.isPinned && <span className="text-sm">📌</span>}
                   {contact.name}
                   {contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
                 </div>
@@ -253,7 +252,7 @@ export default function ChatList() {
         {isSearching && searchQuery.trim().length > 2 && searchResults.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center">
             <Search size={48} className="mb-4 opacity-20" />
-            <p className="text-[16px] font-medium text-gray-600">🔍 Ничего не найдено</p>
+            <p className="text-[16px] font-medium text-gray-600">Ничего не найдено</p>
             <p className="text-[14px] mt-1">Попробуйте изменить запрос</p>
           </div>
         )}

@@ -239,33 +239,33 @@ export default function SettingsView() {
           
           <SettingsItem 
             icon={<Bell size={24} />} 
-            text="🔔 Уведомления и звуки" 
+            text="Уведомления и звуки" 
             onClick={() => setView('notifications')} 
           />
           <SettingsItem 
             icon={<Lock size={24} />} 
-            text="🔒 Конфиденциальность" 
+            text="Конфиденциальность" 
             onClick={() => setView('security')} 
           />
           <SettingsItem 
             icon={<Layers size={24} />} 
-            text="🌙 Темная тема" 
+            text="Темная тема" 
             onClick={() => setIsDarkMode(!isDarkMode)}
           />
-          <SettingsItem icon={<Database size={24} />} text="💾 Данные и память" soon />
+          <SettingsItem icon={<Database size={24} />} text="Данные и память" soon />
           <SettingsItem 
             icon={<MessageCircle size={24} />} 
-            text="💬 Настройки чата" 
+            text="Настройки чата" 
             onClick={() => setView('chat-settings')} 
           />
           <SettingsItem 
             icon={<ShieldCheck size={24} />} 
-            text="🛡️ Правила и политика конфиденциальности" 
+            text="Правила и политика конфиденциальности" 
             onClick={() => setView('privacy')} 
           />
           <SettingsItem 
             icon={<Activity size={24} />} 
-            text="📊 Статистика мессенджера" 
+            text="Статистика мессенджера" 
             onClick={() => setView('system-status')} 
           />
           <div 
