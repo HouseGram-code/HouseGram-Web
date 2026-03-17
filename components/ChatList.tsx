@@ -11,7 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
 export default function ChatList() {
-  const { contacts, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact, searchQuery, setSearchQuery } = useChat();
+  const { contacts, authReady, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact, searchQuery, setSearchQuery } = useChat();
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
@@ -39,6 +39,22 @@ export default function ChatList() {
     }
     return () => { isMounted = false; };
   }, [searchQuery]);
+
+  if (!authReady) {
+    return (
+      <div className="flex flex-col gap-3 p-4 pt-16">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <div className="w-[50px] h-[50px] rounded-full bg-gray-200 animate-pulse" />
+            <div className="flex-grow flex flex-col gap-2">
+              <div className="w-1/2 h-4 bg-gray-200 rounded animate-pulse" />
+              <div className="w-3/4 h-3 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const handleSearchResultClick = (user: any) => {
     let statusText = '';
@@ -103,7 +119,9 @@ export default function ChatList() {
       const lastB = b.messages[b.messages.length - 1];
       if (!lastA) return 1;
       if (!lastB) return -1;
-      return 0; 
+      const timeA = lastA.createdAt?.toMillis ? lastA.createdAt.toMillis() : 0;
+      const timeB = lastB.createdAt?.toMillis ? lastB.createdAt.toMillis() : 0;
+      return timeB - timeA;
     });
 
   const handleChatClick = (id: string) => {

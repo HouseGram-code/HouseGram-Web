@@ -1,7 +1,14 @@
-import React from 'react';
+'use client';
 
-export const Skeleton = ({ className }: { className?: string }) => {
+import { motion } from 'motion/react';
+
+export default function Skeleton({ className }: { className?: string }) {
   return (
-    <div className={`animate-pulse bg-gray-200 rounded ${className}`} />
+    <motion.div
+      initial={{ opacity: 0.5 }}
+      animate={{ opacity: 1 }}
+      transition={{ repeat: Infinity, repeatType: 'reverse', duration: 0.8 }}
+      className={`bg-gray-200 rounded-md ${className}`}
+    />
   );
-};
+}

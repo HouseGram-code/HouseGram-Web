@@ -27,7 +27,7 @@ interface ChatContextType {
   wallpaper: string;
   setWallpaper: (url: string) => void;
   isDarkMode: boolean;
-  setIsDarkMode: (enabled: boolean) => void;
+  toggleDarkMode: (enabled: boolean) => void;
   isGlassEnabled: boolean;
   setIsGlassEnabled: (enabled: boolean) => void;
   clearHistory: (contactId: string) => void;
@@ -53,6 +53,7 @@ interface ChatContextType {
   systemStatus: { status: 'green' | 'yellow' | 'red' | 'blue'; message: string };
   logout: () => void;
   addContact: (contact: Contact) => void;
+  authReady: boolean;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -66,7 +67,23 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [themeColor, setThemeColor] = useState('#517da2');
   const [wallpaper, setWallpaper] = useState('');
   const [isGlassEnabled, setIsGlassEnabled] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedDarkMode = localStorage.getItem('housegram_dark');
+      return savedDarkMode === 'true';
+    }
+    return false;
+  });
+  
+  const toggleDarkMode = useCallback((enabled: boolean) => {
+    setIsDarkMode(enabled);
+    localStorage.setItem('housegram_dark', String(enabled));
+    if (enabled) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: 'Ваше Имя',
     username: '@usernamegoeshere',
@@ -352,12 +369,20 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }));
   }, []);
 
-  const togglePin = useCallback((contactId: string) => {
+  const togglePin = useCallback(async (contactId: string) => {
+    if (!auth.currentUser) return;
     setContacts(prev => ({
       ...prev,
       [contactId]: { ...prev[contactId], isPinned: !prev[contactId].isPinned }
     }));
-  }, []);
+    try {
+      await setDoc(doc(db, 'users', auth.currentUser.uid, 'pinnedChats', contactId), {
+        isPinned: !contacts[contactId]?.isPinned
+      }, { merge: true });
+    } catch (e) {
+      console.error('Failed to toggle pin', e);
+    }
+  }, [contacts]);
 
   const sendMessage = useCallback(async (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string; fileType?: string; forwardedFrom?: string }) => {
     if (!activeChatId || !auth.currentUser) return;
@@ -703,14 +728,14 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       themeColor, setThemeColor,
       wallpaper, setWallpaper,
       isGlassEnabled, setIsGlassEnabled,
-      isDarkMode, setIsDarkMode,
+      isDarkMode, toggleDarkMode,
       clearHistory, deleteChat,
       userProfile, setUserProfile: updateUserProfile,
       blockContact, toggleMute, togglePin, searchQuery, setSearchQuery, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode,
-      user, isAdmin, isMaintenance, systemStatus, logout
+      user, isAdmin, isMaintenance, systemStatus, logout, authReady
     }}>
       {!authReady ? (
         <div className="absolute inset-0 flex items-center justify-center bg-white z-50">

@@ -12,7 +12,7 @@ import { ru } from 'date-fns/locale';
 import imageCompression from 'browser-image-compression';
 
 export default function SettingsView() {
-  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, isDarkMode, setIsDarkMode, userProfile, setUserProfile } = useChat();
+  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, isDarkMode, toggleDarkMode, userProfile, setUserProfile } = useChat();
   const [isEditing, setIsEditing] = useState(false);
   const [editProfile, setEditProfile] = useState(userProfile);
   const [isUploading, setIsUploading] = useState(false);
@@ -247,11 +247,16 @@ export default function SettingsView() {
             text="Конфиденциальность" 
             onClick={() => setView('security')} 
           />
-          <SettingsItem 
-            icon={<Layers size={24} />} 
-            text="Темная тема" 
-            onClick={() => setIsDarkMode(!isDarkMode)}
-          />
+          <div 
+            className="flex items-center py-3 gap-5 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => toggleDarkMode(!isDarkMode)}
+          >
+            <div className="text-gray-500"><Layers size={24} /></div>
+            <span className="text-[16px] text-black flex-grow">Темная тема</span>
+            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isDarkMode ? 'bg-blue-500' : 'bg-gray-300'}`}>
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-4' : 'translate-x-0'}`} />
+            </div>
+          </div>
           <SettingsItem icon={<Database size={24} />} text="Данные и память" soon />
           <SettingsItem 
             icon={<MessageCircle size={24} />} 
