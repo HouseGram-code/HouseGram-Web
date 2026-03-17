@@ -252,16 +252,16 @@ export default function ChatView() {
             {isMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
-                <div className="absolute right-2 top-full mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-50 text-black">
+                <div className="absolute right-2 top-full mt-1 w-48 bg-white dark:bg-tg-bg-light rounded-md shadow-lg py-1 z-50 text-black dark:text-tg-text-primary border border-tg-divider">
                   <button 
                     onClick={() => { setShowClearModal(true); setIsMenuOpen(false); }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px]"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/5 text-[15px]"
                   >
                     Очистить историю
                   </button>
                   <button 
                     onClick={() => { setShowDeleteModal(true); setIsMenuOpen(false); }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px] text-red-500"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/5 text-[15px] text-red-500"
                   >
                     Удалить чат
                   </button>
@@ -473,22 +473,22 @@ export default function ChatView() {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute bottom-14 left-2 bg-white rounded-xl shadow-lg border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[160px]"
+                className="absolute bottom-14 left-2 bg-white dark:bg-tg-bg-light rounded-xl shadow-lg border border-gray-100 dark:border-tg-divider p-2 flex flex-col gap-1 z-50 min-w-[160px]"
               >
                 <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => {
                   if (e.target.files && e.target.files.length > 0) {
                     handleFileUpload(e.target.files[0]);
                   }
                 }} />
-                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg text-left text-[15px] text-tg-text-primary">
                   <div className="text-blue-500"><ImageIcon size={20} /></div>
                   <span>Фото / Видео</span>
                 </button>
-                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg text-left text-[15px] text-tg-text-primary">
                   <div className="text-orange-500"><Music size={20} /></div>
                   <span>Музыка</span>
                 </button>
-                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg text-left text-[15px] text-tg-text-primary">
                   <div className="text-green-500"><File size={20} /></div>
                   <span>Файл</span>
                 </button>
@@ -570,22 +570,22 @@ export default function ChatView() {
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10"
+              className="bg-white dark:bg-tg-bg-light rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10 border border-tg-divider"
             >
               <div className="p-5">
-                <h3 className="text-[18px] font-medium text-black mb-2">Очистить историю</h3>
-                <p className="text-[15px] text-gray-600">Вы уверены, что хотите удалить все сообщения в этом чате? Это действие нельзя отменить.</p>
+                <h3 className="text-[18px] font-medium text-tg-text-primary mb-2">Очистить историю</h3>
+                <p className="text-[15px] text-tg-secondary-text">Вы уверены, что хотите удалить все сообщения в этом чате? Это действие нельзя отменить.</p>
               </div>
-              <div className="flex border-t border-gray-200">
+              <div className="flex border-t border-tg-divider">
                 <button 
                   onClick={() => setShowClearModal(false)}
-                  className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200"
+                  className="flex-1 py-3 text-[16px] font-medium text-tg-secondary-text hover:bg-gray-50 dark:hover:bg-white/5 transition-colors border-r border-tg-divider"
                 >
                   Отмена
                 </button>
                 <button 
                   onClick={() => { if(activeChatId) clearHistory(activeChatId); setShowClearModal(false); }}
-                  className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                 >
                   Очистить
                 </button>
@@ -605,22 +605,22 @@ export default function ChatView() {
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10"
+              className="bg-white dark:bg-tg-bg-light rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10 border border-tg-divider"
             >
               <div className="p-5">
-                <h3 className="text-[18px] font-medium text-black mb-2">Удалить чат</h3>
-                <p className="text-[15px] text-gray-600">Вы уверены, что хотите удалить чат с {contact.name}? Это действие нельзя отменить.</p>
+                <h3 className="text-[18px] font-medium text-tg-text-primary mb-2">Удалить чат</h3>
+                <p className="text-[15px] text-tg-secondary-text">Вы уверены, что хотите удалить чат с {contact.name}? Это действие нельзя отменить.</p>
               </div>
-              <div className="flex border-t border-gray-200">
+              <div className="flex border-t border-tg-divider">
                 <button 
                   onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200"
+                  className="flex-1 py-3 text-[16px] font-medium text-tg-secondary-text hover:bg-gray-50 dark:hover:bg-white/5 transition-colors border-r border-tg-divider"
                 >
                   Отмена
                 </button>
                 <button 
                   onClick={() => { if(activeChatId) deleteChat(activeChatId); setShowDeleteModal(false); }}
-                  className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                 >
                   Удалить
                 </button>
@@ -639,10 +639,10 @@ export default function ChatView() {
             />
             <motion.div 
               initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }}
-              className="bg-white rounded-t-2xl sm:rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10 pb-6 sm:pb-0"
+              className="bg-white dark:bg-tg-bg-light rounded-t-2xl sm:rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10 pb-6 sm:pb-0 border-t border-tg-divider sm:border"
             >
-              <div className="p-4 border-b border-gray-100">
-                <p className="text-gray-500 text-sm truncate">{selectedMessage.text || 'Вложение'}</p>
+              <div className="p-4 border-b border-tg-divider">
+                <p className="text-tg-secondary-text text-sm truncate">{selectedMessage.text || 'Вложение'}</p>
               </div>
               <div className="flex flex-col">
                 {selectedMessage.type === 'sent' && (
@@ -652,7 +652,7 @@ export default function ChatView() {
                       setInputText(selectedMessage.text);
                       setSelectedMessage(null);
                     }}
-                    className="w-full text-left px-5 py-3.5 hover:bg-gray-50 text-[16px] border-b border-gray-100 flex items-center gap-3"
+                    className="w-full text-left px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-white/5 text-[16px] border-b border-tg-divider flex items-center gap-3 text-tg-text-primary"
                   >
                     <span className="text-blue-500">Изменить</span>
                   </button>
@@ -661,9 +661,9 @@ export default function ChatView() {
                   onClick={() => {
                     setShowForwardModal(true);
                   }}
-                  className="w-full text-left px-5 py-3.5 hover:bg-gray-50 text-[16px] border-b border-gray-100 flex items-center gap-3"
+                  className="w-full text-left px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-white/5 text-[16px] border-b border-tg-divider flex items-center gap-3 text-tg-text-primary"
                 >
-                  <span className="text-gray-800">Переслать</span>
+                  <span className="text-tg-text-primary">Переслать</span>
                 </button>
                 {selectedMessage.type === 'sent' && (
                   <button 
@@ -671,7 +671,7 @@ export default function ChatView() {
                       deleteMessage(selectedMessage.id);
                       setSelectedMessage(null);
                     }}
-                    className="w-full text-left px-5 py-3.5 hover:bg-gray-50 text-[16px] flex items-center gap-3"
+                    className="w-full text-left px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-white/5 text-[16px] flex items-center gap-3 text-tg-text-primary"
                   >
                     <span className="text-red-500">Удалить</span>
                   </button>
@@ -692,10 +692,10 @@ export default function ChatView() {
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10 flex flex-col max-h-[80vh]"
+              className="bg-white dark:bg-tg-bg-light rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10 flex flex-col max-h-[80vh] border border-tg-divider"
             >
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="text-[18px] font-medium text-black">Переслать сообщение</h3>
+              <div className="p-4 border-b border-tg-divider">
+                <h3 className="text-[18px] font-medium text-tg-text-primary">Переслать сообщение</h3>
               </div>
               <div className="overflow-y-auto flex-grow p-2">
                 {Object.values(contacts).map(c => (
@@ -706,7 +706,7 @@ export default function ChatView() {
                       setShowForwardModal(false);
                       setSelectedMessage(null);
                     }}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                   >
                     {c.avatarUrl ? (
                       <Image src={c.avatarUrl} alt={c.name} width={40} height={40} className="rounded-full object-cover" />
@@ -715,14 +715,14 @@ export default function ChatView() {
                         {c.initial}
                       </div>
                     )}
-                    <div className="font-medium">{c.name}</div>
+                    <div className="font-medium text-tg-text-primary">{c.name}</div>
                   </div>
                 ))}
               </div>
-              <div className="p-3 border-t border-gray-200">
+              <div className="p-3 border-t border-tg-divider">
                 <button 
                   onClick={() => setShowForwardModal(false)}
-                  className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  className="w-full py-2.5 bg-gray-100 dark:bg-white/10 text-tg-text-primary rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
                 >
                   Отмена
                 </button>

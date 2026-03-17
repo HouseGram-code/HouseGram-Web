@@ -1,7 +1,8 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck } from 'lucide-react';
+import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck, Pin, PinOff } from 'lucide-react';
+import { Skeleton } from '@/components/Skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -11,7 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
 export default function ChatList() {
-  const { contacts, authReady, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact, searchQuery, setSearchQuery } = useChat();
+  const { contacts, authReady, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact, searchQuery, setSearchQuery, togglePin } = useChat();
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
@@ -42,13 +43,13 @@ export default function ChatList() {
 
   if (!authReady) {
     return (
-      <div className="flex flex-col gap-3 p-4 pt-16">
-        {[...Array(6)].map((_, i) => (
+      <div className="flex flex-col gap-3 p-4 pt-16 bg-white dark:bg-tg-bg-light">
+        {[...Array(8)].map((_, i) => (
           <div key={i} className="flex items-center gap-3">
-            <div className="w-[50px] h-[50px] rounded-full bg-gray-200 animate-pulse" />
+            <Skeleton className="w-[50px] h-[50px] rounded-full shrink-0" />
             <div className="flex-grow flex flex-col gap-2">
-              <div className="w-1/2 h-4 bg-gray-200 rounded animate-pulse" />
-              <div className="w-3/4 h-3 bg-gray-200 rounded animate-pulse" />
+              <Skeleton className="w-1/2 h-4" />
+              <Skeleton className="w-3/4 h-3" />
             </div>
           </div>
         ))}
@@ -128,6 +129,11 @@ export default function ChatList() {
     setActiveChatId(id);
     markAsRead(id);
     setView('chat');
+  };
+
+  const handleTogglePin = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    togglePin(id);
   };
 
   return (
@@ -219,7 +225,7 @@ export default function ChatList() {
             <div 
               key={contact.id} 
               onClick={() => handleChatClick(contact.id)}
-              className="flex items-center px-4 py-3 cursor-pointer border-b border-tg-divider hover:bg-gray-50 active:bg-gray-100 transition-colors gap-3"
+              className="flex items-center px-4 py-3 cursor-pointer border-b border-tg-divider hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors gap-3 group relative"
             >
               {contact.id === 'saved_messages' ? (
                 <div 
@@ -250,6 +256,7 @@ export default function ChatList() {
                 <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1">
                   {contact.name}
                   {contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
+                  {contact.isPinned && <Pin size={12} className="text-gray-400 fill-gray-400 ml-auto" />}
                 </div>
                 <div className="text-[14px] text-tg-secondary-text truncate leading-snug">{previewText}</div>
               </div>
@@ -264,6 +271,14 @@ export default function ChatList() {
                   </div>
                 )}
               </div>
+              
+              {/* Pin Toggle Button */}
+              <button 
+                onClick={(e) => handleTogglePin(e, contact.id)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-2 rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-all z-10"
+              >
+                {contact.isPinned ? <PinOff size={16} className="text-gray-500" /> : <Pin size={16} className="text-gray-500" />}
+              </button>
             </div>
           );
         })}

@@ -32,11 +32,11 @@ export default function SideMenu() {
             onClick={() => setSideMenuOpen(false)}
             className="absolute inset-0 bg-black/50 z-40"
           />
-          <motion.div 
-            initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="absolute inset-y-0 left-0 w-[80%] max-w-[320px] bg-white z-50 flex flex-col shadow-2xl"
-          >
+            <motion.div 
+              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="absolute inset-y-0 left-0 w-[80%] max-w-[320px] bg-white dark:bg-tg-bg-light z-50 flex flex-col shadow-2xl"
+            >
             <div className="h-40 p-4 flex flex-col justify-end text-white relative" style={{ backgroundColor: themeColor }}>
               <button 
                 onClick={() => setSideMenuOpen(false)}
@@ -64,21 +64,21 @@ export default function SideMenu() {
               <MenuItem icon={Users} label="Создать группу" onClick={() => {}} isSoon isLocked />
               <MenuItem icon={Megaphone} label="Создать канал" onClick={() => {}} isSoon isLocked />
               <MenuItem icon={Bookmark} label="Избранное" onClick={() => setSideMenuOpen(false)} />
-              <div className="h-px bg-gray-100 my-2" />
+              <div className="h-px bg-gray-100 dark:bg-tg-divider my-2" />
               <MenuItem icon={Settings} label="Настройки" onClick={() => handleNavigation('settings')} />
               {isAdmin && (
                 <MenuItem icon={ShieldAlert} label="Админ панель" onClick={() => handleNavigation('admin')} />
               )}
             </div>
 
-            <div className="p-4 border-t border-gray-100 flex flex-col gap-2">
+            <div className="p-4 border-t border-gray-100 dark:border-tg-divider flex flex-col gap-2">
               <button 
                 onClick={handleSignOut}
-                className="w-full py-3 text-center text-red-500 font-medium hover:bg-red-50 rounded-lg transition-colors"
+                className="w-full py-3 text-center text-red-500 font-medium hover:bg-red-50 dark:hover:bg-white/5 rounded-lg transition-colors"
               >
                 Выйти
               </button>
-              <div className="text-center text-gray-400 text-xs mt-2">
+              <div className="text-center text-gray-400 dark:text-tg-secondary-text text-xs mt-2">
                 HouseGram Web 1.0 beta
               </div>
             </div>
@@ -93,17 +93,17 @@ function MenuItem({ icon: Icon, label, onClick, isSoon, isLocked }: { icon: any,
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center px-5 py-3.5 transition-colors text-[16px] ${isLocked ? 'text-gray-400 cursor-not-allowed' : 'text-gray-800 hover:bg-gray-50'}`}
+      className={`w-full flex items-center px-5 py-3.5 transition-colors text-[16px] ${isLocked ? 'text-gray-400 cursor-not-allowed' : 'text-tg-text-primary hover:bg-gray-50 dark:hover:bg-white/5'}`}
     >
       <div className="flex items-center gap-6 flex-grow">
-        <Icon size={24} className={isLocked ? 'text-gray-300' : 'text-gray-400'} />
+        <Icon size={24} className={isLocked ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-tg-secondary-text'} />
         <span className="flex items-center gap-2">
           {label}
-          {isLocked && <Lock size={14} className="text-gray-400" />}
+          {isLocked && <Lock size={14} className="text-gray-400 dark:text-gray-600" />}
         </span>
       </div>
       {isSoon && (
-        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
           Soon!
         </span>
       )}
