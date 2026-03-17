@@ -33,6 +33,7 @@ export interface Contact {
   unread: number;
   isBlocked?: boolean;
   isMuted?: boolean;
+  isPinned?: boolean;
   isChannel?: boolean;
   isOfficial?: boolean;
 }

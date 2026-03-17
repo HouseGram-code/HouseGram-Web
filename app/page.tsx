@@ -1,6 +1,7 @@
 'use client';
 
 import { ChatProvider, useChat } from '@/context/ChatContext';
+import ThemeWrapper from '@/components/ThemeWrapper';
 import { AnimatePresence } from 'motion/react';
 import ChatList from '@/components/ChatList';
 import ChatView from '@/components/ChatView';
@@ -61,7 +62,9 @@ function AppContent() {
 export default function Page() {
   return (
     <ChatProvider>
-      <AppContent />
+      <ThemeWrapper>
+        <AppContent />
+      </ThemeWrapper>
     </ChatProvider>
   );
 }

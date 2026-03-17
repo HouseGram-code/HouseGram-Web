@@ -26,6 +26,8 @@ interface ChatContextType {
   setThemeColor: (color: string) => void;
   wallpaper: string;
   setWallpaper: (url: string) => void;
+  isDarkMode: boolean;
+  setIsDarkMode: (enabled: boolean) => void;
   isGlassEnabled: boolean;
   setIsGlassEnabled: (enabled: boolean) => void;
   clearHistory: (contactId: string) => void;
@@ -34,6 +36,9 @@ interface ChatContextType {
   setUserProfile: (profile: UserProfile) => void;
   blockContact: (contactId: string) => void;
   toggleMute: (contactId: string) => void;
+  togglePin: (contactId: string) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
   notificationsEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
   soundEnabled: boolean;
@@ -61,6 +66,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [themeColor, setThemeColor] = useState('#517da2');
   const [wallpaper, setWallpaper] = useState('');
   const [isGlassEnabled, setIsGlassEnabled] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: 'Ваше Имя',
     username: '@usernamegoeshere',
@@ -337,10 +343,19 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }));
   }, []);
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const toggleMute = useCallback((contactId: string) => {
     setContacts(prev => ({
       ...prev,
       [contactId]: { ...prev[contactId], isMuted: !prev[contactId].isMuted }
+    }));
+  }, []);
+
+  const togglePin = useCallback((contactId: string) => {
+    setContacts(prev => ({
+      ...prev,
+      [contactId]: { ...prev[contactId], isPinned: !prev[contactId].isPinned }
     }));
   }, []);
 
@@ -688,9 +703,10 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       themeColor, setThemeColor,
       wallpaper, setWallpaper,
       isGlassEnabled, setIsGlassEnabled,
+      isDarkMode, setIsDarkMode,
       clearHistory, deleteChat,
       userProfile, setUserProfile: updateUserProfile,
-      blockContact, toggleMute, addContact,
+      blockContact, toggleMute, togglePin, searchQuery, setSearchQuery, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode,

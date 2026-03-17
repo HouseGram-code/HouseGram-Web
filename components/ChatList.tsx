@@ -11,9 +11,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
 export default function ChatList() {
-  const { contacts, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact } = useChat();
+  const { contacts, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact, searchQuery, setSearchQuery } = useChat();
   const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
   useEffect(() => {
@@ -99,6 +98,7 @@ export default function ChatList() {
       return nameMatch || usernameMatch;
     })
     .sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
       const lastA = a.messages[a.messages.length - 1];
       const lastB = b.messages[b.messages.length - 1];
       if (!lastA) return 1;
@@ -230,6 +230,7 @@ export default function ChatList() {
               )}
               <div className="flex-grow overflow-hidden flex flex-col justify-center">
                 <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1">
+                  {contact.isPinned && <span className="text-sm">📌</span>}
                   {contact.name}
                   {contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
                 </div>
@@ -252,7 +253,7 @@ export default function ChatList() {
         {isSearching && searchQuery.trim().length > 2 && searchResults.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center">
             <Search size={48} className="mb-4 opacity-20" />
-            <p className="text-[16px] font-medium text-gray-600">Ничего не найдено</p>
+            <p className="text-[16px] font-medium text-gray-600">🔍 Ничего не найдено</p>
             <p className="text-[14px] mt-1">Попробуйте изменить запрос</p>
           </div>
         )}

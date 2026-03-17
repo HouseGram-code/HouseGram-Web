@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
 import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/Skeleton';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 
@@ -187,7 +188,17 @@ export default function AdminView() {
           </div>
           
           {loading ? (
-            <div className="p-4 text-center text-gray-500">Загрузка...</div>
+            <div className="divide-y divide-gray-100">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center px-4 py-3 gap-3">
+                  <Skeleton className="w-10 h-10 rounded-full" />
+                  <div className="flex flex-col flex-grow gap-2">
+                    <Skeleton className="w-32 h-4" />
+                    <Skeleton className="w-48 h-3" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="divide-y divide-gray-100">
               {users.map(user => (

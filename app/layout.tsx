@@ -13,11 +13,15 @@ export const metadata: Metadata = {
   description: 'HouseGram Web - Modern Chat Application',
 };
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" className={roboto.variable}>
       <body className="font-roboto antialiased" suppressHydrationWarning>
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </body>
     </html>
   );
