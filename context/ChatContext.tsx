@@ -1,759 +1,266 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { Contact, ViewState, Message, UserProfile } from '@/types';
-import { initialContacts, generateBotResponse } from '@/lib/mockData';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Contact, ViewState, UserProfile } from '@/types';
 import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where, deleteDoc, getDocs } from 'firebase/firestore';
-import { formatDistanceToNow } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 
 interface ChatContextType {
-  view: ViewState;
-  setView: (view: ViewState) => void;
-  activeChatId: string | null;
-  setActiveChatId: (id: string | null) => void;
   contacts: Record<string, Contact>;
-  isSideMenuOpen: boolean;
-  setSideMenuOpen: (open: boolean) => void;
-  sendMessage: (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string; fileType?: string; forwardedFrom?: string }) => void;
-  editMessage: (messageId: string, newText: string) => void;
-  deleteMessage: (messageId: string) => void;
-  forwardMessage: (message: Message, targetChatId: string) => void;
-  markAsRead: (contactId: string) => void;
+  activeChatId: string | null;
+  view: ViewState;
   themeColor: string;
-  setThemeColor: (color: string) => void;
-  wallpaper: string;
-  setWallpaper: (url: string) => void;
-  isDarkMode: boolean;
-  toggleDarkMode: (enabled: boolean) => void;
-  isGlassEnabled: boolean;
-  setIsGlassEnabled: (enabled: boolean) => void;
-  clearHistory: (contactId: string) => void;
-  deleteChat: (contactId: string) => void;
-  userProfile: UserProfile;
-  setUserProfile: (profile: UserProfile) => void;
-  blockContact: (contactId: string) => void;
-  toggleMute: (contactId: string) => void;
-  togglePin: (contactId: string) => void;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  notificationsEnabled: boolean;
-  setNotificationsEnabled: (enabled: boolean) => void;
-  soundEnabled: boolean;
-  setSoundEnabled: (enabled: boolean) => void;
-  passcode: string | null;
-  isLocked: boolean;
-  setIsLocked: (locked: boolean) => void;
-  updatePasscode: (code: string | null) => void;
-  user: User | null;
+  isSideMenuOpen: boolean;
   isAdmin: boolean;
-  isMaintenance: boolean;
-  systemStatus: { status: 'green' | 'yellow' | 'red' | 'blue'; message: string };
-  logout: () => void;
-  addContact: (contact: Contact) => void;
+  userProfile: UserProfile | null;
   authReady: boolean;
+  wallpaper: string | null;
+  isGlassEnabled: boolean;
+  searchQuery: string;
+  isDarkMode: boolean;
+  setSearchQuery: (query: string) => void;
+  setView: (view: ViewState) => void;
+  setActiveChatId: (id: string | null) => void;
+  setThemeColor: (color: string) => void;
+  setSideMenuOpen: (isOpen: boolean) => void;
+  sendMessage: (text: string, options?: any) => void;
+  editMessage: (id: string, text: string) => void;
+  deleteMessage: (id: string) => void;
+  forwardMessage: (msg: any, toId: string) => void;
+  clearHistory: (id: string) => void;
+  deleteChat: (id: string) => void;
+  markAsRead: (id: string) => void;
+  addContact: (contact: Contact) => void;
+  togglePin: (id: string) => void;
+  setWallpaper: (url: string | null) => void;
+  setIsGlassEnabled: (enabled: boolean) => void;
+  setIsDarkMode: (enabled: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
-  const [view, setView] = useState<ViewState>('menu');
+export function ChatProvider({ children }: { children: React.ReactNode }) {
+  const [contacts, setContacts] = useState<Record<string, Contact>>({});
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const activeChatIdRef = useRef<string | null>(null);
-  const [contacts, setContacts] = useState<Record<string, Contact>>(initialContacts);
-  const [isSideMenuOpen, setSideMenuOpen] = useState(false);
+  const [view, setView] = useState<ViewState>('auth');
   const [themeColor, setThemeColor] = useState('#517da2');
-  const [wallpaper, setWallpaper] = useState('');
-  const [isGlassEnabled, setIsGlassEnabled] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedDarkMode = localStorage.getItem('housegram_dark');
-      return savedDarkMode === 'true';
+  const [isSideMenuOpen, setSideMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [wallpaper, setWallpaper] = useState<string | null>(null);
+  const [isGlassEnabled, setIsGlassEnabled] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('themeColor');
+    if (savedTheme) setThemeColor(savedTheme);
+    const savedWallpaper = localStorage.getItem('wallpaper');
+    if (savedWallpaper) setWallpaper(savedWallpaper);
+    const savedGlass = localStorage.getItem('isGlassEnabled');
+    if (savedGlass) setIsGlassEnabled(savedGlass === 'true');
+    const savedDark = localStorage.getItem('isDarkMode');
+    if (savedDark === 'true') {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
     }
-    return false;
-  });
-  
-  const toggleDarkMode = useCallback((enabled: boolean) => {
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUserProfile(data as UserProfile);
+          setIsAdmin(data.role === 'admin' || user.email === 'goh@gmail.com');
+        }
+        setView('chatList');
+      } else {
+        setView('auth');
+        setUserProfile(null);
+        setIsAdmin(false);
+      }
+      setAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const sendMessage = (text: string, options?: any) => {
+    if (!activeChatId) return;
+    setContacts(prev => {
+      const chat = prev[activeChatId];
+      if (!chat) return prev;
+      const newMessage = {
+        id: Date.now().toString(),
+        text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: 'sent' as const,
+        status: 'sent' as const,
+        ...options
+      };
+      return {
+        ...prev,
+        [activeChatId]: {
+          ...chat,
+          messages: [...chat.messages, newMessage]
+        }
+      };
+    });
+  };
+
+  const editMessage = (id: string, text: string) => {
+    if (!activeChatId) return;
+    setContacts(prev => {
+      const chat = prev[activeChatId];
+      if (!chat) return prev;
+      return {
+        ...prev,
+        [activeChatId]: {
+          ...chat,
+          messages: chat.messages.map(m => m.id === id ? { ...m, text, isEdited: true } : m)
+        }
+      };
+    });
+  };
+
+  const deleteMessage = (id: string) => {
+    if (!activeChatId) return;
+    setContacts(prev => {
+      const chat = prev[activeChatId];
+      if (!chat) return prev;
+      return {
+        ...prev,
+        [activeChatId]: {
+          ...chat,
+          messages: chat.messages.filter(m => m.id !== id)
+        }
+      };
+    });
+  };
+
+  const forwardMessage = (msg: any, toId: string) => {
+    setContacts(prev => {
+      const chat = prev[toId];
+      if (!chat) return prev;
+      const newMessage = {
+        ...msg,
+        id: Date.now().toString(),
+        type: 'sent' as const,
+        status: 'sent' as const,
+        forwardedFrom: userProfile?.name || 'Пользователь'
+      };
+      return {
+        ...prev,
+        [toId]: {
+          ...chat,
+          messages: [...chat.messages, newMessage]
+        }
+      };
+    });
+  };
+
+  const clearHistory = (id: string) => {
+    setContacts(prev => {
+      const chat = prev[id];
+      if (!chat) return prev;
+      return {
+        ...prev,
+        [id]: {
+          ...chat,
+          messages: []
+        }
+      };
+    });
+  };
+
+  const deleteChat = (id: string) => {
+    setContacts(prev => {
+      const newContacts = { ...prev };
+      delete newContacts[id];
+      return newContacts;
+    });
+    if (activeChatId === id) {
+      setActiveChatId(null);
+      setView('chatList');
+    }
+  };
+
+  const markAsRead = (id: string) => {
+    setContacts(prev => {
+      const chat = prev[id];
+      if (!chat) return prev;
+      return {
+        ...prev,
+        [id]: {
+          ...chat,
+          unread: 0
+        }
+      };
+    });
+  };
+
+  const addContact = (contact: Contact) => {
+    setContacts(prev => ({
+      ...prev,
+      [contact.id]: prev[contact.id] || contact
+    }));
+  };
+
+  const togglePin = (id: string) => {
+    setContacts(prev => {
+      const chat = prev[id];
+      if (!chat) return prev;
+      return {
+        ...prev,
+        [id]: {
+          ...chat,
+          isPinned: !chat.isPinned
+        }
+      };
+    });
+  };
+
+  const handleSetThemeColor = (color: string) => {
+    setThemeColor(color);
+    localStorage.setItem('themeColor', color);
+  };
+
+  const handleSetWallpaper = (url: string | null) => {
+    setWallpaper(url);
+    if (url) localStorage.setItem('wallpaper', url);
+    else localStorage.removeItem('wallpaper');
+  };
+
+  const handleSetIsGlassEnabled = (enabled: boolean) => {
+    setIsGlassEnabled(enabled);
+    localStorage.setItem('isGlassEnabled', enabled.toString());
+  };
+
+  const handleSetIsDarkMode = (enabled: boolean) => {
     setIsDarkMode(enabled);
-    localStorage.setItem('housegram_dark', String(enabled));
+    localStorage.setItem('isDarkMode', enabled.toString());
     if (enabled) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, []);
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: 'Ваше Имя',
-    username: '@usernamegoeshere',
-    bio: 'Add a few words about yourself',
-    phone: '+7 9XX XXX XX XX',
-  });
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [passcode, setPasscode] = useState<string | null>(null);
-  const [isLocked, setIsLocked] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isMaintenance, setIsMaintenance] = useState(false);
-  const [systemStatus, setSystemStatus] = useState<{ status: 'green' | 'yellow' | 'red' | 'blue'; message: string }>({ status: 'green', message: 'Все системы работают в штатном режиме' });
-  const [authReady, setAuthReady] = useState(false);
-
-  const settingsRef = useRef({ soundEnabled, notificationsEnabled });
-
-  useEffect(() => {
-    settingsRef.current = { soundEnabled, notificationsEnabled };
-  }, [soundEnabled, notificationsEnabled]);
-
-  useEffect(() => {
-    activeChatIdRef.current = activeChatId;
-  }, [activeChatId]);
-
-  useEffect(() => {
-    const savedPasscode = localStorage.getItem('housegram_passcode');
-    if (savedPasscode) {
-      Promise.resolve().then(() => {
-        setPasscode(savedPasscode);
-        setIsLocked(true);
-      });
-    }
-    const savedNotif = localStorage.getItem('housegram_notif');
-    const savedSound = localStorage.getItem('housegram_sound');
-    
-    Promise.resolve().then(() => {
-      if (savedNotif !== null) setNotificationsEnabled(savedNotif === 'true');
-      if (savedSound !== null) setSoundEnabled(savedSound === 'true');
-    });
-
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            setIsAdmin(currentUser.email === 'goh@gmail.com' || data.role === 'admin');
-            setUserProfile({
-              name: data.name || 'Ваше Имя',
-              username: data.username || '',
-              bio: data.bio || '',
-              phone: data.phone || '+7 9XX XXX XX XX',
-              avatarUrl: data.avatarUrl || '',
-              status: 'online',
-              lastSeen: data.lastSeen,
-              isOfficial: currentUser.email === 'goh@gmail.com' || data.role === 'admin'
-            });
-            
-            // Set online status
-            try {
-              await updateDoc(doc(db, 'users', currentUser.uid), {
-                status: 'online',
-                lastSeen: serverTimestamp()
-              });
-            } catch (e) {
-              console.error('Failed to update presence', e);
-            }
-          } else {
-            // Create user document if it doesn't exist
-            const rawUsername = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
-            const finalUsername = rawUsername.startsWith('@') ? rawUsername : '@' + rawUsername.replace(/@/g, '');
-            
-            try {
-              await setDoc(doc(db, 'users', currentUser.uid), {
-                uid: currentUser.uid,
-                email: currentUser.email,
-                name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
-                username: finalUsername.substring(0, 15),
-                bio: '',
-                role: currentUser.email === 'goh@gmail.com' ? 'admin' : 'user',
-                isBanned: false,
-                createdAt: serverTimestamp(),
-                status: 'online',
-                lastSeen: serverTimestamp()
-              });
-              setIsAdmin(currentUser.email === 'goh@gmail.com');
-              setUserProfile({
-                name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
-                username: finalUsername.substring(0, 15),
-                bio: '',
-                phone: '+7 9XX XXX XX XX',
-                avatarUrl: '',
-                status: 'online',
-                lastSeen: new Date(),
-                isOfficial: currentUser.email === 'goh@gmail.com'
-              });
-            } catch (e) {
-              console.error('Failed to create user document', e);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching user document:', error);
-        }
-        setView('menu');
-      } else {
-        setIsAdmin(false);
-        setView('auth');
-      }
-      setAuthReady(true);
-    });
-
-    const handleVisibilityChange = async () => {
-      if (auth.currentUser) {
-        try {
-          if (document.visibilityState === 'visible') {
-            await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-              status: 'online',
-              lastSeen: serverTimestamp()
-            });
-          } else {
-            await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-              status: 'offline',
-              lastSeen: serverTimestamp()
-            });
-          }
-        } catch (e) {
-          console.error('Failed to update presence', e);
-        }
-      }
-    };
-
-    const handleBeforeUnload = () => {
-      if (auth.currentUser) {
-        // Use keepalive fetch or just try to update
-        const data = JSON.stringify({
-          fields: {
-            status: { stringValue: 'offline' },
-            lastSeen: { timestampValue: new Date().toISOString() }
-          }
-        });
-        // We can't easily use updateDoc in beforeunload reliably, but we can try
-        updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          status: 'offline',
-          lastSeen: serverTimestamp()
-        }).catch(() => {});
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setIsMaintenance(data.maintenanceMode || false);
-        if (data.systemStatus) {
-          setSystemStatus(data.systemStatus);
-        }
-      }
-    });
-
-    return () => {
-      unsubscribeAuth();
-      unsubscribeSettings();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-
-  const logout = useCallback(async () => {
-    if (auth.currentUser) {
-      try {
-        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          status: 'offline',
-          lastSeen: serverTimestamp()
-        });
-      } catch (e) {
-        console.error('Failed to update presence on logout', e);
-      }
-    }
-    await signOut(auth);
-    setContacts(initialContacts);
-    setView('auth');
-  }, []);
-
-  const updatePasscode = useCallback((code: string | null) => {
-    setPasscode(code);
-    if (code) {
-      localStorage.setItem('housegram_passcode', code);
-    } else {
-      localStorage.removeItem('housegram_passcode');
-      setIsLocked(false);
-    }
-  }, []);
-
-  const playSound = useCallback((type: 'send' | 'receive') => {
-    if (!settingsRef.current.soundEnabled) return;
-    try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextClass) return;
-      const ctx = new AudioContextClass();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      if (type === 'send') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.1);
-      } else {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.setValueAtTime(1760, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
-      }
-    } catch (e) {
-      console.error('Audio play error', e);
-    }
-  }, []);
-
-  const markAsRead = useCallback((contactId: string) => {
-    setContacts(prev => ({
-      ...prev,
-      [contactId]: { ...prev[contactId], unread: 0 }
-    }));
-  }, []);
-
-  const clearHistory = useCallback(async (contactId: string) => {
-    if (!auth.currentUser) return;
-    const chatId = [auth.currentUser.uid, contactId].sort().join('_');
-    
-    try {
-      const messagesRef = collection(db, 'chats', chatId, 'messages');
-      const snapshot = await getDocs(messagesRef);
-      for (const docSnapshot of snapshot.docs) {
-        await deleteDoc(docSnapshot.ref);
-      }
-      
-      setContacts(prev => ({
-        ...prev,
-        [contactId]: { ...prev[contactId], messages: [] }
-      }));
-    } catch (e) {
-      console.error('Failed to clear history', e);
-      alert('Ошибка при очистке истории');
-    }
-  }, []);
-
-  const deleteChat = useCallback((contactId: string) => {
-    setContacts(prev => {
-      const newContacts = { ...prev };
-      delete newContacts[contactId];
-      return newContacts;
-    });
-    setActiveChatId(null);
-    setView('menu');
-  }, []);
-
-  const blockContact = useCallback((contactId: string) => {
-    setContacts(prev => ({
-      ...prev,
-      [contactId]: { ...prev[contactId], isBlocked: !prev[contactId].isBlocked }
-    }));
-  }, []);
-
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const toggleMute = useCallback((contactId: string) => {
-    setContacts(prev => ({
-      ...prev,
-      [contactId]: { ...prev[contactId], isMuted: !prev[contactId].isMuted }
-    }));
-  }, []);
-
-  const togglePin = useCallback(async (contactId: string) => {
-    if (!auth.currentUser) return;
-    setContacts(prev => ({
-      ...prev,
-      [contactId]: { ...prev[contactId], isPinned: !prev[contactId].isPinned }
-    }));
-    try {
-      await setDoc(doc(db, 'users', auth.currentUser.uid, 'pinnedChats', contactId), {
-        isPinned: !contacts[contactId]?.isPinned
-      }, { merge: true });
-    } catch (e) {
-      console.error('Failed to toggle pin', e);
-    }
-  }, [contacts]);
-
-  const sendMessage = useCallback(async (text: string, options?: { audioUrl?: string; fileUrl?: string; fileName?: string; fileType?: string; forwardedFrom?: string }) => {
-    if (!activeChatId || !auth.currentUser) return;
-
-    const now = serverTimestamp();
-    const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
-    
-    const chatId = [auth.currentUser.uid, activeChatId].sort().join('_');
-
-    const newMessage: Omit<Message, 'id'> = {
-      type: 'sent',
-      text,
-      time: timeString,
-      status: 'sent',
-      senderId: auth.currentUser.uid,
-      chatId: chatId,
-      createdAt: now,
-      ...options,
-    };
-
-    try {
-      console.log('Sending message to chatId:', chatId, 'newMessage:', newMessage);
-      // Ensure chat document exists
-      await setDoc(doc(db, 'chats', chatId), {
-        updatedAt: now,
-        participants: [auth.currentUser.uid, activeChatId]
-      }, { merge: true });
-
-      // Add message to Firestore
-      await addDoc(collection(db, 'chats', chatId, 'messages'), newMessage);
-      
-      // Update last message in chat document
-      await updateDoc(doc(db, 'chats', chatId), {
-        lastMessage: text,
-        lastMessageSenderId: auth.currentUser.uid,
-        updatedAt: now
-      });
-
-      playSound('send');
-    } catch (e) {
-      console.error('Failed to send message', e);
-      alert(`Ошибка при отправке сообщения: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }, [activeChatId, playSound]);
-
-  const editMessage = useCallback(async (messageId: string, newText: string) => {
-    if (!activeChatId || !auth.currentUser) return;
-    const chatId = [auth.currentUser.uid, activeChatId].sort().join('_');
-    try {
-      await updateDoc(doc(db, 'chats', chatId, 'messages', messageId), {
-        text: newText,
-        isEdited: true
-      });
-    } catch (e) {
-      console.error('Failed to edit message', e);
-    }
-  }, [activeChatId]);
-
-  const deleteMessage = useCallback(async (messageId: string) => {
-    if (!activeChatId || !auth.currentUser) return;
-    const chatId = [auth.currentUser.uid, activeChatId].sort().join('_');
-    try {
-      await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
-    } catch (e) {
-      console.error('Failed to delete message', e);
-    }
-  }, [activeChatId]);
-
-  const forwardMessage = useCallback(async (message: Message, targetChatId: string) => {
-    if (!auth.currentUser) return;
-    const chatId = [auth.currentUser.uid, targetChatId].sort().join('_');
-    const now = serverTimestamp();
-    const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
-    
-    const newMessage: Omit<Message, 'id'> = {
-      type: 'sent',
-      text: message.text,
-      time: timeString,
-      status: 'sent',
-      senderId: auth.currentUser.uid,
-      chatId: chatId,
-      createdAt: now,
-      audioUrl: message.audioUrl,
-      fileUrl: message.fileUrl,
-      fileName: message.fileName,
-      fileType: message.fileType,
-      forwardedFrom: message.forwardedFrom || message.senderId || 'Unknown',
-    };
-
-    try {
-      await setDoc(doc(db, 'chats', chatId), {
-        updatedAt: now,
-        participants: [auth.currentUser.uid, targetChatId]
-      }, { merge: true });
-      await addDoc(collection(db, 'chats', chatId, 'messages'), newMessage);
-      await updateDoc(doc(db, 'chats', chatId), {
-        lastMessage: message.text || 'Пересланное сообщение',
-        lastMessageSenderId: auth.currentUser.uid,
-        updatedAt: now
-      });
-      playSound('send');
-    } catch (e) {
-      console.error('Failed to forward message', e);
-    }
-  }, [playSound]);
-
-  const addContact = useCallback((contact: Contact) => {
-    setContacts(prev => {
-      if (prev[contact.id]) return prev;
-      return { ...prev, [contact.id]: contact };
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const chatsRef = collection(db, 'chats');
-    const q = query(chatsRef, where('participants', 'array-contains', user.uid));
-
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const newContacts: Record<string, Contact> = {};
-      
-      for (const docSnapshot of snapshot.docs) {
-        const data = docSnapshot.data();
-        const otherUserId = data.participants.find((id: string) => id !== user.uid);
-        if (!otherUserId) continue;
-
-        const userDoc = await getDoc(doc(db, 'users', otherUserId));
-        let userData: any = {};
-        let isSavedMessages = false;
-
-        if (otherUserId === 'saved_messages') {
-          isSavedMessages = true;
-          userData = {
-            name: 'Избранное',
-            avatarColor: '#517da2',
-            role: 'user'
-          };
-        } else if (userDoc.exists()) {
-          userData = userDoc.data();
-        } else {
-          continue;
-        }
-          
-        let timeString = '';
-        if (data.updatedAt) {
-          try {
-            const date = data.updatedAt.toDate();
-            timeString = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-          } catch (e) {}
-        }
-
-        const dummyMessages: Message[] = [];
-        if (data.lastMessage) {
-          dummyMessages.push({
-            id: 'dummy',
-            type: data.lastMessageSenderId === user.uid ? 'sent' : 'received',
-            text: data.lastMessage,
-            time: timeString,
-          });
-        }
-
-        let statusText = '';
-        if (!isSavedMessages) {
-          if (userData.status === 'online') {
-            statusText = 'в сети';
-          } else if (userData.lastSeen) {
-            try {
-              let date;
-              if (userData.lastSeen.toDate) {
-                date = userData.lastSeen.toDate();
-              } else if (userData.lastSeen instanceof Date) {
-                date = userData.lastSeen;
-              } else {
-                date = new Date(userData.lastSeen);
-              }
-              const distance = formatDistanceToNow(date, { addSuffix: true, locale: ru });
-              if (distance === 'меньше минуты назад') {
-                statusText = 'был(а) только что';
-              } else {
-                statusText = `был(а) ${distance}`;
-              }
-            } catch (e) {
-              statusText = '';
-            }
-          }
-        }
-
-        newContacts[otherUserId] = {
-          id: otherUserId,
-          name: userData.name || 'User',
-          initial: (userData.name || 'U').charAt(0).toUpperCase(),
-          avatarColor: userData.avatarColor || '#517da2',
-          avatarUrl: userData.avatarUrl || '',
-          statusOnline: isSavedMessages ? '' : 'в сети',
-          statusOffline: statusText,
-          phone: userData.phone || '',
-          bio: userData.bio || '',
-          username: userData.username || '',
-          messages: dummyMessages,
-          isTyping: false,
-          unread: 0,
-          isChannel: false,
-          isOfficial: userData.role === 'admin' || userData.email === 'goh@gmail.com'
-        };
-      }
-
-      setContacts(prev => {
-        const updated = { ...prev };
-        for (const [id, contact] of Object.entries(newContacts)) {
-          if (!updated[id]) {
-            updated[id] = contact;
-          } else {
-            // Update contact info
-            updated[id] = {
-              ...updated[id],
-              name: contact.name,
-              avatarUrl: contact.avatarUrl,
-              statusOnline: contact.statusOnline,
-              statusOffline: contact.statusOffline,
-              isOfficial: contact.isOfficial,
-            };
-            
-            // If we have a new last message from the chats collection, and the chat is not currently active
-            // (meaning the messages subcollection listener is not running for it), we should update the preview.
-            if (contact.messages.length > 0 && id !== activeChatIdRef.current) {
-              const newLastMsg = contact.messages[0];
-              const currentMessages = updated[id].messages;
-              
-              if (currentMessages.length === 0 || currentMessages[currentMessages.length - 1].text !== newLastMsg.text || currentMessages[currentMessages.length - 1].time !== newLastMsg.time) {
-                // Replace or append the dummy message to update the chat list preview
-                updated[id].messages = [...currentMessages.filter(m => m.id !== 'dummy'), newLastMsg];
-                
-                if (newLastMsg.type === 'received' && !updated[id].isMuted) {
-                  if (settingsRef.current.soundEnabled) {
-                    try {
-                      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-                      if (AudioContext) {
-                        const ctx = new AudioContext();
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        osc.connect(gain);
-                        gain.connect(ctx.destination);
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(800, ctx.currentTime);
-                        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-                        gain.gain.setValueAtTime(0, ctx.currentTime);
-                        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.02);
-                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-                        osc.start(ctx.currentTime);
-                        osc.stop(ctx.currentTime + 0.2);
-                      }
-                    } catch (e) {}
-                  }
-                  
-                  if (settingsRef.current.notificationsEnabled) {
-                    try {
-                      if (Notification.permission === 'granted') {
-                        new Notification(contact.name, { body: newLastMsg.text });
-                      } else if (Notification.permission !== 'denied') {
-                        Notification.requestPermission().then(permission => {
-                          if (permission === 'granted') {
-                            new Notification(contact.name, { body: newLastMsg.text });
-                          }
-                        });
-                      }
-                    } catch (e) {}
-                  }
-                }
-              }
-            } else if (updated[id].messages.length === 0) {
-              updated[id].messages = contact.messages;
-            }
-          }
-        }
-        return updated;
-      });
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  useEffect(() => {
-    if (!activeChatId || !user) return;
-
-    const chatId = [user.uid, activeChatId].sort().join('_');
-    const messagesRef = collection(db, 'chats', chatId, 'messages');
-    const q = query(messagesRef, orderBy('createdAt', 'asc'));
-
-    const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
-      const messages: Message[] = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          type: data.senderId === user.uid ? 'sent' : 'received',
-          status: doc.metadata.hasPendingWrites ? 'sending' : (data.status === 'sending' ? 'sent' : data.status),
-        } as Message;
-      });
-
-      setContacts(prev => {
-        const contact = prev[activeChatId];
-        if (!contact) return prev;
-        
-        return {
-          ...prev,
-          [activeChatId]: {
-            ...contact,
-            messages: messages,
-          }
-        };
-      });
-    });
-
-    return () => unsubscribe();
-  }, [activeChatId, user]);
-
-  const updateUserProfile = useCallback(async (profile: UserProfile) => {
-    setUserProfile(profile);
-    if (auth.currentUser) {
-      try {
-        await setDoc(doc(db, 'users', auth.currentUser.uid), {
-          name: profile.name || 'User',
-          username: profile.username || '',
-          bio: profile.bio || '',
-          phone: profile.phone || '',
-          avatarUrl: profile.avatarUrl || ''
-        }, { merge: true });
-      } catch (e: any) {
-        console.error('Failed to update profile in Firestore', e);
-        alert('Ошибка при сохранении профиля: ' + e.message);
-      }
-    }
-  }, []);
+  };
 
   return (
     <ChatContext.Provider value={{
-      view, setView,
-      activeChatId, setActiveChatId,
-      contacts,
-      isSideMenuOpen, setSideMenuOpen,
-      sendMessage, editMessage, deleteMessage, forwardMessage, markAsRead,
-      themeColor, setThemeColor,
-      wallpaper, setWallpaper,
-      isGlassEnabled, setIsGlassEnabled,
-      isDarkMode, toggleDarkMode,
-      clearHistory, deleteChat,
-      userProfile, setUserProfile: updateUserProfile,
-      blockContact, toggleMute, togglePin, searchQuery, setSearchQuery, addContact,
-      notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
-      soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
-      passcode, isLocked, setIsLocked, updatePasscode,
-      user, isAdmin, isMaintenance, systemStatus, logout, authReady
+      contacts, activeChatId, view, themeColor, isSideMenuOpen, isAdmin, userProfile, authReady, wallpaper, isGlassEnabled, searchQuery, isDarkMode,
+      setSearchQuery, setView, setActiveChatId, setThemeColor: handleSetThemeColor, setSideMenuOpen, sendMessage, editMessage, deleteMessage, forwardMessage, clearHistory, deleteChat, markAsRead, addContact, togglePin, setWallpaper: handleSetWallpaper, setIsGlassEnabled: handleSetIsGlassEnabled, setIsDarkMode: handleSetIsDarkMode
     }}>
-      {!authReady ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      ) : isMaintenance && !isAdmin ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-50 p-6 text-center">
-          <div className="text-6xl mb-4">🛠️</div>
-          <h2 className="text-2xl font-bold mb-2">Технические работы</h2>
-          <p className="text-gray-600">Мы обновляем приложение. Пожалуйста, зайдите позже.</p>
-        </div>
-      ) : children}
+      {children}
     </ChatContext.Provider>
   );
-};
+}
 
 export const useChat = () => {
   const context = useContext(ChatContext);
-  if (!context) throw new Error('useChat must be used within ChatProvider');
+  if (!context) throw new Error('useChat must be used within a ChatProvider');
   return context;
 };

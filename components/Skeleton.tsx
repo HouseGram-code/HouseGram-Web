@@ -1,16 +1,10 @@
-'use client';
+import React from 'react';
 
-import { motion } from 'motion/react';
-
-export function Skeleton({ className }: { className?: string }) {
+export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <motion.div
-      initial={{ opacity: 0.5 }}
-      animate={{ opacity: 1 }}
-      transition={{ repeat: Infinity, repeatType: 'reverse', duration: 0.8 }}
-      className={`bg-gray-200 rounded-md ${className}`}
+    <div
+      className={`animate-pulse rounded-md bg-gray-200 dark:bg-gray-800 ${className}`}
+      {...props}
     />
   );
 }
-
-export default Skeleton;

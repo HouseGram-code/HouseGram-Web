@@ -1,70 +1,39 @@
 'use client';
 
-import { ChatProvider, useChat } from '@/context/ChatContext';
-import ThemeWrapper from '@/components/ThemeWrapper';
-import { AnimatePresence } from 'motion/react';
+import { useChat } from '@/context/ChatContext';
 import ChatList from '@/components/ChatList';
 import ChatView from '@/components/ChatView';
-import ProfileView from '@/components/ProfileView';
 import SideMenu from '@/components/SideMenu';
 import SettingsView from '@/components/SettingsView';
-import ChatSettingsView from '@/components/ChatSettingsView';
-import FeaturesView from '@/components/FeaturesView';
-import PrivacyView from '@/components/PrivacyView';
-import NotificationsView from '@/components/NotificationsView';
-import SecurityView from '@/components/SecurityView';
-import PasscodeScreen from '@/components/PasscodeScreen';
-import AuthView from '@/components/AuthView';
 import AdminView from '@/components/AdminView';
-import InfoView from '@/components/InfoView';
-import SystemStatusView from '@/components/SystemStatusView';
+import { motion, AnimatePresence } from 'motion/react';
 
-function AppContent() {
-  const { view, isLocked, user } = useChat();
-
-  if (view === 'auth' || !user) {
-    return (
-      <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
-        <AuthView />
-      </div>
-    );
-  }
-
-  if (isLocked) {
-    return (
-      <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
-        <PasscodeScreen />
-      </div>
-    );
-  }
+export default function Home() {
+  const { view } = useChat();
 
   return (
-    <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
-      <AnimatePresence initial={false} mode="popLayout">
-        {view === 'menu' && <ChatList key="menu" />}
+    <div className="w-full max-w-[480px] h-[100dvh] bg-tg-bg-light relative overflow-hidden shadow-2xl sm:rounded-3xl sm:h-[90dvh] sm:max-h-[850px] border border-tg-divider">
+      <AnimatePresence mode="wait">
+        {view === 'auth' && (
+          <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex items-center justify-center bg-white dark:bg-tg-bg-light">
+            <div className="text-center p-6">
+              <h1 className="text-3xl font-bold mb-4 text-tg-text-primary">HouseGram</h1>
+              <p className="text-tg-secondary-text mb-8">Войдите, чтобы продолжить</p>
+              <button 
+                onClick={() => {}} 
+                className="w-full py-3 px-4 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors"
+              >
+                Войти через Google
+              </button>
+            </div>
+          </motion.div>
+        )}
+        {view === 'chatList' && <ChatList key="chatList" />}
         {view === 'chat' && <ChatView key="chat" />}
-        {view === 'profile' && <ProfileView key="profile" />}
         {view === 'settings' && <SettingsView key="settings" />}
-        {view === 'chat-settings' && <ChatSettingsView key="chat-settings" />}
-        {view === 'features' && <FeaturesView key="features" />}
-        {view === 'privacy' && <PrivacyView key="privacy" />}
-        {view === 'notifications' && <NotificationsView key="notifications" />}
-        {view === 'security' && <SecurityView key="security" />}
         {view === 'admin' && <AdminView key="admin" />}
-        {view === 'info' && <InfoView key="info" />}
-        {view === 'system-status' && <SystemStatusView key="system-status" />}
       </AnimatePresence>
       <SideMenu />
     </div>
-  );
-}
-
-export default function Page() {
-  return (
-    <ChatProvider>
-      <ThemeWrapper>
-        <AppContent />
-      </ThemeWrapper>
-    </ChatProvider>
   );
 }

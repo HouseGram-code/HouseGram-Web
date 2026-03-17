@@ -1,19 +1,18 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDo2yWS2PFYCceBoiGnDXiI_-kAC_ZX3pc",
-  authDomain: "housegram-d070d.firebaseapp.com",
-  projectId: "housegram-d070d",
-  storageBucket: "housegram-d070d.firebasestorage.app",
-  messagingSenderId: "812659108162",
-  appId: "1:812659108162:web:3282da59b84348eb7900db",
-  measurementId: "G-1GLFYH9CG6"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "mock-key",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "mock-domain",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mock-project",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "mock-bucket",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "mock-sender",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "mock-app-id",
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-export const db = getFirestore(app);
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
+export const db = getFirestore(app);
 export const storage = getStorage(app);

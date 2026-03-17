@@ -1,26 +1,28 @@
 import type { Metadata } from 'next';
-import { Roboto } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ChatProvider } from '@/context/ChatContext';
 
-const roboto = Roboto({
-  weight: ['400', '500'],
-  subsets: ['cyrillic', 'latin'],
-  variable: '--font-roboto',
-});
+const inter = Inter({ subsets: ['latin'], variable: '--font-roboto' });
 
 export const metadata: Metadata = {
-  title: 'HouseGram Web',
-  description: 'HouseGram Web - Modern Chat Application',
+  title: 'HouseGram',
+  description: 'A modern chat application',
 };
 
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="ru" className={roboto.variable}>
-      <body className="font-roboto antialiased" suppressHydrationWarning>
+    <html lang="en" className={inter.variable}>
+      <body>
         <ErrorBoundary>
-          {children}
+          <ChatProvider>
+            {children}
+          </ChatProvider>
         </ErrorBoundary>
       </body>
     </html>
