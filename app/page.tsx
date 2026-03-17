@@ -8,22 +8,24 @@ import SettingsView from '@/components/SettingsView';
 import AdminView from '@/components/AdminView';
 import ProfileView from '@/components/ProfileView';
 import AuthView from '@/components/AuthView';
+import PasscodeScreen from '@/components/PasscodeScreen';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Home() {
-  const { view } = useChat();
+  const { view, isLocked } = useChat();
 
   return (
     <div className="w-full max-w-[480px] h-[100dvh] bg-tg-bg-light relative overflow-hidden shadow-2xl sm:rounded-3xl sm:h-[90dvh] sm:max-h-[850px] border border-tg-divider">
       <AnimatePresence mode="wait">
-        {view === 'auth' && <AuthView key="auth" />}
-        {view === 'chatList' && <ChatList key="chatList" />}
-        {view === 'chat' && <ChatView key="chat" />}
-        {view === 'settings' && <SettingsView key="settings" />}
-        {view === 'admin' && <AdminView key="admin" />}
-        {view === 'profile' && <ProfileView key="profile" />}
+        {isLocked && <PasscodeScreen key="passcode" />}
+        {!isLocked && view === 'auth' && <AuthView key="auth" />}
+        {!isLocked && view === 'chatList' && <ChatList key="chatList" />}
+        {!isLocked && view === 'chat' && <ChatView key="chat" />}
+        {!isLocked && view === 'settings' && <SettingsView key="settings" />}
+        {!isLocked && view === 'admin' && <AdminView key="admin" />}
+        {!isLocked && view === 'profile' && <ProfileView key="profile" />}
       </AnimatePresence>
-      <SideMenu />
+      {!isLocked && <SideMenu />}
     </div>
   );
 }

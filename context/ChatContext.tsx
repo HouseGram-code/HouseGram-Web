@@ -5,6 +5,7 @@ import { Contact, ViewState, UserProfile } from '@/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
+import { initialContacts, generateBotResponse } from '@/lib/mockData';
 
 interface ChatContextType {
   contacts: Record<string, Contact>;
@@ -52,7 +53,7 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const [contacts, setContacts] = useState<Record<string, Contact>>({});
+  const [contacts, setContacts] = useState<Record<string, Contact>>(initialContacts);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [view, setView] = useState<ViewState>('auth');
   const [themeColor, setThemeColor] = useState('#517da2');
@@ -96,12 +97,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setUserProfile(data as UserProfile);
-          setIsAdmin(data.role === 'admin' || user.email === 'goh@gmail.com');
-        } else {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserProfile(data as UserProfile);
+            setIsAdmin(data.role === 'admin' || user.email === 'goh@gmail.com');
+          } else {
+            setUserProfile({ uid: user.uid, name: user.displayName || 'Пользователь', email: user.email || '', phone: '', bio: '', username: '', avatarUrl: user.photoURL || '' });
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
           setUserProfile({ uid: user.uid, name: user.displayName || 'Пользователь', email: user.email || '', phone: '', bio: '', username: '', avatarUrl: user.photoURL || '' });
         }
         setView('chatList');
@@ -156,26 +162,26 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    if (activeChatId === 'echo_bot') {
+    if (activeChatId === 'echo_bot' || activeChatId === 'test_bot') {
       setTimeout(() => {
         setContacts(prev => {
-          const chat = prev['echo_bot'];
+          const chat = prev[activeChatId];
           if (!chat) return prev;
-          return { ...prev, echo_bot: { ...chat, isTyping: true } };
+          return { ...prev, [activeChatId]: { ...chat, isTyping: true } };
         });
         setTimeout(() => {
           setContacts(prev => {
-            const chat = prev['echo_bot'];
+            const chat = prev[activeChatId];
             if (!chat) return prev;
             const botMsg = {
               id: Date.now().toString(),
-              text: `Эхо: ${text}`,
+              text: activeChatId === 'echo_bot' ? `Эхо: ${text}` : generateBotResponse(activeChatId, text),
               time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               type: 'received' as const,
             };
             return {
               ...prev,
-              echo_bot: {
+              [activeChatId]: {
                 ...chat,
                 isTyping: false,
                 messages: [...chat.messages, botMsg],

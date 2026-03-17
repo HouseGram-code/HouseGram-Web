@@ -35,12 +35,21 @@ export default function PasscodeScreen() {
           <button 
             key={digit}
             onClick={() => digit === 'C' ? setInput('') : digit !== '' && handleDigit(digit)}
-            className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-[24px] font-medium hover:bg-gray-200 transition-colors"
+            className={`w-16 h-16 rounded-full flex items-center justify-center text-[24px] font-medium transition-colors ${digit === '' ? 'invisible' : 'bg-gray-100 hover:bg-gray-200'}`}
           >
             {digit}
           </button>
         ))}
       </div>
+      <button 
+        onClick={() => {
+          localStorage.removeItem('passcode');
+          window.location.reload();
+        }}
+        className="mt-12 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+      >
+        Забыли код-пароль? (Сбросить)
+      </button>
     </motion.div>
   );
 }
