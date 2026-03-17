@@ -11,6 +11,7 @@ export interface Message {
   isEdited?: boolean;
   forwardedFrom?: string;
   createdAt?: any;
+  reactions?: Record<string, number>;
 }
 
 export interface Contact {

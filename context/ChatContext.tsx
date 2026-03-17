@@ -36,6 +36,8 @@ interface ChatContextType {
   setWallpaper: (url: string | null) => void;
   setIsGlassEnabled: (enabled: boolean) => void;
   setIsDarkMode: (enabled: boolean) => void;
+  updateProfile: (data: Partial<UserProfile>) => void;
+  addReaction: (messageId: string, emoji: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -76,8 +78,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           const data = userDoc.data();
           setUserProfile(data as UserProfile);
           setIsAdmin(data.role === 'admin' || user.email === 'goh@gmail.com');
+        } else {
+          setUserProfile({ uid: user.uid, name: user.displayName || 'Пользователь', email: user.email || '', phone: '', bio: '', username: '', avatarUrl: user.photoURL || '' });
         }
         setView('chatList');
+        setContacts(prev => ({
+          ...prev,
+          'echo_bot': prev['echo_bot'] || {
+            id: 'echo_bot',
+            name: 'Эхо Бот',
+            initial: 'Б',
+            avatarColor: '#10b981',
+            statusOnline: 'в сети',
+            statusOffline: 'бот',
+            phone: '',
+            bio: 'Я эхо-бот. Я повторяю то, что вы пишете.',
+            username: '@echobot',
+            messages: [],
+            isTyping: false,
+            unread: 0,
+            isChannel: false,
+            isOfficial: true,
+          }
+        }));
       } else {
         setView('auth');
         setUserProfile(null);
@@ -106,6 +129,63 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         [activeChatId]: {
           ...chat,
           messages: [...chat.messages, newMessage]
+        }
+      };
+    });
+
+    if (activeChatId === 'echo_bot') {
+      setTimeout(() => {
+        setContacts(prev => {
+          const chat = prev['echo_bot'];
+          if (!chat) return prev;
+          return { ...prev, echo_bot: { ...chat, isTyping: true } };
+        });
+        setTimeout(() => {
+          setContacts(prev => {
+            const chat = prev['echo_bot'];
+            if (!chat) return prev;
+            const botMsg = {
+              id: Date.now().toString(),
+              text: `Эхо: ${text}`,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              type: 'received' as const,
+            };
+            return {
+              ...prev,
+              echo_bot: {
+                ...chat,
+                isTyping: false,
+                messages: [...chat.messages, botMsg],
+                unread: chat.unread + 1
+              }
+            };
+          });
+        }, 1500);
+      }, 500);
+    }
+  };
+
+  const updateProfile = (data: Partial<UserProfile>) => {
+    setUserProfile(prev => prev ? { ...prev, ...data } : null);
+  };
+
+  const addReaction = (messageId: string, emoji: string) => {
+    if (!activeChatId) return;
+    setContacts(prev => {
+      const chat = prev[activeChatId];
+      if (!chat) return prev;
+      return {
+        ...prev,
+        [activeChatId]: {
+          ...chat,
+          messages: chat.messages.map(m => {
+            if (m.id === messageId) {
+              const reactions = { ...(m.reactions || {}) };
+              reactions[emoji] = (reactions[emoji] || 0) + 1;
+              return { ...m, reactions };
+            }
+            return m;
+          })
         }
       };
     });
@@ -252,7 +332,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   return (
     <ChatContext.Provider value={{
       contacts, activeChatId, view, themeColor, isSideMenuOpen, isAdmin, userProfile, authReady, wallpaper, isGlassEnabled, searchQuery, isDarkMode,
-      setSearchQuery, setView, setActiveChatId, setThemeColor: handleSetThemeColor, setSideMenuOpen, sendMessage, editMessage, deleteMessage, forwardMessage, clearHistory, deleteChat, markAsRead, addContact, togglePin, setWallpaper: handleSetWallpaper, setIsGlassEnabled: handleSetIsGlassEnabled, setIsDarkMode: handleSetIsDarkMode
+      setSearchQuery, setView, setActiveChatId, setThemeColor: handleSetThemeColor, setSideMenuOpen, sendMessage, editMessage, deleteMessage, forwardMessage, clearHistory, deleteChat, markAsRead, addContact, togglePin, setWallpaper: handleSetWallpaper, setIsGlassEnabled: handleSetIsGlassEnabled, setIsDarkMode: handleSetIsDarkMode, updateProfile, addReaction
     }}>
       {children}
     </ChatContext.Provider>

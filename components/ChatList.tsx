@@ -15,6 +15,7 @@ export default function ChatList() {
   const { contacts, authReady, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact, searchQuery, setSearchQuery, togglePin } = useChat();
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
 
   useEffect(() => {
     let isMounted = true;
@@ -106,7 +107,8 @@ export default function ChatList() {
   };
 
   const sortedContacts = Object.values(contacts)
-    .filter(c => c.id === 'saved_messages' || c.id === 'housegram_announcements' || c.messages.length > 0)
+    .filter(c => c.id === 'saved_messages' || c.id === 'housegram_announcements' || c.messages.length > 0 || c.id === 'echo_bot')
+    .filter(c => activeTab === 'all' || c.unread > 0)
     .filter(c => {
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
@@ -195,7 +197,22 @@ export default function ChatList() {
         </AnimatePresence>
       </div>
 
-      <div className="flex-grow overflow-y-auto pt-12 no-scrollbar">
+      <div className="flex px-4 pt-14 pb-2 gap-4 border-b border-tg-divider bg-tg-bg-light shrink-0">
+        <button 
+          onClick={() => setActiveTab('all')}
+          className={`text-[15px] font-medium pb-2 border-b-2 transition-colors ${activeTab === 'all' ? 'text-blue-500 border-blue-500' : 'text-tg-secondary-text border-transparent'}`}
+        >
+          Все чаты
+        </button>
+        <button 
+          onClick={() => setActiveTab('unread')}
+          className={`text-[15px] font-medium pb-2 border-b-2 transition-colors ${activeTab === 'unread' ? 'text-blue-500 border-blue-500' : 'text-tg-secondary-text border-transparent'}`}
+        >
+          Непрочитанные
+        </button>
+      </div>
+
+      <div className="flex-grow overflow-y-auto no-scrollbar">
         {isSearching && searchQuery.trim().length > 2 && (
           <div className="px-4 py-2 text-[14px] font-medium text-gray-500">Результаты поиска</div>
         )}

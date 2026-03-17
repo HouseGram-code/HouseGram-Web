@@ -2,94 +2,101 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, MoreVertical, Search, Bell, Ban, Trash2 } from 'lucide-react';
+import { ArrowLeft, Camera, User, Check } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
 
 export default function ProfileView() {
-  const { setView, contacts, activeChatId, themeColor, isGlassEnabled, blockContact, toggleMute, deleteChat } = useChat();
-  const contact = activeChatId ? contacts[activeChatId] : null;
+  const { setView, userProfile, themeColor, updateProfile } = useChat();
+  const [name, setName] = useState(userProfile?.name || '');
+  const [username, setUsername] = useState(userProfile?.username || '');
+  const [bio, setBio] = useState(userProfile?.bio || '');
 
-  if (!contact) return null;
+  const handleSave = () => {
+    updateProfile({ name, username, bio });
+    setView('settings');
+  };
 
   return (
     <motion.div 
-      initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="absolute inset-0 bg-gray-100 z-40 flex flex-col"
+      className="absolute inset-0 bg-tg-bg-light flex flex-col z-30"
     >
       <div 
-        className={`text-white px-2.5 h-12 flex items-center gap-4 shrink-0 absolute top-0 left-0 w-full z-10 transition-colors ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
-        style={{ backgroundColor: isGlassEnabled ? themeColor + 'CC' : themeColor }}
+        className="text-tg-header-text px-3 h-12 flex items-center gap-4 shrink-0"
+        style={{ backgroundColor: themeColor }}
       >
-        <button onClick={() => setView('chat')} className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors">
+        <button 
+          onClick={() => setView('settings')} 
+          className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
+        >
           <ArrowLeft size={24} />
         </button>
-        <div className="text-[17px] font-medium flex-grow">Профиль</div>
-        <button className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors">
-          <MoreVertical size={24} />
+        <div className="flex-grow text-[17px] font-medium">Редактировать профиль</div>
+        <button 
+          onClick={handleSave}
+          className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
+        >
+          <Check size={24} />
         </button>
       </div>
 
-      <div className="flex-grow overflow-y-auto pt-12 no-scrollbar">
-        <div className="relative h-64 bg-gray-300 flex items-center justify-center overflow-hidden">
-          {contact.avatarUrl ? (
-            <Image src={contact.avatarUrl} alt={contact.name} fill className="object-cover" referrerPolicy="no-referrer" unoptimized />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-white text-[80px] font-medium" style={{ backgroundColor: contact.avatarColor }}>
-              {contact.initial}
+      <div className="flex-grow overflow-y-auto p-4 space-y-6">
+        <div className="flex justify-center mt-4 mb-6">
+          <div className="relative">
+            <div className="w-28 h-28 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 overflow-hidden">
+              {userProfile?.avatarUrl ? (
+                <Image src={userProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
+              ) : (
+                <User size={48} />
+              )}
             </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
-          <div className="absolute bottom-4 left-4 text-white font-medium text-[24px] z-10">{contact.name}</div>
+            <button className="absolute bottom-0 right-0 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-900 hover:bg-blue-600 transition-colors">
+              <Camera size={20} />
+            </button>
+          </div>
         </div>
 
-        <div className="bg-white p-4 mb-4">
-          <div className="text-[14px] text-gray-500 mb-1">О себе</div>
-          <div className="text-[16px] text-gray-900">{contact.bio || 'Нет информации'}</div>
-        </div>
-
-        <div className="bg-white p-2 mb-4">
-          <ProfileAction icon={Search} label="Поиск" />
-        </div>
-
-        <div className="bg-white p-2">
-          <ProfileAction 
-            icon={Bell} 
-            label={contact.isMuted ? "Включить уведомления" : "Выключить уведомления"} 
-            onClick={() => toggleMute(contact.id)}
-            className={contact.isMuted ? "text-gray-500" : ""}
-          />
-          {contact.id !== 'saved_messages' && !contact.isChannel && (
-            <ProfileAction 
-              icon={Ban} 
-              label={contact.isBlocked ? "Разблокировать" : "Заблокировать"} 
-              onClick={() => blockContact(contact.id)}
-              className={contact.isBlocked ? "text-blue-500" : "text-red-500"}
+        <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-gray-100 dark:border-tg-divider overflow-hidden">
+          <div className="p-4 border-b border-gray-100 dark:border-tg-divider">
+            <label className="block text-xs font-medium text-blue-500 mb-1">Имя</label>
+            <input 
+              type="text" 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-transparent border-none outline-none text-tg-text-primary text-[16px]"
+              placeholder="Ваше имя"
             />
-          )}
-          <ProfileAction 
-            icon={Trash2} 
-            label="Удалить чат" 
-            className="text-red-500" 
-            onClick={() => {
-              deleteChat(contact.id);
-              setView('menu');
-            }}
-          />
+          </div>
+          <div className="p-4 border-b border-gray-100 dark:border-tg-divider">
+            <label className="block text-xs font-medium text-blue-500 mb-1">Имя пользователя</label>
+            <input 
+              type="text" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full bg-transparent border-none outline-none text-tg-text-primary text-[16px]"
+              placeholder="@username"
+            />
+          </div>
+          <div className="p-4">
+            <label className="block text-xs font-medium text-blue-500 mb-1">О себе</label>
+            <textarea 
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              className="w-full bg-transparent border-none outline-none text-tg-text-primary text-[16px] resize-none h-20"
+              placeholder="Расскажите немного о себе"
+            />
+          </div>
         </div>
+        
+        <p className="text-sm text-tg-secondary-text px-2">
+          Любые подробности, такие как возраст, род занятий или город.
+          Пример: 23 года, дизайнер из Санкт-Петербурга.
+        </p>
       </div>
     </motion.div>
-  );
-}
-
-function ProfileAction({ icon: Icon, label, onClick, className = "" }: { icon: any, label: string, onClick?: () => void, className?: string }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`w-full flex items-center gap-6 px-4 py-3 hover:bg-gray-50 transition-colors text-[16px] ${className}`}
-    >
-      <Icon size={24} className={className ? "" : "text-gray-400"} />
-      {label}
-    </button>
   );
 }

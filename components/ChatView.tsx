@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File, Square, Bookmark, CheckCircle, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File, Square, Bookmark, CheckCircle, BadgeCheck, Phone, Video, PhoneOff } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
@@ -18,9 +18,12 @@ const isOnlyEmojis = (str: string) => {
 };
 
 export default function ChatView() {
-  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat } = useChat();
+  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, addReaction } = useChat();
   const [inputText, setInputText] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCalling, setIsCalling] = useState(false);
+  const [callType, setCallType] = useState<'audio' | 'video'>('audio');
+  const [callDuration, setCallDuration] = useState(0);
   const [showClearModal, setShowClearModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -60,6 +63,21 @@ export default function ChatView() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isCalling) {
+      interval = setInterval(() => setCallDuration(p => p + 1), 1000);
+    } else {
+      setCallDuration(0);
+    }
+    return () => clearInterval(interval);
+  }, [isCalling]);
+
+  const startCall = (type: 'audio' | 'video') => {
+    setCallType(type);
+    setIsCalling(true);
+  };
 
   const handleFileUpload = async (file: File) => {
     if (file) {
@@ -240,6 +258,17 @@ export default function ChatView() {
 
         <div className="flex-grow"></div>
 
+        {!contact.isChannel && contact.id !== 'saved_messages' && (
+          <div className="flex items-center gap-1 mr-1">
+            <button onClick={() => startCall('audio')} className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors">
+              <Phone size={20} />
+            </button>
+            <button onClick={() => startCall('video')} className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors">
+              <Video size={20} />
+            </button>
+          </div>
+        )}
+
         {!contact.isChannel && (
           <div className="relative">
             <button 
@@ -406,6 +435,17 @@ export default function ChatView() {
                   msg.status === 'read' ? <CheckCheck size={14} /> : <Check size={14} />
                 )}
               </div>
+              
+              {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                <div className={`absolute -bottom-3 flex gap-1 z-20 ${msg.type === 'sent' ? 'right-2' : 'left-2'}`}>
+                  {Object.entries(msg.reactions).map(([emoji, count]) => (
+                    <div key={emoji} className="bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 rounded-full px-1.5 py-0.5 text-[11px] flex items-center gap-1">
+                      <span>{emoji}</span>
+                      <span className="text-gray-500 font-medium">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
@@ -644,6 +684,20 @@ export default function ChatView() {
               <div className="p-4 border-b border-tg-divider">
                 <p className="text-tg-secondary-text text-sm truncate">{selectedMessage.text || 'Вложение'}</p>
               </div>
+              <div className="flex items-center justify-around p-3 border-b border-tg-divider bg-gray-50 dark:bg-white/5">
+                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                  <button 
+                    key={emoji}
+                    onClick={() => {
+                      addReaction(selectedMessage.id, emoji);
+                      setSelectedMessage(null);
+                    }}
+                    className="text-2xl hover:scale-125 transition-transform"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
               <div className="flex flex-col">
                 {selectedMessage.type === 'sent' && (
                   <button 
@@ -729,6 +783,49 @@ export default function ChatView() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Call Modal */}
+      <AnimatePresence>
+        {isCalling && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute inset-0 z-[80] bg-gray-900 text-white flex flex-col items-center justify-between py-12"
+          >
+            <div className="flex flex-col items-center gap-4 mt-10">
+              <div className="w-32 h-32 rounded-full bg-gray-800 overflow-hidden relative shadow-2xl">
+                {contact.avatarUrl ? (
+                  <Image src={contact.avatarUrl} alt={contact.name} fill className="object-cover" unoptimized />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-4xl font-medium" style={{ backgroundColor: contact.avatarColor }}>
+                    {contact.initial}
+                  </div>
+                )}
+              </div>
+              <h2 className="text-3xl font-medium">{contact.name}</h2>
+              <p className="text-gray-400 text-lg">
+                {callDuration > 0 ? formatTime(callDuration) : `Звонок (${callType === 'video' ? 'видео' : 'аудио'})...`}
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-8 mb-10">
+              <button className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-colors">
+                <Mic size={24} />
+              </button>
+              <button 
+                onClick={() => setIsCalling(false)}
+                className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30"
+              >
+                <PhoneOff size={28} />
+              </button>
+              <button className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-colors">
+                <Video size={24} />
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

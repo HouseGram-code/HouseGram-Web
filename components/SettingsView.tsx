@@ -30,7 +30,7 @@ export default function SettingsView() {
       </div>
 
       <div className="flex-grow overflow-y-auto p-4">
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-8 relative">
           <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 mb-4 overflow-hidden relative">
             {userProfile?.avatarUrl ? (
               <Image src={userProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
@@ -39,7 +39,13 @@ export default function SettingsView() {
             )}
           </div>
           <h2 className="text-xl font-bold text-tg-text-primary">{userProfile?.name || 'Пользователь'}</h2>
-          <p className="text-tg-secondary-text">{userProfile?.email}</p>
+          <p className="text-tg-secondary-text mb-4">{userProfile?.email}</p>
+          <button 
+            onClick={() => setView('profile')}
+            className="px-6 py-2 bg-blue-500 text-white rounded-full font-medium hover:bg-blue-600 transition-colors"
+          >
+            Редактировать профиль
+          </button>
         </div>
 
         <div className="space-y-6">

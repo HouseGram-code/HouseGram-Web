@@ -6,6 +6,7 @@ import ChatView from '@/components/ChatView';
 import SideMenu from '@/components/SideMenu';
 import SettingsView from '@/components/SettingsView';
 import AdminView from '@/components/AdminView';
+import ProfileView from '@/components/ProfileView';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Home() {
@@ -32,6 +33,7 @@ export default function Home() {
         {view === 'chat' && <ChatView key="chat" />}
         {view === 'settings' && <SettingsView key="settings" />}
         {view === 'admin' && <AdminView key="admin" />}
+        {view === 'profile' && <ProfileView key="profile" />}
       </AnimatePresence>
       <SideMenu />
     </div>
