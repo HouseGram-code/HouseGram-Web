@@ -2,11 +2,35 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, User, Image as ImageIcon, Palette, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, User, Image as ImageIcon, Palette, Moon, Bell, Volume2, Lock, Layout } from 'lucide-react';
 import Image from 'next/image';
 
 export default function SettingsView() {
-  const { setView, userProfile, themeColor, setThemeColor, isDarkMode, setIsDarkMode } = useChat();
+  const { 
+    setView, userProfile, themeColor, setThemeColor, isDarkMode, setIsDarkMode,
+    notificationsEnabled, setNotificationsEnabled, soundEnabled, setSoundEnabled,
+    passcode, updatePasscode, isGlassEnabled, setIsGlassEnabled, setWallpaper
+  } = useChat();
+
+  const handlePasscodeToggle = () => {
+    if (passcode) {
+      updatePasscode(null);
+    } else {
+      const code = prompt('Введите новый 4-значный код-пароль:');
+      if (code && code.length >= 4) {
+        updatePasscode(code);
+      } else if (code) {
+        alert('Код-пароль должен содержать минимум 4 символа');
+      }
+    }
+  };
+
+  const wallpapers = [
+    null,
+    'https://picsum.photos/seed/bg1/400/800',
+    'https://picsum.photos/seed/bg2/400/800',
+    'https://picsum.photos/seed/bg3/400/800',
+  ];
 
   return (
     <motion.div 
@@ -62,7 +86,7 @@ export default function SettingsView() {
                 <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${isDarkMode ? 'translate-x-6' : 'translate-x-0.5'}`} />
               </button>
             </div>
-            <div className="p-4 flex items-center justify-between">
+            <div className="p-4 border-b border-gray-100 dark:border-tg-divider flex items-center justify-between">
               <div className="flex items-center gap-3 text-tg-text-primary">
                 <Palette size={20} className="text-gray-500" />
                 <span className="font-medium">Цвет темы</span>
@@ -75,6 +99,72 @@ export default function SettingsView() {
                     className={`w-6 h-6 rounded-full border-2 ${themeColor === color ? 'border-gray-800 dark:border-white' : 'border-transparent'}`}
                     style={{ backgroundColor: color }}
                   />
+                ))}
+              </div>
+            </div>
+            <div className="p-4 border-b border-gray-100 dark:border-tg-divider flex items-center justify-between">
+              <div className="flex items-center gap-3 text-tg-text-primary">
+                <Bell size={20} className="text-gray-500" />
+                <span className="font-medium">Уведомления</span>
+              </div>
+              <button 
+                onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+                className={`w-12 h-6 rounded-full relative transition-colors ${notificationsEnabled ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${notificationsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            <div className="p-4 border-b border-gray-100 dark:border-tg-divider flex items-center justify-between">
+              <div className="flex items-center gap-3 text-tg-text-primary">
+                <Volume2 size={20} className="text-gray-500" />
+                <span className="font-medium">Звуки</span>
+              </div>
+              <button 
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`w-12 h-6 rounded-full relative transition-colors ${soundEnabled ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${soundEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            <div className="p-4 border-b border-gray-100 dark:border-tg-divider flex items-center justify-between">
+              <div className="flex items-center gap-3 text-tg-text-primary">
+                <Lock size={20} className="text-gray-500" />
+                <span className="font-medium">Код-пароль</span>
+              </div>
+              <button 
+                onClick={handlePasscodeToggle}
+                className={`w-12 h-6 rounded-full relative transition-colors ${passcode ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${passcode ? 'translate-x-6' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            <div className="p-4 border-b border-gray-100 dark:border-tg-divider flex items-center justify-between">
+              <div className="flex items-center gap-3 text-tg-text-primary">
+                <Layout size={20} className="text-gray-500" />
+                <span className="font-medium">Стеклянный интерфейс</span>
+              </div>
+              <button 
+                onClick={() => setIsGlassEnabled(!isGlassEnabled)}
+                className={`w-12 h-6 rounded-full relative transition-colors ${isGlassEnabled ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${isGlassEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            <div className="p-4 flex flex-col gap-3">
+              <div className="flex items-center gap-3 text-tg-text-primary">
+                <ImageIcon size={20} className="text-gray-500" />
+                <span className="font-medium">Обои чата</span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {wallpapers.map((url, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setWallpaper(url)}
+                    className="w-16 h-24 rounded-lg border-2 shrink-0 overflow-hidden relative bg-gray-200 dark:bg-gray-700"
+                  >
+                    {url && <Image src={url} alt="Wallpaper" fill className="object-cover" unoptimized />}
+                    {!url && <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-xs">Нет</div>}
+                  </button>
                 ))}
               </div>
             </div>

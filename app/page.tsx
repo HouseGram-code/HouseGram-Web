@@ -12,7 +12,15 @@ import PasscodeScreen from '@/components/PasscodeScreen';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Home() {
-  const { view, isLocked } = useChat();
+  const { view, isLocked, isAppReady } = useChat();
+
+  if (!isAppReady) {
+    return (
+      <div className="w-full max-w-[480px] h-[100dvh] bg-tg-bg-light relative overflow-hidden shadow-2xl sm:rounded-3xl sm:h-[90dvh] sm:max-h-[850px] border border-tg-divider flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-[480px] h-[100dvh] bg-tg-bg-light relative overflow-hidden shadow-2xl sm:rounded-3xl sm:h-[90dvh] sm:max-h-[850px] border border-tg-divider">

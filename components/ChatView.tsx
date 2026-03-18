@@ -18,7 +18,7 @@ const isOnlyEmojis = (str: string) => {
 };
 
 export default function ChatView() {
-  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, addReaction } = useChat();
+  const { contacts, activeChatId, setActiveChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, addReaction } = useChat();
   const [inputText, setInputText] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCalling, setIsCalling] = useState(false);
@@ -483,7 +483,7 @@ export default function ChatView() {
       </AnimatePresence>
 
       {contact.isBlocked || contact.isChannel ? (
-        <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
+        <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60 dark:bg-black/60' : 'bg-tg-input-bg'}`}>
           <span className="text-tg-secondary-text text-[15px]">
             {contact.isBlocked ? 'Вы заблокировали этого пользователя' : 'Только администраторы могут отправлять сообщения'}
           </span>
@@ -491,20 +491,20 @@ export default function ChatView() {
       ) : (
         <div className="flex flex-col shrink-0 z-30">
           {editingMessage && (
-            <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-t border-gray-200">
+            <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
               <div className="flex flex-col overflow-hidden">
                 <span className="text-blue-500 text-xs font-medium">Редактирование</span>
-                <span className="text-sm text-gray-600 truncate">{editingMessage.text || 'Вложение'}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300 truncate">{editingMessage.text || 'Вложение'}</span>
               </div>
               <button 
                 onClick={() => { setEditingMessage(null); setInputText(''); }}
-                className="p-1 text-gray-400 hover:text-gray-600"
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
                 <Square size={16} />
               </button>
             </div>
           )}
-          <div className={`flex items-end px-2.5 py-2 border-t border-tg-divider gap-1.5 transition-colors relative ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
+          <div className={`flex items-end px-2.5 py-2 border-t border-tg-divider gap-1.5 transition-colors relative ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60 dark:bg-black/60' : 'bg-tg-input-bg'}`}>
             
             {/* Attachment Menu */}
           <AnimatePresence>
@@ -659,7 +659,14 @@ export default function ChatView() {
                   Отмена
                 </button>
                 <button 
-                  onClick={() => { if(activeChatId) deleteChat(activeChatId); setShowDeleteModal(false); }}
+                  onClick={() => { 
+                    if(activeChatId) {
+                      deleteChat(activeChatId); 
+                      setActiveChatId(null);
+                      setView('chatList');
+                    }
+                    setShowDeleteModal(false); 
+                  }}
                   className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                 >
                   Удалить

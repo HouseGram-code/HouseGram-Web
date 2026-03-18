@@ -47,6 +47,7 @@ interface ChatContextType {
   updatePasscode: (passcode: string | null) => void;
   isLocked: boolean;
   setIsLocked: (isLocked: boolean) => void;
+  isAppReady: boolean;
   systemStatus: any;
 }
 
@@ -69,9 +70,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [passcode, setPasscode] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [isAppReady, setIsAppReady] = useState(false);
   const [systemStatus, setSystemStatus] = useState({ status: 'green' });
 
   useEffect(() => {
+    const savedContacts = localStorage.getItem('contacts');
+    if (savedContacts) {
+      try {
+        const parsed = JSON.parse(savedContacts);
+        // Merge initialContacts to ensure default bots/channels are always present
+        setContacts({ ...initialContacts, ...parsed });
+      } catch (e) {
+        console.error('Failed to parse saved contacts', e);
+      }
+    }
     const savedTheme = localStorage.getItem('themeColor');
     if (savedTheme) setThemeColor(savedTheme);
     const savedWallpaper = localStorage.getItem('wallpaper');
@@ -92,6 +104,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setPasscode(savedPasscode);
       setIsLocked(true);
     }
+    setIsAppReady(true);
   }, []);
 
   useEffect(() => {
@@ -139,6 +152,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (Object.keys(contacts).length > 0 && contacts !== initialContacts) {
+      localStorage.setItem('contacts', JSON.stringify(contacts));
+    }
+  }, [contacts]);
 
   const sendMessage = (text: string, options?: any) => {
     if (!activeChatId) return;
@@ -194,8 +213,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProfile = (data: Partial<UserProfile>) => {
+  const updateProfile = async (data: Partial<UserProfile>) => {
     setUserProfile(prev => prev ? { ...prev, ...data } : null);
+    if (auth.currentUser) {
+      try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), data, { merge: true });
+      } catch (error) {
+        console.error("Error updating profile in Firestore:", error);
+      }
+    }
   };
 
   const addReaction = (messageId: string, emoji: string) => {
@@ -380,7 +406,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ChatContext.Provider value={{
-      contacts, activeChatId, view, themeColor, isSideMenuOpen, isAdmin, userProfile, authReady, wallpaper, isGlassEnabled, searchQuery, isDarkMode, notificationsEnabled, soundEnabled, passcode, isLocked, systemStatus,
+      contacts, activeChatId, view, themeColor, isSideMenuOpen, isAdmin, userProfile, authReady, wallpaper, isGlassEnabled, searchQuery, isDarkMode, notificationsEnabled, soundEnabled, passcode, isLocked, isAppReady, systemStatus,
       setSearchQuery, setView, setActiveChatId, setThemeColor: handleSetThemeColor, setSideMenuOpen, sendMessage, editMessage, deleteMessage, forwardMessage, clearHistory, deleteChat, markAsRead, addContact, togglePin, setWallpaper: handleSetWallpaper, setIsGlassEnabled: handleSetIsGlassEnabled, setIsDarkMode: handleSetIsDarkMode, updateProfile, addReaction, setNotificationsEnabled: handleSetNotificationsEnabled, setSoundEnabled: handleSetSoundEnabled, updatePasscode, setIsLocked
     }}>
       {children}

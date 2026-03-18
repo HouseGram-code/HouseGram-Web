@@ -2,19 +2,41 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Camera, User, Check } from 'lucide-react';
+import { ArrowLeft, Camera, User, Check, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { auth, storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function ProfileView() {
   const { setView, userProfile, themeColor, updateProfile } = useChat();
   const [name, setName] = useState(userProfile?.name || '');
   const [username, setUsername] = useState(userProfile?.username || '');
   const [bio, setBio] = useState(userProfile?.bio || '');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
     updateProfile({ name, username, bio });
     setView('settings');
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !auth.currentUser) return;
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `avatars/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      updateProfile({ avatarUrl: url });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      alert('Ошибка при загрузке аватара');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -54,8 +76,19 @@ export default function ProfileView() {
                 <User size={48} />
               )}
             </div>
-            <button className="absolute bottom-0 right-0 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-900 hover:bg-blue-600 transition-colors">
-              <Camera size={20} />
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*"
+              onChange={handleAvatarUpload}
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="absolute bottom-0 right-0 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-900 hover:bg-blue-600 transition-colors disabled:opacity-50"
+            >
+              {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
             </button>
           </div>
         </div>

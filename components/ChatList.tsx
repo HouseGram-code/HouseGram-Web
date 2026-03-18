@@ -25,13 +25,18 @@ export default function ChatList() {
         // Try searching by username (with or without @)
         const usernameQuery = queryText.startsWith('@') ? queryText : `@${queryText}`;
         
-        const q = query(collection(db, 'users'), where('username', '>=', usernameQuery), where('username', '<=', usernameQuery + '\uf8ff'));
-        const snapshot = await getDocs(q);
-        if (!isMounted) return;
-        const results = snapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(user => user.id !== auth.currentUser?.uid);
-        setSearchResults(results);
+        try {
+          const q = query(collection(db, 'users'), where('username', '>=', usernameQuery), where('username', '<=', usernameQuery + '\uf8ff'));
+          const snapshot = await getDocs(q);
+          if (!isMounted) return;
+          const results = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(user => user.id !== auth.currentUser?.uid);
+          setSearchResults(results);
+        } catch (error) {
+          console.error("Error searching users:", error);
+          if (isMounted) setSearchResults([]);
+        }
       };
       searchUsers();
     } else {
@@ -121,8 +126,8 @@ export default function ChatList() {
       const lastB = b.messages[b.messages.length - 1];
       if (!lastA) return 1;
       if (!lastB) return -1;
-      const timeA = lastA.createdAt?.toMillis ? lastA.createdAt.toMillis() : 0;
-      const timeB = lastB.createdAt?.toMillis ? lastB.createdAt.toMillis() : 0;
+      const timeA = lastA.createdAt?.toMillis ? lastA.createdAt.toMillis() : parseInt(lastA.id) || 0;
+      const timeB = lastB.createdAt?.toMillis ? lastB.createdAt.toMillis() : parseInt(lastB.id) || 0;
       return timeB - timeA;
     });
 
