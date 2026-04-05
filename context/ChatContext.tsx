@@ -8,7 +8,13 @@ import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where } from 'firebase/firestore';
 import { GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || '' });
+let aiInstance: GoogleGenAI | null = null;
+const getAi = () => {
+  if (!aiInstance && process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+    aiInstance = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
+  }
+  return aiInstance;
+};
 
 interface ChatContextType {
   view: ViewState;
@@ -351,7 +357,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       playSound('send');
 
       // Handle Gemini AI response if chatting with test_bot
-      if (activeChatId === 'test_bot' && process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      const ai = getAi();
+      if (activeChatId === 'test_bot' && ai) {
         try {
           const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
