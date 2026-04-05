@@ -1,55 +1,20 @@
-# HouseGram Web
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-Welcome to **HouseGram Web**! 🏠✨
+# Run and deploy your AI Studio app
 
-HouseGram is a modern, feature-rich web messenger built with love by the **Team HouseGram** ❤️.
+This contains everything you need to run your app locally.
 
-## 🚀 Features
+View your app in AI Studio: https://ai.studio/apps/192af80e-919f-4715-9dfb-707d5ba41993
 
-- **Real-time Messaging:** Fast and reliable communication.
-- **Media Support:** Share photos, videos, audio, and documents.
-- **Admin Panel:** Manage users and system status.
-- **Customization:** Theme colors, wallpapers, and glassmorphism design.
-- **Security:** Secure Firebase authentication and Firestore rules.
-- **Beta v1.1:** Experience the latest features and improvements!
+## Run Locally
 
-## 🛠 How to Use
+**Prerequisites:**  Node.js
 
-1. **Sign In:** Use your Google account to sign in.
-2. **Chat:** Start messaging with your contacts.
-3. **Customize:** Go to Settings to change themes and design.
-4. **Admin:** If you are an administrator, access the Admin Panel to manage the system.
 
-## ⚙️ Development
-
-This project is built with:
-- **Next.js 15+** (App Router)
-- **Firebase** (Auth, Firestore, Storage)
-- **Tailwind CSS**
-- **TypeScript**
-
-### Getting Started
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/HouseGram-code/HouseGram-Web
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up environment variables as per `.env.example`.
-4. Run the development server:
-   ```bash
-   npm run dev
-   ```
-
-## 📜 Rules & Policies
-
-- Be respectful to other users.
-- Do not share malicious content.
-- Follow the privacy policy.
-
----
-
-Made with ❤️ by **Team HouseGram**
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`

@@ -1,39 +1,65 @@
 'use client';
 
-import { useChat } from '@/context/ChatContext';
+import { ChatProvider, useChat } from '@/context/ChatContext';
+import { AnimatePresence } from 'motion/react';
 import ChatList from '@/components/ChatList';
 import ChatView from '@/components/ChatView';
+import ProfileView from '@/components/ProfileView';
 import SideMenu from '@/components/SideMenu';
 import SettingsView from '@/components/SettingsView';
-import AdminView from '@/components/AdminView';
-import ProfileView from '@/components/ProfileView';
-import AuthView from '@/components/AuthView';
+import ChatSettingsView from '@/components/ChatSettingsView';
+import FeaturesView from '@/components/FeaturesView';
+import PrivacyView from '@/components/PrivacyView';
+import NotificationsView from '@/components/NotificationsView';
+import SecurityView from '@/components/SecurityView';
 import PasscodeScreen from '@/components/PasscodeScreen';
-import { motion, AnimatePresence } from 'motion/react';
+import AuthView from '@/components/AuthView';
+import AdminView from '@/components/AdminView';
+import InfoView from '@/components/InfoView';
 
-export default function Home() {
-  const { view, isLocked, isAppReady } = useChat();
+function AppContent() {
+  const { view, isLocked, user } = useChat();
 
-  if (!isAppReady) {
+  if (view === 'auth' || !user) {
     return (
-      <div className="w-full max-w-[480px] h-[100dvh] bg-tg-bg-light relative overflow-hidden shadow-2xl sm:rounded-3xl sm:h-[90dvh] sm:max-h-[850px] border border-tg-divider flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+        <AuthView />
+      </div>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+        <PasscodeScreen />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-[480px] h-[100dvh] bg-tg-bg-light relative overflow-hidden shadow-2xl sm:rounded-3xl sm:h-[90dvh] sm:max-h-[850px] border border-tg-divider">
-      <AnimatePresence mode="wait">
-        {isLocked && <PasscodeScreen key="passcode" />}
-        {!isLocked && view === 'auth' && <AuthView key="auth" />}
-        {!isLocked && view === 'chatList' && <ChatList key="chatList" />}
-        {!isLocked && view === 'chat' && <ChatView key="chat" />}
-        {!isLocked && view === 'settings' && <SettingsView key="settings" />}
-        {!isLocked && view === 'admin' && <AdminView key="admin" />}
-        {!isLocked && view === 'profile' && <ProfileView key="profile" />}
+    <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+      <AnimatePresence initial={false} mode="popLayout">
+        {view === 'menu' && <ChatList key="menu" />}
+        {view === 'chat' && <ChatView key="chat" />}
+        {view === 'profile' && <ProfileView key="profile" />}
+        {view === 'settings' && <SettingsView key="settings" />}
+        {view === 'chat-settings' && <ChatSettingsView key="chat-settings" />}
+        {view === 'features' && <FeaturesView key="features" />}
+        {view === 'privacy' && <PrivacyView key="privacy" />}
+        {view === 'notifications' && <NotificationsView key="notifications" />}
+        {view === 'security' && <SecurityView key="security" />}
+        {view === 'admin' && <AdminView key="admin" />}
+        {view === 'info' && <InfoView key="info" />}
       </AnimatePresence>
-      {!isLocked && <SideMenu />}
+      <SideMenu />
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <ChatProvider>
+      <AppContent />
+    </ChatProvider>
   );
 }

@@ -27,40 +27,9 @@
 }
 
 @layer base {
-  :root {
-    --color-tg-bg-light: #ffffff;
-    --color-tg-bg-dark: #ebebeb;
-    --color-tg-text-primary: #000000;
-    --color-tg-text-secondary: #a0a0a0;
-    --color-tg-divider: #d9d9d9;
-    --color-tg-input-bg: #ffffff;
-    --color-tg-sent-bubble: #e1ffc7;
-    --color-tg-received-bubble: #ffffff;
-    --color-tg-profile-bg: #f0f0f0;
-    --color-side-menu-bg: #ffffff;
-    --color-side-menu-text-color: #000000;
-    --color-side-menu-icon-color: #737373;
-  }
-
-  .dark {
-    --color-tg-bg-light: #1c1c1d;
-    --color-tg-bg-dark: #000000;
-    --color-tg-text-primary: #ffffff;
-    --color-tg-text-secondary: #8e8e93;
-    --color-tg-divider: #2c2c2e;
-    --color-tg-input-bg: #1c1c1d;
-    --color-tg-sent-bubble: #2b5278;
-    --color-tg-received-bubble: #212121;
-    --color-tg-header-text: #ffffff;
-    --color-tg-profile-bg: #000000;
-    --color-side-menu-bg: #1c1c1d;
-    --color-side-menu-text-color: #ffffff;
-    --color-side-menu-icon-color: #8e8e93;
-  }
-
   body {
     font-family: var(--font-roboto), sans-serif;
-    @apply bg-[#e5e5e5] min-h-[100dvh] m-0 p-0 overflow-hidden sm:flex sm:justify-center sm:items-center transition-colors duration-300;
+    @apply bg-[#e5e5e5] min-h-[100dvh] m-0 p-0 overflow-hidden sm:flex sm:justify-center sm:items-center;
   }
 }
 
@@ -73,7 +42,7 @@
     width: 10px;
     height: 15px;
     background-repeat: no-repeat;
-    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="15" viewBox="0 0 10 15"><path d="M0 15 C4 15 6 13 10 11 L10 15 Z" fill="%23e1ffc7"/></svg>');
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxNSIgdmlld0JveD0iMCAwIDEwIDE1Ij48cGF0aCBkPSJNMCAxNSBDNCAxNSA2IDEzIDEwIDExIEwxMCAxNSBaIiBmaWxsPSIjZTFmZmM3Ii8+PC9zdmc+');
 }
 
 .message-tail-received::after {
@@ -84,7 +53,7 @@
     width: 10px;
     height: 15px;
     background-repeat: no-repeat;
-    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="15" viewBox="0 0 10 15"><path d="M10 15 C6 15 4 13 0 11 L0 15 Z" fill="%23ffffff"/></svg>');
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxNSIgdmlld0JveD0iMCAwIDEwIDE1Ij48cGF0aCBkPSJNMTAgMTUgQzYgMTUgNCAxMyAwIDExIEwwIDE1IFoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=');
 }
 
 /* Typing indicator dots */

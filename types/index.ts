@@ -1,17 +1,17 @@
+export type MessageType = 'sent' | 'received';
+
 export interface Message {
   id: string;
+  type: MessageType;
   text: string;
   time: string;
-  type: 'sent' | 'received';
   status?: 'sending' | 'sent' | 'read';
   audioUrl?: string;
   fileUrl?: string;
   fileName?: string;
-  fileType?: string;
-  isEdited?: boolean;
-  forwardedFrom?: string;
+  senderId?: string;
   createdAt?: any;
-  reactions?: Record<string, number>;
+  chatId?: string;
 }
 
 export interface Contact {
@@ -28,22 +28,20 @@ export interface Contact {
   messages: Message[];
   isTyping: boolean;
   unread: number;
-  isChannel: boolean;
-  isOfficial?: boolean;
   isBlocked?: boolean;
-  isPinned?: boolean;
+  isChannel?: boolean;
+  isOfficial?: boolean;
 }
 
 export interface UserProfile {
-  uid: string;
   name: string;
-  email: string;
-  phone: string;
-  bio: string;
   username: string;
-  avatarUrl: string;
-  role?: string;
+  bio: string;
+  phone: string;
+  avatarUrl?: string;
+  status?: 'online' | 'offline';
+  lastSeen?: any; // Firestore timestamp
   isOfficial?: boolean;
 }
 
-export type ViewState = 'auth' | 'chatList' | 'chat' | 'menu' | 'settings' | 'profile' | 'admin';
+export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'notifications' | 'security' | 'admin' | 'auth' | 'info';

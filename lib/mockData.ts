@@ -14,24 +14,23 @@ export const initialContacts: Record<string, Contact> = {
     messages: [],
     isTyping: false,
     unread: 0,
-    isChannel: false,
   },
   test_bot: {
     id: 'test_bot',
-    name: 'HouseGram Bot',
+    name: 'HouseGram AI',
     initial: 'H',
     avatarColor: '#007AFF',
     statusOnline: 'в сети',
     statusOffline: 'бот',
-    phone: '+7 000 000 00 00',
-    bio: 'Официальный тестовый бот HouseGram Web.',
-    username: '@housegram_bot',
+    phone: '',
+    bio: 'Официальный ИИ-ассистент HouseGram Web на базе Google Gemini.',
+    username: '@housegram_ai',
     messages: [
-      { id: '1', type: 'received', text: 'Добро пожаловать в HouseGram Web! Я тестовый бот. Напиши мне что-нибудь.', time: '12:00' }
+      { id: '1', type: 'received', text: 'Привет! Я HouseGram AI. Чем могу помочь?', time: '12:00' }
     ],
     isTyping: false,
     unread: 1,
-    isChannel: false,
+    isOfficial: true,
   },
   housegram_announcements: {
     id: 'housegram_announcements',

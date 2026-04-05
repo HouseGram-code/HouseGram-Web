@@ -5,7 +5,7 @@ import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 
 export default function AuthView() {
   const { themeColor } = useChat();
@@ -47,21 +47,25 @@ export default function AuthView() {
           name: name.substring(0, 45),
           username: username.substring(0, 15),
           bio: '',
-          role: email === 'goh@gmail.com' ? 'admin' : 'user',
+          role: email === 'veraloktushina1958@gmail.com' ? 'admin' : 'user',
           isBanned: false,
-          createdAt: new Date(),
+          createdAt: serverTimestamp(),
           status: 'online',
-          lastSeen: new Date()
+          lastSeen: serverTimestamp()
         });
       }
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/operation-not-allowed') {
         setError('Вход по почте и паролю отключен. Пожалуйста, используйте вход через Google или включите Email/Password в консоли Firebase (Authentication -> Sign-in method).');
-      } else if (err.code === 'auth/invalid-credential') {
-        setError('Неверный email или пароль.');
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        setError('Неверный email или пароль. Возможно, вы еще не зарегистрированы?');
       } else if (err.code === 'auth/email-already-in-use') {
         setError('Этот email уже зарегистрирован.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Пароль слишком слабый. Используйте минимум 6 символов.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Неверный формат email.');
       } else {
         setError(err.message || 'Произошла ошибка');
       }
@@ -89,16 +93,26 @@ export default function AuthView() {
           name: (user.displayName || user.email?.split('@')[0] || 'User').substring(0, 45),
           username: finalUsername.substring(0, 15),
           bio: '',
-          role: user.email === 'goh@gmail.com' ? 'admin' : 'user',
+          role: user.email === 'veraloktushina1958@gmail.com' ? 'admin' : 'user',
           isBanned: false,
-          createdAt: new Date(),
+          createdAt: serverTimestamp(),
           status: 'online',
-          lastSeen: new Date()
+          lastSeen: serverTimestamp()
         });
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Ошибка при входе через Google');
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('Окно авторизации было закрыто.');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        setError('Запрос на авторизацию отменен.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('Окно авторизации заблокировано браузером. Пожалуйста, разрешите всплывающие окна.');
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
+        setError('Неверные учетные данные Google.');
+      } else {
+        setError(err.message || 'Ошибка при входе через Google');
+      }
     } finally {
       setLoading(false);
     }

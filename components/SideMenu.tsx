@@ -2,24 +2,11 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, User, Search, MessageSquare, Bookmark, Users, Megaphone, X, ShieldAlert, BadgeCheck, Lock } from 'lucide-react';
+import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut, BadgeCheck, Info } from 'lucide-react';
 import Image from 'next/image';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
 
 export default function SideMenu() {
-  const { setView, themeColor, isSideMenuOpen, setSideMenuOpen, isAdmin, userProfile } = useChat();
-
-  const handleSignOut = async () => {
-    await signOut(auth);
-    setView('auth');
-    setSideMenuOpen(false);
-  };
-
-  const handleNavigation = (view: any) => {
-    setView(view);
-    setSideMenuOpen(false);
-  };
+  const { isSideMenuOpen, setSideMenuOpen, setView, themeColor, userProfile, setActiveChatId, isAdmin, logout } = useChat();
 
   return (
     <AnimatePresence>
@@ -30,57 +17,80 @@ export default function SideMenu() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSideMenuOpen(false)}
-            className="absolute inset-0 bg-black/50 z-40"
+            className="absolute inset-0 bg-overlay-bg z-40"
           />
-            <motion.div 
-              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="absolute inset-y-0 left-0 w-[80%] max-w-[320px] bg-white dark:bg-tg-bg-light z-50 flex flex-col shadow-2xl"
+          <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="absolute top-0 left-0 w-[80%] max-w-[320px] h-full bg-side-menu-bg z-50 flex flex-col shadow-xl"
+          >
+            <div 
+              className="p-4 pt-10 flex flex-col gap-2 text-side-menu-user-text transition-colors"
+              style={{ backgroundColor: themeColor }}
             >
-            <div className="h-40 p-4 flex flex-col justify-end text-white relative" style={{ backgroundColor: themeColor }}>
-              <button 
-                onClick={() => setSideMenuOpen(false)}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/20 transition-colors"
-              >
-                <X size={24} />
-              </button>
-              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-3 overflow-hidden relative">
-                {userProfile?.avatarUrl ? (
-                  <Image src={userProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
+              <div className="w-[60px] h-[60px] rounded-full bg-orange-500 flex items-center justify-center text-2xl font-medium overflow-hidden relative">
+                {userProfile.avatarUrl ? (
+                  <Image 
+                    src={userProfile.avatarUrl} 
+                    alt="Avatar" 
+                    fill 
+                    className="object-cover"
+                    unoptimized
+                  />
                 ) : (
-                  <User size={32} />
+                  <User size={32} className="text-white" fill="currentColor" />
                 )}
               </div>
-              <div className="font-medium text-[18px] flex items-center gap-1">
-                {userProfile?.name || auth.currentUser?.displayName || 'Пользователь'}
-                {userProfile?.isOfficial && <BadgeCheck size={18} className="text-blue-400" />}
-              </div>
-              <div className="text-[14px] opacity-80">
-                {userProfile?.username ? (userProfile.username.startsWith('@') ? userProfile.username : `@${userProfile.username}`) : auth.currentUser?.email}
+              <div>
+                <div className="font-medium text-[15px] flex items-center gap-1">
+                  {userProfile.name}
+                  {userProfile.isOfficial && <BadgeCheck size={16} className="text-white fill-blue-500" />}
+                </div>
               </div>
             </div>
-
-            <div className="flex-grow py-2 overflow-y-auto">
-              <MenuItem icon={Users} label="Создать группу" onClick={() => {}} isSoon isLocked />
-              <MenuItem icon={Megaphone} label="Создать канал" onClick={() => {}} isSoon isLocked />
-              <MenuItem icon={Bookmark} label="Избранное" onClick={() => setSideMenuOpen(false)} />
-              <div className="h-px bg-gray-100 dark:bg-tg-divider my-2" />
-              <MenuItem icon={Settings} label="Настройки" onClick={() => handleNavigation('settings')} />
+            <ul className="py-2 flex-grow overflow-y-auto">
+              <MenuItem icon={<Users size={24} />} text="Новая группа" locked />
+              <MenuItem icon={<Users size={24} />} text="Контакты" locked />
+              <MenuItem icon={<Phone size={24} />} text="Звонки" locked />
+              <MenuItem icon={<MapPin size={24} />} text="Люди рядом" locked />
+              <MenuItem 
+                icon={<Bookmark size={24} />} 
+                text="Избранное" 
+                onClick={() => { setActiveChatId('saved_messages'); setView('chat'); setSideMenuOpen(false); }} 
+              />
+              <MenuItem 
+                icon={<Settings size={24} />} 
+                text="Настройки" 
+                onClick={() => { setView('settings'); setSideMenuOpen(false); }} 
+              />
+              <MenuItem 
+                icon={<HelpCircle size={24} />} 
+                text="Возможности HouseGram" 
+                onClick={() => { setView('features'); setSideMenuOpen(false); }} 
+              />
+              <MenuItem 
+                icon={<Info size={24} />} 
+                text="О приложении" 
+                onClick={() => { setView('info'); setSideMenuOpen(false); }} 
+              />
               {isAdmin && (
-                <MenuItem icon={ShieldAlert} label="Админ панель" onClick={() => handleNavigation('admin')} />
+                <MenuItem 
+                  icon={<Shield size={24} />} 
+                  text="Админ Панель" 
+                  onClick={() => { setView('admin'); setSideMenuOpen(false); }} 
+                />
               )}
-            </div>
-
-            <div className="p-4 border-t border-gray-100 dark:border-tg-divider flex flex-col gap-2">
-              <button 
-                onClick={handleSignOut}
-                className="w-full py-3 text-center text-red-500 font-medium hover:bg-red-50 dark:hover:bg-white/5 rounded-lg transition-colors"
-              >
-                Выйти
-              </button>
-              <div className="text-center text-gray-400 dark:text-tg-secondary-text text-xs mt-2">
-                HouseGram Web 1.0 beta
-              </div>
+              <MenuItem 
+                icon={<LogOut size={24} />} 
+                text="Выйти" 
+                onClick={() => { logout(); setSideMenuOpen(false); }} 
+              />
+            </ul>
+            <div className="p-4 text-center text-gray-400 text-sm border-t border-gray-100">
+              <div className="font-medium">HouseGram Web</div>
+              <div className="text-xs mt-0.5">v1.0 beta</div>
             </div>
           </motion.div>
         </>
@@ -89,24 +99,20 @@ export default function SideMenu() {
   );
 }
 
-function MenuItem({ icon: Icon, label, onClick, isSoon, isLocked }: { icon: any, label: string, onClick: () => void, isSoon?: boolean, isLocked?: boolean }) {
+function MenuItem({ icon, text, locked, onClick }: { icon: React.ReactNode; text: string; locked?: boolean; onClick?: () => void }) {
   return (
-    <button 
-      onClick={onClick}
-      className={`w-full flex items-center px-5 py-3.5 transition-colors text-[16px] ${isLocked ? 'text-gray-400 cursor-not-allowed' : 'text-tg-text-primary hover:bg-gray-50 dark:hover:bg-white/5'}`}
+    <li 
+      onClick={!locked ? onClick : undefined} 
+      className={`flex items-center px-5 py-3 gap-6 ${locked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'} text-side-menu-text-color transition-colors relative`}
     >
-      <div className="flex items-center gap-6 flex-grow">
-        <Icon size={24} className={isLocked ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-tg-secondary-text'} />
-        <span className="flex items-center gap-2">
-          {label}
-          {isLocked && <Lock size={14} className="text-gray-400 dark:text-gray-600" />}
-        </span>
-      </div>
-      {isSoon && (
-        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
-          Soon!
-        </span>
+      <div className="text-side-menu-icon-color">{icon}</div>
+      <span className="text-[15px] flex-grow">{text}</span>
+      {locked && (
+        <div className="flex items-center gap-1 text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-md">
+          <span>soon!</span>
+          <Lock size={12} />
+        </div>
       )}
-    </button>
+    </li>
   );
 }

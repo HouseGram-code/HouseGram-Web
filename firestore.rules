@@ -17,7 +17,7 @@ service cloud.firestore {
     
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email == 'goh@gmail.com' ||
+        request.auth.token.email == 'veraloktushina1958@gmail.com' ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
@@ -56,16 +56,22 @@ service cloud.firestore {
       return data.keys().hasAll(['participants', 'updatedAt']) &&
              data.participants is list && data.participants.size() >= 1 && data.participants.size() <= 100 &&
              data.updatedAt is timestamp &&
-             (data.lastMessage == null || (data.lastMessage is string && data.lastMessage.size() <= 1000));
+             (!('lastMessage' in data) || data.lastMessage == null || (data.lastMessage is string && data.lastMessage.size() <= 1000)) &&
+             (!('lastMessageSenderId' in data) || data.lastMessageSenderId == null || (data.lastMessageSenderId is string));
     }
     
     function isValidMessage(data) {
       return data.keys().hasAll(['chatId', 'senderId', 'text', 'createdAt', 'status']) &&
              data.chatId is string &&
-             data.senderId is string && data.senderId == request.auth.uid &&
-             data.text is string && data.text.size() > 0 && data.text.size() <= 4000 &&
+             data.senderId is string && (data.senderId == request.auth.uid || data.senderId == 'test_bot') &&
+             data.text is string && data.text.size() <= 4000 &&
              data.createdAt is timestamp &&
-             data.status in ['sending', 'sent', 'read'];
+             data.status in ['sending', 'sent', 'read'] &&
+             (!('type' in data) || data.type in ['sent', 'received']) &&
+             (!('time' in data) || data.time is string) &&
+             (!('audioUrl' in data) || data.audioUrl is string) &&
+             (!('fileUrl' in data) || data.fileUrl is string) &&
+             (!('fileName' in data) || data.fileName is string);
     }
     
     function isValidSettings(data) {
@@ -80,10 +86,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       
-      // User can create their own profile. They cannot make themselves admin unless they are goh@gmail.com
+      // User can create their own profile. They cannot make themselves admin unless they are veraloktushina1958@gmail.com
       allow create: if isOwner(userId) && isValidUser(request.resource.data) && (
         (request.resource.data.role == 'user' && request.resource.data.isBanned == false) ||
-        (request.auth.token.email == 'goh@gmail.com')
+        (request.auth.token.email == 'veraloktushina1958@gmail.com')
       );
       
       // User can update their own profile (name, username, bio) but not role/isBanned. Admin can update anything.

@@ -1,42 +1,34 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { motion } from 'motion/react';
-import { ArrowLeft, Camera, User, Check, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useRef } from 'react';
-import { auth, storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useState } from 'react';
 
 export default function ProfileView() {
-  const { setView, userProfile, themeColor, updateProfile } = useChat();
-  const [name, setName] = useState(userProfile?.name || '');
-  const [username, setUsername] = useState(userProfile?.username || '');
-  const [bio, setBio] = useState(userProfile?.bio || '');
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { contacts, activeChatId, setView, themeColor, isGlassEnabled, sendMessage, blockContact } = useChat();
+  const contact = activeChatId ? contacts[activeChatId] : null;
 
-  const handleSave = () => {
-    updateProfile({ name, username, bio });
-    setView('settings');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+
+  if (!contact) return null;
+
+  const handleShare = () => {
+    if (contact.id === 'test_bot') {
+      sendMessage(`Юзернейм бота: ${contact.username}`);
+    } else {
+      sendMessage(`Контакт: ${contact.name} (${contact.username})`);
+    }
+    setShowShareModal(false);
+    setView('chat');
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !auth.currentUser) return;
-
-    setIsUploading(true);
-    try {
-      const storageRef = ref(storage, `avatars/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      updateProfile({ avatarUrl: url });
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
-      alert('Ошибка при загрузке аватара');
-    } finally {
-      setIsUploading(false);
-    }
+  const handleBlock = () => {
+    blockContact(contact.id);
+    setShowBlockModal(false);
+    setView('chat');
   };
 
   return (
@@ -45,91 +37,184 @@ export default function ProfileView() {
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="absolute inset-0 bg-tg-bg-light flex flex-col z-30"
+      className="absolute inset-0 bg-tg-profile-bg flex flex-col z-20"
     >
       <div 
-        className="text-tg-header-text px-3 h-12 flex items-center gap-4 shrink-0"
-        style={{ backgroundColor: themeColor }}
+        className={`text-tg-header-text px-2.5 h-12 flex items-center gap-4 shrink-0 absolute top-0 left-0 w-full z-30 transition-colors ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
+        style={{ backgroundColor: isGlassEnabled ? themeColor + 'CC' : themeColor }}
       >
         <button 
-          onClick={() => setView('settings')} 
+          onClick={() => setView('chat')} 
           className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
         >
           <ArrowLeft size={24} />
         </button>
-        <div className="flex-grow text-[17px] font-medium">Редактировать профиль</div>
-        <button 
-          onClick={handleSave}
-          className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
-        >
-          <Check size={24} />
-        </button>
+        <div className="text-[17px] font-medium flex-grow">Инфо</div>
       </div>
 
-      <div className="flex-grow overflow-y-auto p-4 space-y-6">
-        <div className="flex justify-center mt-4 mb-6">
-          <div className="relative">
-            <div className="w-28 h-28 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 overflow-hidden">
-              {userProfile?.avatarUrl ? (
-                <Image src={userProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
-              ) : (
-                <User size={48} />
-              )}
-            </div>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*"
-              onChange={handleAvatarUpload}
-            />
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="absolute bottom-0 right-0 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-900 hover:bg-blue-600 transition-colors disabled:opacity-50"
+      <div className="flex-grow overflow-y-auto pt-14 no-scrollbar">
+        <div className="bg-tg-bg-light p-5 flex items-center gap-5 border-b border-tg-divider mb-2.5">
+          {contact.id === 'saved_messages' ? (
+            <div 
+              className="w-[70px] h-[70px] rounded-full flex items-center justify-center text-white shrink-0"
+              style={{ backgroundColor: contact.avatarColor }}
             >
-              {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
-            </button>
+              <Bookmark size={32} fill="currentColor" />
+            </div>
+          ) : contact.avatarUrl ? (
+            <Image 
+              src={contact.avatarUrl} 
+              alt={contact.name} 
+              width={70} 
+              height={70} 
+              className="rounded-full object-cover shrink-0" 
+              referrerPolicy="no-referrer"
+              unoptimized
+            />
+          ) : (
+            <div 
+              className="w-[70px] h-[70px] rounded-full flex items-center justify-center text-white font-medium text-[30px] shrink-0"
+              style={{ backgroundColor: contact.avatarColor }}
+            >
+              {contact.initial}
+            </div>
+          )}
+          <div className="flex flex-col">
+            <div className="text-[20px] font-medium text-tg-text-primary mb-1 flex items-center gap-1">
+              {contact.name}
+              {contact.isOfficial && <BadgeCheck size={20} className="text-blue-500 fill-blue-500 text-white" />}
+            </div>
+            <div className="text-[14px] text-tg-secondary-text">{contact.statusOffline}</div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-gray-100 dark:border-tg-divider overflow-hidden">
-          <div className="p-4 border-b border-gray-100 dark:border-tg-divider">
-            <label className="block text-xs font-medium text-blue-500 mb-1">Имя</label>
-            <input 
-              type="text" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-transparent border-none outline-none text-tg-text-primary text-[16px]"
-              placeholder="Ваше имя"
-            />
-          </div>
-          <div className="p-4 border-b border-gray-100 dark:border-tg-divider">
-            <label className="block text-xs font-medium text-blue-500 mb-1">Имя пользователя</label>
-            <input 
-              type="text" 
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-transparent border-none outline-none text-tg-text-primary text-[16px]"
-              placeholder="@username"
-            />
-          </div>
-          <div className="p-4">
-            <label className="block text-xs font-medium text-blue-500 mb-1">О себе</label>
-            <textarea 
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              className="w-full bg-transparent border-none outline-none text-tg-text-primary text-[16px] resize-none h-20"
-              placeholder="Расскажите немного о себе"
-            />
-          </div>
+        <div className="bg-tg-bg-light border-y border-tg-divider mb-2.5">
+          {contact.isOfficial && (
+            <div className="px-4 py-3 flex items-center gap-3 border-b border-tg-divider">
+              <BadgeCheck size={24} className="text-blue-500 fill-blue-500 text-white shrink-0" />
+              <div>
+                <div className="text-[16px] text-tg-text-primary">Официальный аккаунт</div>
+                <div className="text-[13px] text-tg-secondary-text">Подтверждено администрацией</div>
+              </div>
+            </div>
+          )}
+          <InfoItem label="О себе" value={contact.bio} />
+          {!contact.isChannel && contact.username && <InfoItem label="Имя пользователя" value={contact.username} isLink color={themeColor} />}
         </div>
-        
-        <p className="text-sm text-tg-secondary-text px-2">
-          Любые подробности, такие как возраст, род занятий или город.
-          Пример: 23 года, дизайнер из Санкт-Петербурга.
-        </p>
+
+        <div className="bg-tg-bg-light border-y border-tg-divider mb-2.5">
+          {!contact.isChannel && <ActionButton text="Отправить сообщение" onClick={() => setView('chat')} color={themeColor} />}
+          {!contact.isChannel && contact.id !== 'saved_messages' && (
+            <>
+              <ActionButton text="Поделиться контактом" onClick={() => setShowShareModal(true)} color={themeColor} />
+              <ActionButton text="Заблокировать" onClick={() => setShowBlockModal(true)} isDestructive />
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Share Modal */}
+      <AnimatePresence>
+        {showShareModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50" onClick={() => setShowShareModal(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10"
+            >
+              <div className="p-5">
+                <h3 className="text-[18px] font-medium text-black mb-2">Поделиться контактом</h3>
+                <p className="text-[15px] text-gray-600">
+                  {contact.id === 'test_bot' 
+                    ? `Отправить бота ${contact.name}? Будет отправлен его юзернейм.` 
+                    : `Отправить контакт ${contact.name} в текущий чат?`}
+                </p>
+              </div>
+              <div className="flex border-t border-gray-200">
+                <button 
+                  onClick={() => setShowShareModal(false)}
+                  className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200"
+                >
+                  Отмена
+                </button>
+                <button 
+                  onClick={handleShare}
+                  className="flex-1 py-3 text-[16px] font-medium hover:bg-gray-50 transition-colors"
+                  style={{ color: themeColor }}
+                >
+                  Отправить
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Block Modal */}
+      <AnimatePresence>
+        {showBlockModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50" onClick={() => setShowBlockModal(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10"
+            >
+              <div className="p-5">
+                <h3 className="text-[18px] font-medium text-black mb-2">Заблокировать</h3>
+                <p className="text-[15px] text-gray-600">Вы уверены, что хотите заблокировать пользователя {contact.name}? Он больше не сможет писать вам.</p>
+              </div>
+              <div className="flex border-t border-gray-200">
+                <button 
+                  onClick={() => setShowBlockModal(false)}
+                  className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200"
+                >
+                  Отмена
+                </button>
+                <button 
+                  onClick={handleBlock}
+                  className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 transition-colors"
+                >
+                  Заблокировать
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
+  );
+}
+
+function InfoItem({ label, value, isLink, color }: { label: string; value: string; isLink?: boolean; color?: string }) {
+  return (
+    <div className="px-4 py-3 border-b border-tg-divider last:border-b-0 flex flex-col text-[15px]">
+      <span className="text-[13px] text-tg-secondary-text mb-1">{label}</span>
+      <span 
+        className={`leading-snug ${isLink ? 'cursor-pointer' : 'text-tg-text-primary'}`}
+        style={isLink && color ? { color } : {}}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function ActionButton({ text, isDestructive, onClick, color }: { text: string; isDestructive?: boolean; onClick?: () => void; color?: string }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`block w-full px-4 py-3 text-left text-[16px] border-b border-tg-divider last:border-b-0 transition-colors hover:bg-gray-50 active:bg-gray-100 ${
+        isDestructive ? 'text-tg-red' : ''
+      }`}
+      style={!isDestructive && color ? { color } : {}}
+    >
+      {text}
+    </button>
   );
 }

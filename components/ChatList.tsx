@@ -1,8 +1,7 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck, Pin, PinOff } from 'lucide-react';
-import { Skeleton } from '@/components/Skeleton';
+import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -12,10 +11,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
 export default function ChatList() {
-  const { contacts, authReady, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact, searchQuery, setSearchQuery, togglePin } = useChat();
+  const { contacts, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact } = useChat();
   const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
 
   useEffect(() => {
     let isMounted = true;
@@ -25,18 +24,13 @@ export default function ChatList() {
         // Try searching by username (with or without @)
         const usernameQuery = queryText.startsWith('@') ? queryText : `@${queryText}`;
         
-        try {
-          const q = query(collection(db, 'users'), where('username', '>=', usernameQuery), where('username', '<=', usernameQuery + '\uf8ff'));
-          const snapshot = await getDocs(q);
-          if (!isMounted) return;
-          const results = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(user => user.id !== auth.currentUser?.uid);
-          setSearchResults(results);
-        } catch (error) {
-          console.error("Error searching users:", error);
-          if (isMounted) setSearchResults([]);
-        }
+        const q = query(collection(db, 'users'), where('username', '>=', usernameQuery), where('username', '<=', usernameQuery + '\uf8ff'));
+        const snapshot = await getDocs(q);
+        if (!isMounted) return;
+        const results = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(user => user.id !== auth.currentUser?.uid);
+        setSearchResults(results);
       };
       searchUsers();
     } else {
@@ -47,24 +41,8 @@ export default function ChatList() {
     return () => { isMounted = false; };
   }, [searchQuery]);
 
-  if (!authReady) {
-    return (
-      <div className="flex flex-col gap-3 p-4 pt-16 bg-white dark:bg-tg-bg-light">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <Skeleton className="w-[50px] h-[50px] rounded-full shrink-0" />
-            <div className="flex-grow flex flex-col gap-2">
-              <Skeleton className="w-1/2 h-4" />
-              <Skeleton className="w-3/4 h-3" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   const handleSearchResultClick = (user: any) => {
-    let statusText = '';
+    let statusText = 'был(а) недавно';
     if (user.status === 'online') {
       statusText = 'в сети';
     } else if (user.lastSeen) {
@@ -84,7 +62,7 @@ export default function ChatList() {
           statusText = `был(а) ${distance}`;
         }
       } catch (e) {
-        statusText = '';
+        statusText = 'был(а) недавно';
       }
     }
 
@@ -103,7 +81,7 @@ export default function ChatList() {
       isTyping: false,
       unread: 0,
       isChannel: false,
-      isOfficial: user.role === 'admin' || user.email === 'goh@gmail.com',
+      isOfficial: user.role === 'admin' || user.email === 'veraloktushina1958@gmail.com',
     });
     setActiveChatId(user.id);
     setView('chat');
@@ -112,7 +90,7 @@ export default function ChatList() {
   };
 
   const sortedContacts = Object.values(contacts)
-    .filter(c => activeTab === 'all' || c.unread > 0)
+    .filter(c => c.id === 'saved_messages' || c.id === 'housegram_announcements' || c.messages.length > 0)
     .filter(c => {
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
@@ -121,25 +99,17 @@ export default function ChatList() {
       return nameMatch || usernameMatch;
     })
     .sort((a, b) => {
-      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
       const lastA = a.messages[a.messages.length - 1];
       const lastB = b.messages[b.messages.length - 1];
       if (!lastA) return 1;
       if (!lastB) return -1;
-      const timeA = lastA.createdAt?.toMillis ? lastA.createdAt.toMillis() : parseInt(lastA.id) || 0;
-      const timeB = lastB.createdAt?.toMillis ? lastB.createdAt.toMillis() : parseInt(lastB.id) || 0;
-      return timeB - timeA;
+      return 0; 
     });
 
   const handleChatClick = (id: string) => {
     setActiveChatId(id);
     markAsRead(id);
     setView('chat');
-  };
-
-  const handleTogglePin = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    togglePin(id);
   };
 
   return (
@@ -201,22 +171,7 @@ export default function ChatList() {
         </AnimatePresence>
       </div>
 
-      <div className="flex px-4 pt-14 pb-2 gap-4 border-b border-tg-divider bg-tg-bg-light shrink-0">
-        <button 
-          onClick={() => setActiveTab('all')}
-          className={`text-[15px] font-medium pb-2 border-b-2 transition-colors ${activeTab === 'all' ? 'text-blue-500 border-blue-500' : 'text-tg-secondary-text border-transparent'}`}
-        >
-          Все чаты
-        </button>
-        <button 
-          onClick={() => setActiveTab('unread')}
-          className={`text-[15px] font-medium pb-2 border-b-2 transition-colors ${activeTab === 'unread' ? 'text-blue-500 border-blue-500' : 'text-tg-secondary-text border-transparent'}`}
-        >
-          Непрочитанные
-        </button>
-      </div>
-
-      <div className="flex-grow overflow-y-auto no-scrollbar">
+      <div className="flex-grow overflow-y-auto pt-12 no-scrollbar">
         {isSearching && searchQuery.trim().length > 2 && (
           <div className="px-4 py-2 text-[14px] font-medium text-gray-500">Результаты поиска</div>
         )}
@@ -232,7 +187,7 @@ export default function ChatList() {
             <div className="flex-grow overflow-hidden flex flex-col justify-center">
               <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1">
                 {user.name}
-                {(user.role === 'admin' || user.email === 'goh@gmail.com') && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
+                {(user.role === 'admin' || user.email === 'veraloktushina1958@gmail.com') && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
               </div>
               <div className="text-[14px] text-tg-secondary-text truncate leading-snug">{user.username ? (user.username.startsWith('@') ? user.username : `@${user.username}`) : ''}</div>
             </div>
@@ -246,7 +201,7 @@ export default function ChatList() {
             <div 
               key={contact.id} 
               onClick={() => handleChatClick(contact.id)}
-              className="flex items-center px-4 py-3 cursor-pointer border-b border-tg-divider hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors gap-3 group relative"
+              className="flex items-center px-4 py-3 cursor-pointer border-b border-tg-divider hover:bg-gray-50 active:bg-gray-100 transition-colors gap-3"
             >
               {contact.id === 'saved_messages' ? (
                 <div 
@@ -263,7 +218,6 @@ export default function ChatList() {
                   height={50} 
                   className="rounded-full object-cover shrink-0" 
                   referrerPolicy="no-referrer"
-                  unoptimized
                 />
               ) : (
                 <div 
@@ -277,7 +231,6 @@ export default function ChatList() {
                 <div className="font-medium text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1">
                   {contact.name}
                   {contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
-                  {contact.isPinned && <Pin size={12} className="text-gray-400 fill-gray-400 ml-auto" />}
                 </div>
                 <div className="text-[14px] text-tg-secondary-text truncate leading-snug">{previewText}</div>
               </div>
@@ -292,14 +245,6 @@ export default function ChatList() {
                   </div>
                 )}
               </div>
-              
-              {/* Pin Toggle Button */}
-              <button 
-                onClick={(e) => handleTogglePin(e, contact.id)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-2 rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-all z-10"
-              >
-                {contact.isPinned ? <PinOff size={16} className="text-gray-500" /> : <Pin size={16} className="text-gray-500" />}
-              </button>
             </div>
           );
         })}
