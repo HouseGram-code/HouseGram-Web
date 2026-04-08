@@ -154,15 +154,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
               status: 'online', lastSeen: data.lastSeen,
               isOfficial: currentUser.email === 'veraloktushina1958@gmail.com' || data.role === 'admin'
             });
-            // Временно отключено обновление статуса до обновления правил Firestore
-            // try { 
-            //   await updateDoc(doc(db, 'users', currentUser.uid), { 
-            //     status: 'online', 
-            //     lastSeen: serverTimestamp() 
-            //   }); 
-            // } catch (e) {
-            //   console.warn('Could not update user status:', e);
-            // }
+            
+            // Обновляем статус пользователя на "в сети"
+            try { 
+              await updateDoc(doc(db, 'users', currentUser.uid), { 
+                status: 'online', 
+                lastSeen: serverTimestamp() 
+              }); 
+            } catch (e) {
+              console.warn('Could not update user status:', e);
+            }
             
             // Инициализация push-уведомлений (временно отключено)
             // TODO: Получить правильный VAPID ключ из Firebase Console
@@ -213,23 +214,21 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     const handleVisibilityChange = async () => {
-      // Временно отключено до обновления правил Firestore
-      // if (auth.currentUser) {
-      //   try {
-      //     const st = document.visibilityState === 'visible' ? 'online' : 'offline';
-      //     await updateDoc(doc(db, 'users', auth.currentUser.uid), { status: st, lastSeen: serverTimestamp() });
-      //   } catch (e) {
-      //     console.warn('Could not update visibility status:', e);
-      //   }
-      // }
+      if (auth.currentUser) {
+        try {
+          const st = document.visibilityState === 'visible' ? 'online' : 'offline';
+          await updateDoc(doc(db, 'users', auth.currentUser.uid), { status: st, lastSeen: serverTimestamp() });
+        } catch (e) {
+          console.warn('Could not update visibility status:', e);
+        }
+      }
     };
     const handleBeforeUnload = () => {
-      // Временно отключено до обновления правил Firestore
-      // if (auth.currentUser) {
-      //   updateDoc(doc(db, 'users', auth.currentUser.uid), { status: 'offline', lastSeen: serverTimestamp() }).catch((e) => {
-      //     console.warn('Could not update offline status:', e);
-      //   });
-      // }
+      if (auth.currentUser) {
+        updateDoc(doc(db, 'users', auth.currentUser.uid), { status: 'offline', lastSeen: serverTimestamp() }).catch((e) => {
+          console.warn('Could not update offline status:', e);
+        });
+      }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -246,17 +245,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    // Временно отключено до обновления правил Firestore
-    // if (auth.currentUser) {
-    //   try { 
-    //     await updateDoc(doc(db, 'users', auth.currentUser.uid), { 
-    //       status: 'offline', 
-    //       lastSeen: serverTimestamp() 
-    //     }); 
-    //   } catch (e) {
-    //     console.warn('Could not update logout status:', e);
-    //   }
-    // }
+    if (auth.currentUser) {
+      try { 
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), { 
+          status: 'offline', 
+          lastSeen: serverTimestamp() 
+        }); 
+      } catch (e) {
+        console.warn('Could not update logout status:', e);
+      }
+    }
     await signOut(auth);
     setContacts(initialContacts);
     setView('auth');

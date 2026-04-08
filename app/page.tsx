@@ -28,6 +28,9 @@ const FeaturesView = dynamic(() => import('@/components/FeaturesView'), {
 const PrivacyView = dynamic(() => import('@/components/PrivacyView'), {
   loading: () => <LoadingSpinner />
 });
+const PrivacySettingsView = dynamic(() => import('@/components/PrivacySettingsView'), {
+  loading: () => <LoadingSpinner />
+});
 const NotificationsView = dynamic(() => import('@/components/NotificationsView'), {
   loading: () => <LoadingSpinner />
 });
@@ -102,6 +105,7 @@ function AppContent() {
         {view === 'chat-settings' && <ChatSettingsView key="chat-settings" />}
         {view === 'features' && <FeaturesView key="features" />}
         {view === 'privacy' && <PrivacyView key="privacy" />}
+        {view === 'privacy-settings' && <PrivacySettingsView key="privacy-settings" />}
         {view === 'notifications' && <NotificationsView key="notifications" />}
         {view === 'security' && <SecurityView key="security" />}
         {view === 'admin' && <AdminView key="admin" />}

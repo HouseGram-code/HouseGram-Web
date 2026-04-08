@@ -269,6 +269,11 @@ export default function SettingsView() {
           <SettingsItem 
             icon={<Lock size={24} />} 
             text="Конфиденциальность" 
+            onClick={() => setView('privacy-settings')} 
+          />
+          <SettingsItem 
+            icon={<ShieldCheck size={24} />} 
+            text="Безопасность" 
             onClick={() => setView('security')} 
           />
           <SettingsItem icon={<Database size={24} />} text="Данные и память" soon />
@@ -283,8 +288,8 @@ export default function SettingsView() {
             onClick={() => setView('server-status')} 
           />
           <SettingsItem 
-            icon={<ShieldCheck size={24} />} 
-            text="Правила и политика конфиденциальности" 
+            icon={<Info size={24} />} 
+            text="Правила и политика" 
             onClick={() => setView('privacy')} 
           />
           <SettingsItem 

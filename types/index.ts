@@ -92,4 +92,4 @@ export interface UserProfile {
   savedStickers?: string[];
 }
 
-export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'notifications' | 'security' | 'admin' | 'auth' | 'info' | 'faq' | 'terms' | 'create-channel' | 'channel-info' | 'notification-stats' | 'server-status';
+export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'privacy-settings' | 'notifications' | 'security' | 'admin' | 'auth' | 'info' | 'faq' | 'terms' | 'create-channel' | 'channel-info' | 'notification-stats' | 'server-status';
