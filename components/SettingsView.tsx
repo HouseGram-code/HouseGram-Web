@@ -51,7 +51,7 @@ export default function SettingsView() {
     if (userProfile.lastSeen) {
       try {
         let date;
-        if (userProfile.lastSeen.toDate) {
+        if (typeof userProfile.lastSeen === 'object' && 'toDate' in userProfile.lastSeen) {
           date = userProfile.lastSeen.toDate();
         } else if (userProfile.lastSeen instanceof Date) {
           date = userProfile.lastSeen;
