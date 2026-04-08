@@ -95,7 +95,7 @@ export default function SideMenu() {
             </ul>
             <div className="p-4 text-center text-gray-400 text-sm border-t border-gray-100">
               <div className="font-medium">HouseGram Web</div>
-              <div className="text-xs mt-0.5">v1.0 beta</div>
+              <div className="text-xs mt-0.5">v2.0 beta</div>
             </div>
           </motion.div>
         </>

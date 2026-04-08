@@ -32,7 +32,7 @@ export default function InfoView() {
             <Globe size={48} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">HouseGram Web</h1>
-          <p className="text-gray-500 mt-1">Версия 1.0.0-beta</p>
+          <p className="text-gray-500 mt-1">Версия 2.0.0-beta</p>
           <div className="mt-2 px-4 py-1 bg-blue-50 text-blue-600 rounded-full text-[13px] font-medium">
             Beta Release
           </div>

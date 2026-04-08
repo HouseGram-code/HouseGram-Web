@@ -223,24 +223,55 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     };
+    
     const handleBeforeUnload = () => {
       if (auth.currentUser) {
-        updateDoc(doc(db, 'users', auth.currentUser.uid), { status: 'offline', lastSeen: serverTimestamp() }).catch((e) => {
+        // Синхронное обновление статуса при закрытии
+        try {
+          updateDoc(doc(db, 'users', auth.currentUser.uid), { 
+            status: 'offline', 
+            lastSeen: serverTimestamp() 
+          });
+        } catch (e) {
           console.warn('Could not update offline status:', e);
-        });
+        }
       }
     };
+    
+    const handlePageHide = () => {
+      if (auth.currentUser) {
+        // Дополнительный обработчик для более надежного обновления
+        try {
+          updateDoc(doc(db, 'users', auth.currentUser.uid), { 
+            status: 'offline', 
+            lastSeen: serverTimestamp() 
+          });
+        } catch (e) {
+          console.warn('Could not update offline status on pagehide:', e);
+        }
+      }
+    };
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
 
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) setIsMaintenance(docSnap.data().maintenanceMode || false);
     }, (error) => { console.error('Settings listener error:', error); });
 
     return () => {
+      // При размонтировании компонента также устанавливаем offline
+      if (auth.currentUser) {
+        updateDoc(doc(db, 'users', auth.currentUser.uid), { 
+          status: 'offline', 
+          lastSeen: serverTimestamp() 
+        }).catch(() => {});
+      }
       unsubscribeAuth(); unsubscribeSettings();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
     };
   }, []);
 
