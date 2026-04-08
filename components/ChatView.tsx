@@ -34,6 +34,8 @@ export default function ChatView() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   const stickerFileInputRef = useRef<HTMLInputElement>(null);
 
   const [contextMenu, setContextMenu] = useState<{ msgId: string; x: number; y: number } | null>(null);
@@ -384,14 +386,65 @@ export default function ChatView() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setShowAttachMenu(false);
-      try {
-        const storageRef = ref(storage, `files/${auth.currentUser?.uid}/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, file);
-        const fileUrl = await getDownloadURL(storageRef);
+    if (!file) return;
+    
+    setShowAttachMenu(false);
+    
+    try {
+      const fileType = file.type;
+      const isImage = fileType.startsWith('image/');
+      const isVideo = fileType.startsWith('video/');
+      const isAudio = fileType.startsWith('audio/');
+      
+      let uploadFile: File | Blob = file;
+      let folder = 'files';
+      
+      // Сжимаем изображения для экономии места
+      if (isImage && file.size > 500000) { // Если больше 500KB
+        try {
+          const compressed = await resizeImageFast(file);
+          uploadFile = compressed;
+          folder = 'images';
+        } catch (err) {
+          console.warn('Failed to compress image, uploading original:', err);
+        }
+      } else if (isImage) {
+        folder = 'images';
+      } else if (isVideo) {
+        folder = 'videos';
+      } else if (isAudio) {
+        folder = 'audio';
+      }
+      
+      const timestamp = Date.now();
+      const fileName = `${timestamp}_${file.name}`;
+      const storageRef = ref(storage, `${folder}/${auth.currentUser?.uid}/${fileName}`);
+      
+      await uploadBytes(storageRef, uploadFile, {
+        contentType: file.type,
+        cacheControl: 'public, max-age=31536000'
+      });
+      
+      const fileUrl = await getDownloadURL(storageRef);
+      
+      // Отправляем сообщение с правильным типом
+      if (isImage) {
+        sendMessage('', { fileUrl, fileName: file.name });
+      } else if (isVideo) {
+        sendMessage('', { fileUrl, fileName: file.name });
+      } else if (isAudio) {
+        sendMessage('', { audioUrl: fileUrl });
+      } else {
         sendMessage(`Файл: ${file.name}`, { fileUrl, fileName: file.name });
-      } catch (error) { console.error('Error uploading file:', error); alert('Ошибка при загрузке файла'); }
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Ошибка при загрузке файла. Попробуйте файл меньшего размера.');
+    }
+    
+    // Очищаем input для возможности загрузки того же файла снова
+    if (e.target) {
+      e.target.value = '';
     }
   };
 
@@ -399,6 +452,51 @@ export default function ChatView() {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ msgId, x: e.clientX, y: e.clientY });
+  };
+
+  // Поддержка долгого нажатия для мобильных устройств
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent, msgId: string) => {
+    const touch = e.touches[0];
+    setTouchStart({ x: touch.clientX, y: touch.clientY });
+    
+    const timer = setTimeout(() => {
+      // Вибрация при долгом нажатии (если поддерживается)
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      setContextMenu({ 
+        msgId, 
+        x: touch.clientX, 
+        y: touch.clientY 
+      });
+    }, 500); // 500ms для долгого нажатия
+    
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setTouchStart(null);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart && longPressTimer) {
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - touchStart.x);
+      const deltaY = Math.abs(touch.clientY - touchStart.y);
+      
+      // Если палец сдвинулся больше чем на 10px, отменяем долгое нажатие
+      if (deltaX > 10 || deltaY > 10) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+      }
+    }
   };
 
   const handleEdit = (msgId: string, text: string) => {
@@ -540,7 +638,10 @@ export default function ChatView() {
             <div
               key={msg.id}
               onContextMenu={(e) => handleContextMenu(e, msg.id)}
-              className={`message max-w-[75%] px-3 py-1.5 mb-1.5 rounded-[18px] relative break-words flex flex-col cursor-pointer ${
+              onTouchStart={(e) => handleTouchStart(e, msg.id)}
+              onTouchEnd={handleTouchEnd}
+              onTouchMove={handleTouchMove}
+              className={`message max-w-[75%] px-3 py-1.5 mb-1.5 rounded-[18px] relative break-words flex flex-col cursor-pointer select-none ${
                 isSticker || isGif
                   ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
                   : isJumbo
@@ -890,11 +991,14 @@ export default function ChatView() {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 className="absolute bottom-14 left-2 bg-white rounded-xl shadow-lg border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[160px]"
               >
+                <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
+                <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
-                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                
+                <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
                   <div className="text-blue-500"><ImageIcon size={20} /></div><span>Фото / Видео</span>
                 </button>
-                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                <button onClick={() => audioInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
                   <div className="text-orange-500"><Music size={20} /></div><span>Музыка</span>
                 </button>
                 <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">

@@ -2,8 +2,10 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Check, Eye, Maximize } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, Check, Eye, Maximize, Upload, Moon, Sun, Palette } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage, auth } from '@/lib/firebase';
 
 const WALLPAPERS = [
   '',
@@ -18,10 +20,20 @@ export default function ChatSettingsView() {
   const { setView, themeColor, setThemeColor, wallpaper, setWallpaper, isGlassEnabled } = useChat();
   const [eyeProtection, setEyeProtection] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const wallpaperInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('housegram_eye_protection');
     if (saved) setEyeProtection(saved === 'true');
+    
+    const savedDarkMode = localStorage.getItem('housegram_dark_mode');
+    if (savedDarkMode) {
+      const isDark = savedDarkMode === 'true';
+      setDarkMode(isDark);
+      applyDarkMode(isDark);
+    }
     
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -29,6 +41,41 @@ export default function ChatSettingsView() {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  const applyDarkMode = (enabled: boolean) => {
+    if (enabled) {
+      document.documentElement.classList.add('dark');
+      document.body.style.backgroundColor = '#1a1a1a';
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.style.backgroundColor = '#ffffff';
+    }
+  };
+
+  const toggleDarkMode = () => {
+    const newValue = !darkMode;
+    setDarkMode(newValue);
+    localStorage.setItem('housegram_dark_mode', String(newValue));
+    applyDarkMode(newValue);
+  };
+
+  const handleWallpaperUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !auth.currentUser) return;
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `wallpapers/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setWallpaper(`url(${url})`);
+    } catch (error) {
+      console.error('Error uploading wallpaper:', error);
+      alert('Ошибка при загрузке обоев');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const toggleEyeProtection = () => {
     const newValue = !eyeProtection;
@@ -84,18 +131,36 @@ export default function ChatSettingsView() {
         <div className="px-4 py-2 text-[13px] text-tg-secondary-text uppercase font-medium">Комфорт</div>
         <div className="bg-tg-bg-light border-y border-tg-divider mb-6">
           <div 
+            onClick={toggleDarkMode}
+            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-tg-divider"
+          >
+            <div className="flex items-center gap-3">
+              {darkMode ? <Moon size={24} className="text-indigo-500" /> : <Sun size={24} className="text-yellow-500" />}
+              <div>
+                <div className="text-[16px] text-tg-text-primary flex items-center gap-2">
+                  Темная тема
+                  <span className="px-2 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[11px] font-bold rounded uppercase tracking-wide">
+                    NEW
+                  </span>
+                </div>
+                <div className="text-[13px] text-tg-secondary-text">
+                  {darkMode ? 'Включена' : 'Выключена'}
+                </div>
+              </div>
+            </div>
+            <div className={`w-12 h-7 rounded-full transition-colors relative ${darkMode ? 'bg-indigo-500' : 'bg-gray-300'}`}>
+              <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-1'}`} />
+            </div>
+          </div>
+          
+          <div 
             onClick={toggleEyeProtection}
             className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-tg-divider"
           >
             <div className="flex items-center gap-3">
               <Eye size={24} className="text-green-500" />
               <div>
-                <div className="text-[16px] text-tg-text-primary flex items-center gap-2">
-                  Защита зрения
-                  <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[11px] font-bold rounded uppercase tracking-wide">
-                    NEW
-                  </span>
-                </div>
+                <div className="text-[16px] text-tg-text-primary">Защита зрения</div>
                 <div className="text-[13px] text-tg-secondary-text">Снижает нагрузку на глаза</div>
               </div>
             </div>
@@ -138,22 +203,50 @@ export default function ChatSettingsView() {
         </div>
 
         <div className="px-4 py-2 text-[13px] text-tg-secondary-text uppercase font-medium">Обои чата</div>
-        <div className="bg-tg-bg-light border-y border-tg-divider p-4 grid grid-cols-3 gap-3">
-          {WALLPAPERS.map((bg, idx) => (
-            <div 
-              key={idx} 
-              onClick={() => setWallpaper(bg)}
-              className={`relative aspect-[9/16] rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${wallpaper === bg ? 'border-blue-500 scale-95' : 'border-transparent hover:scale-95'}`}
-              style={{ background: bg || '#ebebeb' }}
-            >
-              {!bg && <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">По умолч.</div>}
-              {wallpaper === bg && (
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <div className="bg-blue-500 rounded-full p-1 text-white"><Check size={16} /></div>
-                </div>
-              )}
-            </div>
-          ))}
+        <div className="bg-tg-bg-light border-y border-tg-divider p-4">
+          <input 
+            type="file" 
+            ref={wallpaperInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleWallpaperUpload} 
+          />
+          
+          <button
+            onClick={() => wallpaperInputRef.current?.click()}
+            disabled={isUploading}
+            className="w-full mb-4 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {isUploading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Загрузка...</span>
+              </>
+            ) : (
+              <>
+                <Upload size={20} />
+                <span>Загрузить свои обои</span>
+              </>
+            )}
+          </button>
+          
+          <div className="grid grid-cols-3 gap-3">
+            {WALLPAPERS.map((bg, idx) => (
+              <div 
+                key={idx} 
+                onClick={() => setWallpaper(bg)}
+                className={`relative aspect-[9/16] rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${wallpaper === bg ? 'border-blue-500 scale-95' : 'border-transparent hover:scale-95'}`}
+                style={{ background: bg || '#ebebeb' }}
+              >
+                {!bg && <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">По умолч.</div>}
+                {wallpaper === bg && (
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <div className="bg-blue-500 rounded-full p-1 text-white"><Check size={16} /></div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </motion.div>
