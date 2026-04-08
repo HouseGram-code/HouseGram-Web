@@ -2,16 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
-import { motion } from 'motion/react';
-import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
+
+type TabType = 'users' | 'stats' | 'system' | 'database';
 
 export default function AdminView() {
   const { setView, themeColor, isGlassEnabled, isAdmin } = useChat();
+  const [activeTab, setActiveTab] = useState<TabType>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'user'>('all');
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    onlineUsers: 0,
+    totalMessages: 0,
+    totalChats: 0,
+    bannedUsers: 0
+  });
+  const [supabaseConnected, setSupabaseConnected] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -19,19 +33,9 @@ export default function AdminView() {
       return;
     }
 
-    const fetchUsers = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'users'));
-        const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setUsers(usersList);
-      } catch (err) {
-        console.error('Error fetching users', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    checkSupabaseConnection();
     fetchUsers();
+    fetchStats();
 
     const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
@@ -42,12 +46,53 @@ export default function AdminView() {
     return () => unsubscribe();
   }, [isAdmin, setView]);
 
+  const checkSupabaseConnection = async () => {
+    try {
+      const { data, error } = await supabase.from('users').select('count').limit(1);
+      setSupabaseConnected(!error);
+    } catch (err) {
+      setSupabaseConnected(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsers(usersList);
+    } catch (err) {
+      console.error('Error fetching users', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const users = usersSnapshot.docs.map(doc => doc.data());
+      
+      const chatsSnapshot = await getDocs(collection(db, 'chats'));
+      
+      setStats({
+        totalUsers: users.length,
+        onlineUsers: users.filter(u => u.status === 'online').length,
+        totalMessages: 0, // Подсчитывается отдельно
+        totalChats: chatsSnapshot.size,
+        bannedUsers: users.filter(u => u.isBanned).length
+      });
+    } catch (err) {
+      console.error('Error fetching stats', err);
+    }
+  };
+
   const toggleBan = async (userId: string, currentStatus: boolean) => {
     try {
       await updateDoc(doc(db, 'users', userId), {
         isBanned: !currentStatus
       });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, isBanned: !currentStatus } : u));
+      fetchStats();
     } catch (err) {
       console.error('Error toggling ban', err);
       alert('Ошибка при изменении статуса блокировки');
@@ -65,6 +110,24 @@ export default function AdminView() {
     }
   };
 
+  const exportData = () => {
+    const dataStr = JSON.stringify(users, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `users-export-${new Date().toISOString()}.json`;
+    link.click();
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         user.username?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = filterRole === 'all' || user.role === filterRole;
+    return matchesSearch && matchesRole;
+  });
+
   if (!isAdmin) return null;
 
   return (
@@ -77,81 +140,342 @@ export default function AdminView() {
         className={`text-white px-2.5 h-14 flex items-center gap-4 shrink-0 relative z-30 transition-colors ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
         style={{ backgroundColor: isGlassEnabled ? themeColor + 'CC' : themeColor }}
       >
-        <button onClick={() => setView('settings')} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+        <button onClick={() => setView('menu')} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="flex-grow text-[18px] font-medium flex items-center gap-2">
           <Shield size={20} />
           Админ Панель
         </div>
+        <button onClick={fetchStats} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+          <RefreshCw size={20} />
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 bg-white px-2 shrink-0">
+        <TabButton 
+          active={activeTab === 'users'} 
+          onClick={() => setActiveTab('users')}
+          icon={<Users size={18} />}
+          label="Пользователи"
+        />
+        <TabButton 
+          active={activeTab === 'stats'} 
+          onClick={() => setActiveTab('stats')}
+          icon={<TrendingUp size={18} />}
+          label="Статистика"
+        />
+        <TabButton 
+          active={activeTab === 'system'} 
+          onClick={() => setActiveTab('system')}
+          icon={<Settings size={18} />}
+          label="Система"
+        />
+        <TabButton 
+          active={activeTab === 'database'} 
+          onClick={() => setActiveTab('database')}
+          icon={<Database size={18} />}
+          label="База данных"
+        />
       </div>
 
       <div className="flex-grow overflow-y-auto pt-4 pb-10 no-scrollbar bg-gray-50">
-        <div className="bg-white border-y border-gray-100 mb-4">
-          <div className="px-4 py-2 text-[14px] font-medium" style={{ color: themeColor }}>Управление системой</div>
-          
-          <div 
-            className="flex items-center px-4 py-3 gap-4 cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={toggleMaintenance}
-          >
-            <div className="text-orange-500"><Settings size={24} /></div>
-            <div className="flex flex-col flex-grow">
-              <span className="text-[16px] text-black">Технические работы</span>
-              <span className="text-[13px] text-gray-500">
-                {isMaintenance ? 'Включены (пользователи не могут войти)' : 'Выключены'}
-              </span>
-            </div>
-            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isMaintenance ? 'bg-orange-500' : 'bg-gray-300'}`}>
-              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isMaintenance ? 'translate-x-4' : 'translate-x-0'}`} />
-            </div>
-          </div>
-        </div>
+        <AnimatePresence mode="wait">
+          {activeTab === 'users' && (
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              {/* Search and Filter */}
+              <div className="px-4 mb-4 space-y-3">
+                <div className="relative">
+                  <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Поиск по имени, email или username..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setFilterRole('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      filterRole === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Все ({users.length})
+                  </button>
+                  <button
+                    onClick={() => setFilterRole('admin')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      filterRole === 'admin' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Админы ({users.filter(u => u.role === 'admin').length})
+                  </button>
+                  <button
+                    onClick={() => setFilterRole('user')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      filterRole === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Пользователи ({users.filter(u => u.role === 'user').length})
+                  </button>
+                  <button
+                    onClick={exportData}
+                    className="ml-auto px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center gap-2"
+                  >
+                    <Download size={16} />
+                    Экспорт
+                  </button>
+                </div>
+              </div>
 
-        <div className="bg-white border-y border-gray-100 mb-4">
-          <div className="px-4 py-2 text-[14px] font-medium flex items-center gap-2" style={{ color: themeColor }}>
-            <Users size={16} />
-            Пользователи ({users.length})
-          </div>
-          
-          {loading ? (
-            <div className="p-4 text-center text-gray-500">Загрузка...</div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {users.map(user => (
-                <div key={user.id} className="flex items-center px-4 py-3 gap-3 hover:bg-gray-50 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium shrink-0">
-                    {user.name?.charAt(0) || '?'}
+              <div className="bg-white border-y border-gray-100">
+                {loading ? (
+                  <div className="p-4 text-center text-gray-500">Загрузка...</div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">Пользователи не найдены</div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {filteredUsers.map(user => (
+                      <div key={user.id} className="flex items-center px-4 py-3 gap-3 hover:bg-gray-50 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium shrink-0">
+                          {user.name?.charAt(0) || '?'}
+                        </div>
+                        <div className="flex flex-col flex-grow min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[16px] text-black font-medium truncate">{user.name}</span>
+                            {user.role === 'admin' && <Shield size={14} className="text-blue-500 shrink-0" />}
+                            {user.status === 'online' && (
+                              <span className="w-2 h-2 bg-green-500 rounded-full shrink-0"></span>
+                            )}
+                            {user.isBanned && (
+                              <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full shrink-0">
+                                Забанен
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[13px] text-gray-500 truncate">{user.email}</span>
+                          <span className="text-[12px] text-gray-400 truncate">{user.username}</span>
+                        </div>
+                        
+                        {user.role !== 'admin' && (
+                          <button
+                            onClick={() => toggleBan(user.id, user.isBanned)}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                              user.isBanned 
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }`}
+                          >
+                            {user.isBanned ? (
+                              <><CheckCircle size={16} /> Разбанить</>
+                            ) : (
+                              <><Ban size={16} /> Забанить</>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex flex-col flex-grow min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[16px] text-black font-medium truncate">{user.name}</span>
-                      {user.role === 'admin' && <Shield size={14} className="text-blue-500 shrink-0" />}
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'stats' && (
+            <motion.div
+              key="stats"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4 space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <StatCard
+                  icon={<Users size={24} className="text-blue-500" />}
+                  label="Всего пользователей"
+                  value={stats.totalUsers}
+                  color="bg-blue-50"
+                />
+                <StatCard
+                  icon={<Activity size={24} className="text-green-500" />}
+                  label="Онлайн"
+                  value={stats.onlineUsers}
+                  color="bg-green-50"
+                />
+                <StatCard
+                  icon={<MessageSquare size={24} className="text-purple-500" />}
+                  label="Чатов"
+                  value={stats.totalChats}
+                  color="bg-purple-50"
+                />
+                <StatCard
+                  icon={<Ban size={24} className="text-red-500" />}
+                  label="Забанено"
+                  value={stats.bannedUsers}
+                  color="bg-red-50"
+                />
+              </div>
+
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <TrendingUp size={20} style={{ color: themeColor }} />
+                  Активность
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Процент онлайн</span>
+                    <span className="font-semibold">
+                      {stats.totalUsers > 0 ? Math.round((stats.onlineUsers / stats.totalUsers) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="h-2 rounded-full transition-all"
+                      style={{ 
+                        width: `${stats.totalUsers > 0 ? (stats.onlineUsers / stats.totalUsers) * 100 : 0}%`,
+                        backgroundColor: themeColor
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'system' && (
+            <motion.div
+              key="system"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <div className="bg-white border-y border-gray-100 mb-4">
+                <div className="px-4 py-2 text-[14px] font-medium" style={{ color: themeColor }}>
+                  Управление системой
+                </div>
+                
+                <div 
+                  className="flex items-center px-4 py-3 gap-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={toggleMaintenance}
+                >
+                  <div className="text-orange-500"><Settings size={24} /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Технические работы</span>
+                    <span className="text-[13px] text-gray-500">
+                      {isMaintenance ? 'Включены (пользователи не могут войти)' : 'Выключены'}
+                    </span>
+                  </div>
+                  <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isMaintenance ? 'bg-orange-500' : 'bg-gray-300'}`}>
+                    <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isMaintenance ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-4">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-4 text-white">
+                  <h3 className="text-lg font-semibold mb-2">HouseGram v2.0 Beta</h3>
+                  <p className="text-sm opacity-90">
+                    Система работает стабильно. Все сервисы доступны.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'database' && (
+            <motion.div
+              key="database"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <div className="px-4 space-y-4">
+                <div className="bg-white rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Database size={24} style={{ color: themeColor }} />
+                    <h3 className="text-lg font-semibold">Firebase Firestore</h3>
+                    <span className="ml-auto px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                      Подключено
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Основная база данных для хранения пользователей, сообщений и настроек.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Database size={24} className="text-emerald-500" />
+                    <h3 className="text-lg font-semibold">Supabase</h3>
+                    <span className={`ml-auto px-3 py-1 rounded-full text-sm font-medium ${
+                      supabaseConnected 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {supabaseConnected ? 'Подключено' : 'Не настроено'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Альтернативная база данных PostgreSQL для расширенных функций и аналитики.
+                  </p>
+                  {!supabaseConnected && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                      <p className="font-medium mb-1">Настройка Supabase:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-xs">
+                        <li>Создайте проект на supabase.com</li>
+                        <li>Добавьте NEXT_PUBLIC_SUPABASE_URL в .env.local</li>
+                        <li>Добавьте NEXT_PUBLIC_SUPABASE_ANON_KEY в .env.local</li>
+                        <li>Выполните SQL из supabase-schema.sql</li>
+                      </ol>
                     </div>
-                    <span className="text-[13px] text-gray-500 truncate">{user.email}</span>
-                  </div>
-                  
-                  {user.role !== 'admin' && (
-                    <button
-                      onClick={() => toggleBan(user.id, user.isBanned)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                        user.isBanned 
-                          ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                          : 'bg-red-100 text-red-700 hover:bg-red-200'
-                      }`}
-                    >
-                      {user.isBanned ? (
-                        <><CheckCircle size={16} /> Разбанить</>
-                      ) : (
-                        <><Ban size={16} /> Забанить</>
-                      )}
-                    </button>
                   )}
                 </div>
-              ))}
-            </div>
+              </div>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </div>
     </motion.div>
+  );
+}
+
+function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors relative ${
+        active ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+      }`}
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+      {active && (
+        <motion.div
+          layoutId="activeTab"
+          className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+        />
+      )}
+    </button>
+  );
+}
+
+function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
+  return (
+    <div className={`${color} rounded-xl p-4 border border-gray-200`}>
+      <div className="flex items-center gap-3 mb-2">
+        {icon}
+        <span className="text-sm text-gray-600">{label}</span>
+      </div>
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+    </div>
   );
 }
