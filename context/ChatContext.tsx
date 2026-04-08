@@ -329,7 +329,11 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const blockContact = useCallback(async (contactId: string) => {
     if (!user) return;
     const chatId = [user.uid, contactId].sort().join('_');
-    try { await updateDoc(doc(db, 'chats', chatId), { [`blockedBy.${user.uid}`]: true }, { merge: true }); } catch (e) {}
+    try { 
+      const updateData: Record<string, boolean> = {};
+      updateData[`blockedBy.${user.uid}`] = true;
+      await updateDoc(doc(db, 'chats', chatId), updateData); 
+    } catch (e) {}
     setContacts(prev => ({ ...prev, [contactId]: { ...prev[contactId], isBlocked: true } }));
   }, [user]);
 
