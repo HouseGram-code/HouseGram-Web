@@ -8,7 +8,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import Image from 'next/image';
 import { Users, Check, X } from 'lucide-react';
 
-export default function JoinChannelPage({ params }: { params: { inviteCode: string } }) {
+export default async function JoinChannelPage({ params }: { params: Promise<{ inviteCode: string }> }) {
+  const { inviteCode } = await params;
   const router = useRouter();
   const [channelData, setChannelData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +28,7 @@ export default function JoinChannelPage({ params }: { params: { inviteCode: stri
   useEffect(() => {
     const loadChannel = async () => {
       try {
-        const inviteDoc = await getDoc(doc(db, 'invites', params.inviteCode));
+        const inviteDoc = await getDoc(doc(db, 'invites', inviteCode));
         
         if (!inviteDoc.exists()) {
           setError('Приглашение не найдено или устарело');
@@ -59,7 +60,7 @@ export default function JoinChannelPage({ params }: { params: { inviteCode: stri
     };
 
     loadChannel();
-  }, [params.inviteCode, user]);
+  }, [inviteCode, user]);
 
   const handleJoin = async () => {
     if (!user) {
