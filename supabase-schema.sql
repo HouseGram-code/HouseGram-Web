@@ -80,6 +80,17 @@ CREATE TABLE IF NOT EXISTS invites (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Таблица настроек системы
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  maintenance_mode BOOLEAN DEFAULT FALSE,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Вставляем начальные настройки
+INSERT INTO settings (key, maintenance_mode) VALUES ('global', FALSE)
+ON CONFLICT (key) DO NOTHING;
+
 -- Индексы для оптимизации
 CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
@@ -145,3 +156,18 @@ CREATE POLICY "Channel owners can update" ON channels FOR UPDATE USING (auth.uid
 -- Политики безопасности для invites
 CREATE POLICY "Anyone can view invites" ON invites FOR SELECT USING (true);
 CREATE POLICY "Users can create invites" ON invites FOR INSERT WITH CHECK (auth.uid()::text = created_by::text);
+
+-- ============================================
+-- ВАЖНО: Создание Storage Bucket
+-- ============================================
+-- Выполните эти команды в Supabase Dashboard -> Storage:
+-- 1. Создайте bucket с именем 'files'
+-- 2. Сделайте его публичным (Public bucket: true)
+-- 3. Или используйте SQL:
+
+-- INSERT INTO storage.buckets (id, name, public) VALUES ('files', 'files', true);
+
+-- Политики для storage bucket 'files'
+-- CREATE POLICY "Anyone can upload files" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'files');
+-- CREATE POLICY "Anyone can view files" ON storage.objects FOR SELECT USING (bucket_id = 'files');
+-- CREATE POLICY "Users can delete own files" ON storage.objects FOR DELETE USING (bucket_id = 'files' AND auth.uid()::text = owner::text);
