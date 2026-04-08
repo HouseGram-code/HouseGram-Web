@@ -34,9 +34,9 @@ export interface Message {
   fileUrl?: string;
   fileName?: string;
   senderId?: string;
-  createdAt?: Date | { toDate: () => Date } | null;
+  createdAt?: Date | { toDate: () => Date } | any | null;
   chatId?: string;
-  editedAt?: Date | { toDate: () => Date } | null;
+  editedAt?: Date | { toDate: () => Date } | any | null;
   replyTo?: { messageId: string; senderName: string; text: string };
   forwardedFrom?: { chatName: string; senderName: string };
   stickerUrl?: string;
