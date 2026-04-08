@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+@theme {
+  --color-tg-bg-light: #ffffff;
+  --color-tg-bg-dark: #ebebeb;
+  --color-tg-primary: #517da2;
+  --color-tg-secondary-text: #8E8E93;
+  --color-tg-sent-bubble: #e1ffc7;
+  --color-tg-received-bubble: #ffffff;
+  --color-tg-text-primary: #000000;
+  --color-tg-text-secondary: #a0a0a0;
+  --color-tg-accent: #007AFF;
+  --color-tg-divider: #d9d9d9;
+  --color-tg-input-bg: #ffffff;
+  --color-tg-header-text: #ffffff;
+  --color-tg-profile-bg: #f0f0f0;
+  --color-tg-avatar-blue: #517da2;
+  --color-tg-red: #F44336;
+  --color-tg-placeholder-text: #c7c7cd;
+  --color-side-menu-bg: #ffffff;
+  --color-side-menu-header-bg: #517da2;
+  --color-side-menu-icon-color: #737373;
+  --color-side-menu-text-color: #000000;
+  --color-side-menu-user-text: #ffffff;
+  --color-side-menu-user-phone: #d1e0ec;
+  --color-overlay-bg: rgba(0, 0, 0, 0.4);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-roboto), sans-serif;
+    @apply bg-[#e5e5e5] min-h-[100dvh] m-0 p-0 overflow-hidden sm:flex sm:justify-center sm:items-center;
+  }
+}
+
+/* Message animations - prevent disappearing flicker */
+.message {
+  will-change: transform, opacity;
+  animation: messageAppear 0.2s ease-out;
+}
+
+@keyframes messageAppear {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Realistic Message Tails using SVG */
+.message-tail-sent::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    right: -9px;
+    width: 10px;
+    height: 15px;
+    background-repeat: no-repeat;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxNSIgdmlld0JveD0iMCAwIDEwIDE1Ij48cGF0aCBkPSJNMCAxNSBDNCAxNSA2IDEzIDEwIDExIEwxMCAxNSBaIiBmaWxsPSIjZTFmZmM3Ii8+PC9zdmc+');
+}
+
+.message-tail-received::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: -9px;
+    width: 10px;
+    height: 15px;
+    background-repeat: no-repeat;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxNSIgdmlld0JveD0iMCAwIDEwIDE1Ij48cGF0aCBkPSJNMTAgMTUgQzYgMTUgNCAxMyAwIDExIEwwIDE1IFoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=');
+}
+
+/* Typing indicator dots */
+.dot-flashing {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 5px;
+  background-color: #b0b0b0;
+  color: #b0b0b0;
+  animation: dotFlashing 1s infinite linear alternate;
+  animation-delay: .5s;
+  margin: 0 5px;
+}
+
+.dot-flashing::before, .dot-flashing::after {
+  content: '';
+  display: inline-block;
+  position: absolute;
+  top: 0;
+}
+
+.dot-flashing::before {
+  left: -12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 5px;
+  background-color: #b0b0b0;
+  color: #b0b0b0;
+  animation: dotFlashing 1s infinite alternate;
+  animation-delay: 0s;
+}
+
+.dot-flashing::after {
+  left: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 5px;
+  background-color: #b0b0b0;
+  color: #b0b0b0;
+  animation: dotFlashing 1s infinite alternate;
+  animation-delay: 1s;
+}
+
+@keyframes dotFlashing {
+  0% {
+    background-color: #b0b0b0;
+    transform: scale(1) translateY(0);
+    opacity: 0.6;
+  }
+  50%,
+  100% {
+    background-color: #8e8e93;
+    transform: scale(0.8) translateY(1px);
+    opacity: 1;
+  }
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Jumbo Emoji Animations */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.2); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.2); }
+  70% { transform: scale(1); }
+}
+.animate-heartbeat { animation: heartbeat 1.5s infinite; }
+
+@keyframes flame {
+  0%, 100% { transform: rotate(-2deg) scale(1); }
+  50% { transform: rotate(2deg) scale(1.05); }
+}
+.animate-flame { animation: flame 0.5s infinite alternate; }
+
+@keyframes tada {
+  0% { transform: scale(1); }
+  10%, 20% { transform: scale(0.9) rotate(-3deg); }
+  30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+  40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+  100% { transform: scale(1); }
+}
+.animate-tada { animation: tada 1.5s infinite; }
+
+@keyframes bounce-tilt {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-8px) rotate(4deg); }
+}
+.animate-bounce-tilt { animation: bounce-tilt 1.5s infinite; }
+
+@keyframes shake-laugh {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  25% { transform: translateX(-2px) rotate(-5deg); }
+  75% { transform: translateX(2px) rotate(5deg); }
+}
+.animate-shake-laugh { animation: shake-laugh 0.4s infinite; }
