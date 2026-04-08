@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -18,11 +18,9 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
-// Включаем оффлайн поддержку с неограниченным кэшем
+// Включаем оффлайн поддержку
 if (typeof window !== 'undefined') {
-  enableIndexedDbPersistence(db, {
-    cacheSizeBytes: CACHE_SIZE_UNLIMITED
-  }).catch((err) => {
+  enableIndexedDbPersistence(db).catch((err) => {
     if (err.code === 'failed-precondition') {
       // Несколько вкладок открыто, persistence может быть включена только в одной
       console.warn('Firebase persistence: Multiple tabs open, persistence can only be enabled in one tab at a time.');
