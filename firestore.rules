@@ -118,26 +118,14 @@ service cloud.firestore {
     }
     
     match /chats/{chatId}/messages/{messageId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() || 
-        (exists(/databases/$(database)/documents/chats/$(chatId)) && 
-         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants)
-      );
+      allow read: if isAuthenticated();
       
       allow create: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) &&
-                    request.resource.data.chatId == chatId &&
-                    exists(/databases/$(database)/documents/chats/$(chatId)) &&
-                    (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants || 
-                     request.auth.uid == chatId.split('_')[0] || request.auth.uid == chatId.split('_')[1]);
+                    request.resource.data.chatId == chatId;
       
-      allow update: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) && (
-        (isOwner(resource.data.senderId) && request.resource.data.text != resource.data.text && request.resource.data.createdAt == resource.data.createdAt) ||
-        (exists(/databases/$(database)/documents/chats/$(chatId)) && 
-         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
-         request.resource.data.status == 'read' && request.resource.data.text == resource.data.text)
-      );
+      allow update: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data);
       
-      allow delete: if isAdmin();
+      allow delete: if isAuthenticated();
     }
     
     match /settings/global {
