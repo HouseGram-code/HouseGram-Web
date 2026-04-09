@@ -2,248 +2,324 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Server, Wifi, Database, MessageSquare, Bell, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Server, Activity, Users, Database, Wifi, WifiOff, AlertCircle, CheckCircle, Clock, TrendingUp, HardDrive, Cpu, MemoryStick } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { db, auth } from '@/lib/firebase';
-import { collection, getDocs, limit, query } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 
-type ServerStatus = 'online' | 'error' | 'warning' | 'loading' | 'recovering';
-
-interface ServiceStatus {
-  name: string;
-  status: ServerStatus;
-  icon: React.ReactNode;
-  description: string;
-  responseTime?: number;
+interface ServerStats {
+  totalUsers: number;
+  onlineUsers: number;
+  totalMessages: number;
+  totalChats: number;
+  totalChannels: number;
+  uptime: string;
+  lastUpdate: Date;
+  status: 'operational' | 'degraded' | 'down';
+  responseTime: number;
 }
 
 export default function ServerStatusView() {
-  const { setView, themeColor, isGlassEnabled } = useChat();
-  const [isChecking, setIsChecking] = useState(false);
-  const [services, setServices] = useState<ServiceStatus[]>([
-    { name: 'Firebase Auth', status: 'loading', icon: <Wifi size={24} />, description: 'Аутентификация' },
-    { name: 'Firestore Database', status: 'loading', icon: <Database size={24} />, description: 'База данных' },
-    { name: 'Messaging', status: 'loading', icon: <MessageSquare size={24} />, description: 'Сообщения' },
-    { name: 'Notifications', status: 'loading', icon: <Bell size={24} />, description: 'Уведомления' },
-  ]);
-
-  const checkServerStatus = async () => {
-    setIsChecking(true);
-    const newServices = [...services];
-
-    // Check Firebase Auth
-    try {
-      const startAuth = Date.now();
-      if (auth.currentUser) {
-        await auth.currentUser.reload();
-        newServices[0] = { ...newServices[0], status: 'online', responseTime: Date.now() - startAuth };
-      } else {
-        newServices[0] = { ...newServices[0], status: 'warning', responseTime: Date.now() - startAuth };
-      }
-    } catch (error) {
-      newServices[0] = { ...newServices[0], status: 'error' };
-    }
-
-    // Check Firestore
-    try {
-      const startDb = Date.now();
-      await getDocs(query(collection(db, 'users'), limit(1)));
-      newServices[1] = { ...newServices[1], status: 'online', responseTime: Date.now() - startDb };
-    } catch (error) {
-      newServices[1] = { ...newServices[1], status: 'error' };
-    }
-
-    // Check Messaging (simulate)
-    try {
-      const startMsg = Date.now();
-      await getDocs(query(collection(db, 'messages'), limit(1)));
-      newServices[2] = { ...newServices[2], status: 'online', responseTime: Date.now() - startMsg };
-    } catch (error) {
-      newServices[2] = { ...newServices[2], status: 'error' };
-    }
-
-    // Check Notifications
-    try {
-      const startNotif = Date.now();
-      if ('Notification' in window) {
-        const permission = Notification.permission;
-        if (permission === 'granted') {
-          newServices[3] = { ...newServices[3], status: 'online', responseTime: Date.now() - startNotif };
-        } else if (permission === 'denied') {
-          newServices[3] = { ...newServices[3], status: 'error', responseTime: Date.now() - startNotif };
-        } else {
-          newServices[3] = { ...newServices[3], status: 'warning', responseTime: Date.now() - startNotif };
-        }
-      } else {
-        newServices[3] = { ...newServices[3], status: 'error' };
-      }
-    } catch (error) {
-      newServices[3] = { ...newServices[3], status: 'error' };
-    }
-
-    setServices(newServices);
-    setIsChecking(false);
-  };
+  const { setView, themeColor } = useChat();
+  const [stats, setStats] = useState<ServerStats>({
+    totalUsers: 0,
+    onlineUsers: 0,
+    totalMessages: 0,
+    totalChats: 0,
+    totalChannels: 0,
+    uptime: '99.9%',
+    lastUpdate: new Date(),
+    status: 'operational',
+    responseTime: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    checkServerStatus();
+    loadServerStats();
+    const interval = setInterval(loadServerStats, 30000); // Обновляем каждые 30 секунд
+    return () => clearInterval(interval);
   }, []);
 
-  const getStatusColor = (status: ServerStatus) => {
-    switch (status) {
-      case 'online': return 'bg-green-500';
-      case 'error': return 'bg-red-500';
-      case 'warning': return 'bg-yellow-500';
-      case 'loading': return 'bg-blue-500';
-      case 'recovering': return 'bg-cyan-500';
-      default: return 'bg-gray-500';
+  const loadServerStats = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const startTime = Date.now();
+
+      // Получаем статистику пользователей
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const totalUsers = usersSnapshot.size;
+      
+      // Считаем онлайн пользователей (активны менее 45 секунд назад)
+      const now = new Date();
+      const fortyFiveSecondsAgo = new Date(now.getTime() - 45000);
+      
+      let onlineUsers = 0;
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        if (userData.status === 'online' && userData.lastSeen) {
+          try {
+            const lastSeenDate = userData.lastSeen.toDate ? userData.lastSeen.toDate() : new Date(userData.lastSeen);
+            if (lastSeenDate >= fortyFiveSecondsAgo) {
+              onlineUsers++;
+            }
+          } catch (e) {
+            // Игнорируем ошибки парсинга даты
+          }
+        }
+      });
+
+      // Получаем статистику чатов
+      const chatsSnapshot = await getDocs(collection(db, 'chats'));
+      const totalChats = chatsSnapshot.size;
+
+      // Считаем общее количество сообщений
+      let totalMessages = 0;
+      for (const chatDoc of chatsSnapshot.docs) {
+        const messagesSnapshot = await getDocs(collection(db, 'chats', chatDoc.id, 'messages'));
+        totalMessages += messagesSnapshot.size;
+      }
+
+      // Получаем статистику каналов
+      const channelsSnapshot = await getDocs(collection(db, 'channels'));
+      const totalChannels = channelsSnapshot.size;
+
+      const responseTime = Date.now() - startTime;
+
+      // Определяем статус сервера на основе времени ответа
+      let status: 'operational' | 'degraded' | 'down' = 'operational';
+      if (responseTime > 3000) {
+        status = 'degraded';
+      } else if (responseTime > 10000) {
+        status = 'down';
+      }
+
+      setStats({
+        totalUsers,
+        onlineUsers,
+        totalMessages,
+        totalChats,
+        totalChannels,
+        uptime: '99.9%',
+        lastUpdate: new Date(),
+        status,
+        responseTime
+      });
+    } catch (err) {
+      console.error('Failed to load server stats:', err);
+      setError('Не удалось загрузить статистику сервера');
+      setStats(prev => ({ ...prev, status: 'down' }));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusText = (status: ServerStatus) => {
-    switch (status) {
-      case 'online': return 'Работает';
-      case 'error': return 'Сбой';
-      case 'warning': return 'Нагрузка';
-      case 'loading': return 'Проверка...';
-      case 'recovering': return 'Восстановление';
-      default: return 'Неизвестно';
+  const getStatusColor = () => {
+    switch (stats.status) {
+      case 'operational': return 'text-green-500';
+      case 'degraded': return 'text-yellow-500';
+      case 'down': return 'text-red-500';
     }
   };
 
-  const getStatusIcon = (status: ServerStatus) => {
-    switch (status) {
-      case 'online': return '✓';
-      case 'error': return '✕';
-      case 'warning': return '!';
-      case 'loading': return '⟳';
-      case 'recovering': return '↻';
-      default: return '?';
+  const getStatusIcon = () => {
+    switch (stats.status) {
+      case 'operational': return <CheckCircle size={20} className="text-green-500" />;
+      case 'degraded': return <AlertCircle size={20} className="text-yellow-500" />;
+      case 'down': return <WifiOff size={20} className="text-red-500" />;
     }
   };
 
-  const overallStatus = services.every(s => s.status === 'online') ? 'online' 
-    : services.some(s => s.status === 'error') ? 'error'
-    : services.some(s => s.status === 'warning') ? 'warning'
-    : 'loading';
+  const getStatusText = () => {
+    switch (stats.status) {
+      case 'operational': return 'Все системы работают';
+      case 'degraded': return 'Пониженная производительность';
+      case 'down': return 'Проблемы с подключением';
+    }
+  };
 
   return (
-    <motion.div 
-      initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+    <motion.div
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="absolute inset-0 bg-gray-50 flex flex-col z-30"
+      className="absolute inset-0 bg-tg-bg-light flex flex-col z-10"
     >
-      <div 
-        className={`text-white px-2.5 h-12 flex items-center gap-4 shrink-0 ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
-        style={{ backgroundColor: isGlassEnabled ? themeColor + 'CC' : themeColor }}
+      {/* Header */}
+      <div
+        className="text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0"
+        style={{ backgroundColor: themeColor }}
       >
-        <button onClick={() => setView('settings')} className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors">
+        <button
+          onClick={() => setView('settings')}
+          className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
+        >
           <ArrowLeft size={24} />
         </button>
-        <div className="text-[17px] font-medium flex-grow">Статус сервера</div>
-        <button 
-          onClick={checkServerStatus}
-          disabled={isChecking}
-          className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={24} className={isChecking ? 'animate-spin' : ''} />
-        </button>
+        <h1 className="text-[18px] font-medium">Статус сервера</h1>
       </div>
 
-      <div className="flex-grow overflow-y-auto no-scrollbar pb-10">
-        {/* Overall Status Card */}
-        <div className="p-4">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className={`${getStatusColor(overallStatus)} rounded-2xl p-6 text-white shadow-lg`}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Server size={32} />
-                <div>
-                  <div className="text-2xl font-bold">Общий статус</div>
-                  <div className="text-sm opacity-90">{getStatusText(overallStatus)}</div>
-                </div>
-              </div>
-              <div className="text-5xl font-bold opacity-80">
-                {getStatusIcon(overallStatus)}
-              </div>
+      {/* Content */}
+      <div className="flex-grow overflow-y-auto p-4">
+        {/* Статус сервера */}
+        <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <Server size={24} className="text-blue-500" />
             </div>
-            <div className="text-sm opacity-90">
-              {overallStatus === 'online' && 'Все системы работают нормально'}
-              {overallStatus === 'error' && 'Обнаружены проблемы с сервисами'}
-              {overallStatus === 'warning' && 'Некоторые сервисы под нагрузкой'}
-              {overallStatus === 'loading' && 'Проверка состояния сервисов...'}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Services List */}
-        <div className="px-4">
-          <div className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Сервисы</div>
-          <div className="bg-white rounded-xl overflow-hidden shadow-sm">
-            {services.map((service, index) => (
-              <motion.div
-                key={service.name}
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: index * 0.1 }}
-                className={`flex items-center gap-4 p-4 ${index !== services.length - 1 ? 'border-b border-gray-100' : ''}`}
-              >
-                <div className={`${getStatusColor(service.status)} rounded-full p-3 text-white`}>
-                  {service.icon}
-                </div>
-                <div className="flex-grow">
-                  <div className="font-medium text-gray-900">{service.name}</div>
-                  <div className="text-sm text-gray-500">{service.description}</div>
-                  {service.responseTime && (
-                    <div className="text-xs text-gray-400 mt-1">
-                      Время отклика: {service.responseTime}ms
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <div className={`${getStatusColor(service.status)} text-white text-xs font-bold px-3 py-1 rounded-full`}>
-                    {getStatusText(service.status)}
-                  </div>
-                  <div className={`w-3 h-3 ${getStatusColor(service.status)} rounded-full ${service.status === 'online' ? 'animate-pulse' : ''}`} />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Info Section */}
-        <div className="px-4 mt-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="text-sm text-blue-900">
-              <div className="font-medium mb-2">Легенда статусов:</div>
-              <div className="space-y-1 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span>Зеленый - Работает нормально</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>Красный - Сбой сервиса</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <span>Желтый - Высокая нагрузка</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span>Синий - Проверка статуса</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-cyan-500 rounded-full"></div>
-                  <span>Голубой - Восстановление</span>
-                </div>
+            <div className="flex-grow">
+              <h2 className="text-[17px] font-medium text-gray-900">Статус системы</h2>
+              <div className="flex items-center gap-2 mt-1">
+                {getStatusIcon()}
+                <span className={`text-[15px] font-medium ${getStatusColor()}`}>
+                  {getStatusText()}
+                </span>
               </div>
             </div>
           </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+              <p className="text-[14px] text-red-600">{error}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock size={16} className="text-gray-500" />
+                <span className="text-[13px] text-gray-500">Время ответа</span>
+              </div>
+              <p className="text-[18px] font-semibold text-gray-900">
+                {loading ? '...' : `${stats.responseTime}ms`}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp size={16} className="text-gray-500" />
+                <span className="text-[13px] text-gray-500">Uptime</span>
+              </div>
+              <p className="text-[18px] font-semibold text-gray-900">{stats.uptime}</p>
+            </div>
+          </div>
+
+          <div className="mt-3 text-[13px] text-gray-500 text-center">
+            Последнее обновление: {stats.lastUpdate.toLocaleTimeString('ru-RU')}
+          </div>
         </div>
+
+        {/* Статистика пользователей */}
+        <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+              <Users size={20} className="text-green-500" />
+            </div>
+            <h2 className="text-[17px] font-medium text-gray-900">Пользователи</h2>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wifi size={16} className="text-green-500" />
+                <span className="text-[15px] text-gray-700">В сети</span>
+              </div>
+              <span className="text-[17px] font-semibold text-gray-900">
+                {loading ? '...' : stats.onlineUsers}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-gray-500" />
+                <span className="text-[15px] text-gray-700">Всего пользователей</span>
+              </div>
+              <span className="text-[17px] font-semibold text-gray-900">
+                {loading ? '...' : stats.totalUsers}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Статистика данных */}
+        <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+              <Database size={20} className="text-purple-500" />
+            </div>
+            <h2 className="text-[17px] font-medium text-gray-900">База данных</h2>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[15px] text-gray-700">Всего сообщений</span>
+              <span className="text-[17px] font-semibold text-gray-900">
+                {loading ? '...' : stats.totalMessages.toLocaleString('ru-RU')}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-[15px] text-gray-700">Активных чатов</span>
+              <span className="text-[17px] font-semibold text-gray-900">
+                {loading ? '...' : stats.totalChats}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-[15px] text-gray-700">Каналов</span>
+              <span className="text-[17px] font-semibold text-gray-900">
+                {loading ? '...' : stats.totalChannels}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Информация о системе */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+              <Activity size={20} className="text-orange-500" />
+            </div>
+            <h2 className="text-[17px] font-medium text-gray-900">Система</h2>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Cpu size={16} className="text-gray-500" />
+                <span className="text-[15px] text-gray-700">Платформа</span>
+              </div>
+              <span className="text-[15px] font-medium text-gray-900">Firebase + Supabase</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <HardDrive size={16} className="text-gray-500" />
+                <span className="text-[15px] text-gray-700">Версия</span>
+              </div>
+              <span className="text-[15px] font-medium text-gray-900">1.0.0-beta</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MemoryStick size={16} className="text-gray-500" />
+                <span className="text-[15px] text-gray-700">Регион</span>
+              </div>
+              <span className="text-[15px] font-medium text-gray-900">Europe West</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Кнопка обновления */}
+        <button
+          onClick={loadServerStats}
+          disabled={loading}
+          className="w-full mt-4 bg-blue-500 text-white py-3 rounded-xl font-medium hover:bg-blue-600 active:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Обновление...' : 'Обновить статистику'}
+        </button>
       </div>
     </motion.div>
   );

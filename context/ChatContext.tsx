@@ -382,10 +382,12 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             try {
               const lastSeenDate = userData.lastSeen.toDate ? userData.lastSeen.toDate() : new Date(userData.lastSeen);
               const now = new Date();
-              const diffMinutes = Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000);
+              const diffSeconds = Math.floor((now.getTime() - lastSeenDate.getTime()) / 1000);
+              const diffMinutes = Math.floor(diffSeconds / 60);
               
-              // Считаем пользователя онлайн если он был активен менее 2 минут назад
-              isRecentlyActive = diffMinutes < 2;
+              // Считаем пользователя онлайн только если он был активен менее 45 секунд назад
+              // Это учитывает задержки сети и обновления статуса
+              isRecentlyActive = diffSeconds < 45;
               
               if (diffMinutes < 1) {
                 statusOffline = 'был(а) только что';
