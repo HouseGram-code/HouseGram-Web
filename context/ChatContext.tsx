@@ -736,14 +736,19 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             let statusOnline = 'был(а) недавно';
             let statusOffline = 'был(а) недавно';
             
-            if (userData.status === 'online') {
-              statusOnline = 'в сети';
-              statusOffline = 'в сети';
-            } else if (userData.lastSeen) {
+            // Проверяем статус и время последней активности
+            const isOnline = userData.status === 'online';
+            let isRecentlyActive = false;
+            
+            if (userData.lastSeen) {
               try {
                 const lastSeenDate = userData.lastSeen.toDate ? userData.lastSeen.toDate() : new Date(userData.lastSeen);
                 const now = new Date();
-                const diffMinutes = Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000);
+                const diffSeconds = Math.floor((now.getTime() - lastSeenDate.getTime()) / 1000);
+                const diffMinutes = Math.floor(diffSeconds / 60);
+                
+                // Считаем пользователя онлайн только если он был активен менее 45 секунд назад
+                isRecentlyActive = diffSeconds < 45;
                 
                 if (diffMinutes < 1) {
                   statusOffline = 'был(а) только что';
@@ -759,6 +764,14 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
               } catch (e) {
                 statusOffline = 'был(а) недавно';
               }
+            }
+            
+            // Показываем "в сети" только если статус online И пользователь был активен недавно
+            if (isOnline && isRecentlyActive) {
+              statusOnline = 'в сети';
+              statusOffline = 'в сети';
+            } else {
+              statusOnline = statusOffline;
             }
             
             let timeString = '';
@@ -793,22 +806,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Обновляем/добавляем новые контакты из Firebase
         for (const [id, contact] of Object.entries(newContacts)) {
-          if (!updated[id]) { 
-            updated[id] = contact; 
-          } else if (!initialContacts[id]) {
-            // Обновляем только если это не initialContact
-            updated[id] = { ...updated[id], name: contact.name, avatarUrl: contact.avatarUrl, statusOnline: contact.statusOnline, statusOffline: contact.statusOffline, isOfficial: contact.isOfficial };
-            if (contact.messages.length > 0 && id !== activeChatIdRef.current) {
-              const newLastMsg = contact.messages[0];
-              const currentMessages = updated[id].messages;
-              if (currentMessages.length === 0 || currentMessages[currentMessages.length - 1].text !== newLastMsg.text || currentMessages[currentMessages.length - 1].time !== newLastMsg.time) {
-                updated[id].messages = [...currentMessages.filter(m => m.id !== 'dummy'), newLastMsg];
-              }
-            } else if (updated[id].messages.length === 0) {
-              updated[id].messages = contact.messages;
-            }
-          }
+          updated[id] = contact;
         }
+        
         return updated;
       });
     }, (error) => { console.error('Chats listener error:', error); });
