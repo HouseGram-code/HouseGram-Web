@@ -353,8 +353,20 @@ export interface UploadResult {
   type: string;
 }
 
+// Интерфейс для конфигурации файлов
+interface FileConfig {
+  bucket: string;
+  folder: string;
+  maxSize: number;
+  allowedTypes: string[];
+  compress: boolean;
+  maxWidth?: number;
+  maxHeight?: number;
+  quality?: number;
+}
+
 // Конфигурация для разных типов файлов
-const FILE_CONFIG = {
+const FILE_CONFIG: Record<FileType, FileConfig> = {
   image: {
     bucket: 'files',
     folder: 'images',
