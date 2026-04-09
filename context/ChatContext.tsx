@@ -599,9 +599,17 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     try {
-      await setDoc(doc(db, 'chats', chatId), { updatedAt: serverNow, participants: [auth.currentUser.uid, currentChatId].sort() }, { merge: true });
+      // Создаем/обновляем чат с полной информацией за один раз
+      await setDoc(doc(db, 'chats', chatId), { 
+        updatedAt: serverNow, 
+        participants: [auth.currentUser.uid, currentChatId].sort(),
+        lastMessage: text || 'Медиа',
+        lastMessageSenderId: auth.currentUser.uid
+      }, { merge: true });
+      
+      // Добавляем сообщение
       await addDoc(collection(db, 'chats', chatId, 'messages'), newMessage);
-      await updateDoc(doc(db, 'chats', chatId), { lastMessage: text, lastMessageSenderId: auth.currentUser.uid, updatedAt: serverNow });
+      
       playSound('send');
 
       // Отправляем push-уведомление получателю
@@ -705,9 +713,17 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       fileName: message.fileName,
     };
     try {
-      await setDoc(doc(db, 'chats', targetChatId2), { updatedAt: serverTimestamp(), participants: [user.uid, targetChatId].sort() }, { merge: true });
+      // Создаем/обновляем чат с полной информацией за один раз
+      await setDoc(doc(db, 'chats', targetChatId2), { 
+        updatedAt: serverTimestamp(), 
+        participants: [user.uid, targetChatId].sort(),
+        lastMessage: message.text,
+        lastMessageSenderId: user.uid
+      }, { merge: true });
+      
+      // Добавляем сообщение
       await addDoc(collection(db, 'chats', targetChatId2, 'messages'), newMessage);
-      await updateDoc(doc(db, 'chats', targetChatId2), { lastMessage: message.text, lastMessageSenderId: user.uid, updatedAt: serverTimestamp() });
+      
       playSound('send');
     } catch (e) { console.error('Failed to forward message', e); alert('Ошибка при пересылке'); }
   }, [user, contacts, activeChatId, playSound]);
