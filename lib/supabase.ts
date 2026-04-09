@@ -333,3 +333,353 @@ export const chatService = {
     return { error };
   }
 };
+
+// ============================================
+// SUPABASE STORAGE - Загрузка файлов
+// ============================================
+
+export type FileType = 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif';
+
+export interface UploadProgress {
+  loaded: number;
+  total: number;
+  percentage: number;
+}
+
+export interface UploadResult {
+  url: string;
+  path: string;
+  size: number;
+  type: string;
+}
+
+// Конфигурация для разных типов файлов
+const FILE_CONFIG = {
+  image: {
+    bucket: 'files',
+    folder: 'images',
+    maxSize: 10 * 1024 * 1024, // 10MB
+    allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic'],
+    compress: true,
+    maxWidth: 1920,
+    maxHeight: 1920,
+    quality: 0.85
+  },
+  video: {
+    bucket: 'files',
+    folder: 'videos',
+    maxSize: 100 * 1024 * 1024, // 100MB
+    allowedTypes: ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'],
+    compress: false
+  },
+  audio: {
+    bucket: 'files',
+    folder: 'audio',
+    maxSize: 20 * 1024 * 1024, // 20MB
+    allowedTypes: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm', 'audio/aac'],
+    compress: false
+  },
+  document: {
+    bucket: 'files',
+    folder: 'documents',
+    maxSize: 50 * 1024 * 1024, // 50MB
+    allowedTypes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/zip'],
+    compress: false
+  },
+  sticker: {
+    bucket: 'files',
+    folder: 'stickers',
+    maxSize: 5 * 1024 * 1024, // 5MB
+    allowedTypes: ['image/png', 'image/webp', 'image/gif'],
+    compress: true,
+    maxWidth: 512,
+    maxHeight: 512,
+    quality: 0.9
+  },
+  gif: {
+    bucket: 'files',
+    folder: 'gifs',
+    maxSize: 10 * 1024 * 1024, // 10MB
+    allowedTypes: ['image/gif'],
+    compress: false
+  }
+};
+
+// Определение типа файла
+export const detectFileType = (file: File): FileType => {
+  const type = file.type.toLowerCase();
+  
+  if (type.startsWith('image/gif')) return 'gif';
+  if (type.startsWith('image/')) return 'image';
+  if (type.startsWith('video/')) return 'video';
+  if (type.startsWith('audio/')) return 'audio';
+  return 'document';
+};
+
+// Валидация файла
+export const validateFile = (file: File, fileType: FileType): { valid: boolean; error?: string } => {
+  const config = FILE_CONFIG[fileType];
+  
+  if (!config.allowedTypes.includes(file.type)) {
+    return { valid: false, error: `Неподдерживаемый тип файла. Разрешены: ${config.allowedTypes.join(', ')}` };
+  }
+  
+  if (file.size > config.maxSize) {
+    const maxSizeMB = (config.maxSize / (1024 * 1024)).toFixed(0);
+    return { valid: false, error: `Файл слишком большой. Максимум: ${maxSizeMB}MB` };
+  }
+  
+  return { valid: true };
+};
+
+// Сжатие изображения
+const compressImage = (file: File, maxWidth: number, maxHeight: number, quality: number): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { alpha: true });
+    
+    if (!ctx) {
+      reject(new Error('Canvas context not available'));
+      return;
+    }
+
+    img.onload = () => {
+      try {
+        let width = img.width;
+        let height = img.height;
+
+        // Вычисляем новые размеры с сохранением пропорций
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Высококачественное масштабирование
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Пробуем WebP, если не поддерживается - используем JPEG
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              URL.revokeObjectURL(img.src);
+              resolve(blob);
+            } else {
+              // Fallback на JPEG
+              canvas.toBlob(
+                (jpegBlob) => {
+                  URL.revokeObjectURL(img.src);
+                  if (jpegBlob) {
+                    resolve(jpegBlob);
+                  } else {
+                    reject(new Error('Failed to create blob'));
+                  }
+                },
+                'image/jpeg',
+                quality
+              );
+            }
+          },
+          'image/webp',
+          quality
+        );
+      } catch (error) {
+        URL.revokeObjectURL(img.src);
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.crossOrigin = 'anonymous';
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+// Генерация уникального имени файла
+const generateFileName = (userId: string, originalName: string, fileType: FileType): string => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  const extension = originalName.split('.').pop() || 'bin';
+  const cleanName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 50);
+  
+  return `${userId}/${timestamp}_${random}_${cleanName}`;
+};
+
+// Основная функция загрузки файла
+export const uploadFile = async (
+  file: File,
+  userId: string,
+  fileType?: FileType,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<UploadResult> => {
+  // Определяем тип файла
+  const type = fileType || detectFileType(file);
+  const config = FILE_CONFIG[type];
+  
+  // Валидация
+  const validation = validateFile(file, type);
+  if (!validation.valid) {
+    throw new Error(validation.error);
+  }
+  
+  // Подготовка файла
+  let uploadFile: File | Blob = file;
+  let contentType = file.type;
+  
+  // Сжатие изображений
+  if (config.compress && (type === 'image' || type === 'sticker')) {
+    try {
+      const compressed = await compressImage(
+        file,
+        config.maxWidth || 1920,
+        config.maxHeight || 1920,
+        config.quality || 0.85
+      );
+      uploadFile = compressed;
+      contentType = compressed.type;
+    } catch (error) {
+      console.warn('Failed to compress image, uploading original:', error);
+    }
+  }
+  
+  // Генерация пути
+  const fileName = generateFileName(userId, file.name, type);
+  const filePath = `${config.folder}/${fileName}`;
+  
+  // Загрузка в Supabase Storage
+  const { data, error } = await supabase.storage
+    .from(config.bucket)
+    .upload(filePath, uploadFile, {
+      contentType,
+      cacheControl: '31536000', // 1 год
+      upsert: false
+    });
+  
+  if (error) {
+    console.error('Upload error:', error);
+    throw new Error(`Ошибка загрузки: ${error.message}`);
+  }
+  
+  // Получение публичного URL
+  const { data: urlData } = supabase.storage
+    .from(config.bucket)
+    .getPublicUrl(filePath);
+  
+  return {
+    url: urlData.publicUrl,
+    path: filePath,
+    size: uploadFile.size,
+    type: contentType
+  };
+};
+
+// Загрузка нескольких файлов
+export const uploadMultipleFiles = async (
+  files: File[],
+  userId: string,
+  onProgress?: (fileIndex: number, progress: UploadProgress) => void
+): Promise<UploadResult[]> => {
+  const results: UploadResult[] = [];
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const result = await uploadFile(
+      file,
+      userId,
+      undefined,
+      (progress) => onProgress?.(i, progress)
+    );
+    results.push(result);
+  }
+  
+  return results;
+};
+
+// Удаление файла
+export const deleteFile = async (filePath: string, bucket: string = 'files'): Promise<boolean> => {
+  const { error } = await supabase.storage
+    .from(bucket)
+    .remove([filePath]);
+  
+  if (error) {
+    console.error('Delete error:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+// Получение информации о файле
+export const getFileInfo = async (filePath: string, bucket: string = 'files') => {
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .list(filePath);
+  
+  return { data, error };
+};
+
+// Генерация превью для видео
+export const generateVideoThumbnail = (videoFile: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      reject(new Error('Canvas context not available'));
+      return;
+    }
+    
+    video.onloadedmetadata = () => {
+      // Берём кадр с 1 секунды
+      video.currentTime = Math.min(1, video.duration / 2);
+    };
+    
+    video.onseeked = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(video.src);
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to generate thumbnail'));
+          }
+        },
+        'image/jpeg',
+        0.8
+      );
+    };
+    
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error('Failed to load video'));
+    };
+    
+    video.src = URL.createObjectURL(videoFile);
+  });
+};
+
+// Форматирование размера файла
+export const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+};
