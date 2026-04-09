@@ -295,8 +295,9 @@ export const db = {
         table: 'chats'
       }, (payload) => {
         // Фильтруем только чаты пользователя
-        if (payload.new && Array.isArray(payload.new.participants) && payload.new.participants.includes(userId)) {
-          callback(payload.new);
+        const newData = payload.new as any;
+        if (newData && Array.isArray(newData.participants) && newData.participants.includes(userId)) {
+          callback(newData);
         }
       })
       .subscribe();
