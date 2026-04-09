@@ -103,8 +103,132 @@ export const userService = {
         callback(payload.new as User);
       })
       .subscribe();
+  },
+
+  // Подписка на статусы нескольких пользователей
+  subscribeToMultipleUserStatuses(userIds: string[], callback: (user: User) => void) {
+    const channel = supabase.channel('users-status');
+    
+    userIds.forEach(userId => {
+      channel.on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'users',
+        filter: `id=eq.${userId}`
+      }, (payload) => {
+        callback(payload.new as User);
+      });
+    });
+    
+    return channel.subscribe();
   }
 };
+
+// Хелпер для форматирования времени последнего посещения
+export const formatLastSeen = (lastSeenStr: string): string => {
+  try {
+    const lastSeen = new Date(lastSeenStr);
+    const now = new Date();
+    const diffMinutes = Math.floor((now.getTime() - lastSeen.getTime()) / 60000);
+    
+    if (diffMinutes < 1) {
+      return 'был(а) только что';
+    } else if (diffMinutes < 60) {
+      return `был(а) ${diffMinutes} мин. назад`;
+    } else if (diffMinutes < 1440) {
+      const hours = Math.floor(diffMinutes / 60);
+      return `был(а) ${hours} ч. назад`;
+    } else {
+      const days = Math.floor(diffMinutes / 1440);
+      return `был(а) ${days} дн. назад`;
+    }
+  } catch (e) {
+    return 'был(а) недавно';
+  }
+};
+
+// Менеджер онлайн статуса
+export class OnlineStatusManager {
+  private userId: string;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private visibilityHandler: (() => void) | null = null;
+  private beforeUnloadHandler: (() => void) | null = null;
+  private pageHideHandler: (() => void) | null = null;
+
+  constructor(userId: string) {
+    this.userId = userId;
+  }
+
+  // Запуск отслеживания статуса
+  async start() {
+    // Устанавливаем статус "онлайн"
+    await userService.updateStatus(this.userId, 'online');
+
+    // Heartbeat каждые 30 секунд для поддержания онлайн статуса
+    this.heartbeatInterval = setInterval(async () => {
+      if (document.visibilityState === 'visible') {
+        await userService.updateStatus(this.userId, 'online');
+      }
+    }, 30000);
+
+    // Обработчик изменения видимости вкладки
+    this.visibilityHandler = async () => {
+      const status = document.visibilityState === 'visible' ? 'online' : 'offline';
+      await userService.updateStatus(this.userId, status);
+    };
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+
+    // Обработчик закрытия страницы
+    this.beforeUnloadHandler = () => {
+      // Используем sendBeacon для надежной отправки
+      const data = JSON.stringify({
+        userId: this.userId,
+        status: 'offline',
+        lastSeen: new Date().toISOString()
+      });
+      
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/update-status', data);
+      }
+      
+      // Синхронная попытка обновления
+      userService.updateStatus(this.userId, 'offline');
+    };
+    window.addEventListener('beforeunload', this.beforeUnloadHandler);
+
+    // Дополнительный обработчик для мобильных устройств
+    this.pageHideHandler = () => {
+      userService.updateStatus(this.userId, 'offline');
+    };
+    window.addEventListener('pagehide', this.pageHideHandler);
+  }
+
+  // Остановка отслеживания статуса
+  async stop() {
+    // Очищаем интервал
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+
+    // Удаляем обработчики событий
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+    if (this.beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+      this.beforeUnloadHandler = null;
+    }
+    if (this.pageHideHandler) {
+      window.removeEventListener('pagehide', this.pageHideHandler);
+      this.pageHideHandler = null;
+    }
+
+    // Устанавливаем статус "оффлайн"
+    await userService.updateStatus(this.userId, 'offline');
+  }
+}
 
 // Функции для работы с сообщениями
 export const messageService = {

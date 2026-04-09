@@ -98,6 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_chats_participants ON chats USING GIN(participants);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen DESC);
 CREATE INDEX IF NOT EXISTS idx_channels_invite_code ON channels(invite_code);
 
 -- Функция для обновления updated_at
