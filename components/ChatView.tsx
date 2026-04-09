@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import NextImage from 'next/image';
-import { auth, storage, db } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db } from '@/lib/firebase';
+import { uploadFile } from '@/lib/supabase';
 import { doc, getDoc } from 'firebase/firestore';
 import { stickerPacks, gifCollection } from '@/lib/stickers';
 
@@ -281,30 +281,12 @@ export default function ChatView() {
     
     setIsUploadingSticker(true);
     try {
-      // Определяем расширение файла
-      const fileType = stickerFile.type || 'image/png';
-      const extension = fileType.split('/')[1] || 'png';
-      
-      // Создаём уникальный путь для стикера
-      const timestamp = Date.now();
-      const cleanName = stickerName.trim().replace(/[^a-zA-Z0-9а-яА-Я_-]/g, '_');
-      const fileName = `${timestamp}_${cleanName}.${extension}`;
-      const storageRef = ref(storage, `stickers/${auth.currentUser.uid}/${fileName}`);
-      
-      // Загружаем сжатый файл напрямую
-      const snapshot = await uploadBytes(storageRef, stickerFile, {
-        contentType: fileType,
-        cacheControl: 'public, max-age=31536000',
-        customMetadata: {
-          'optimized': 'true',
-          'originalName': stickerName.trim()
-        }
-      });
-      const stickerUrl = await getDownloadURL(snapshot.ref);
+      // Загружаем через Supabase Storage
+      const result = await uploadFile(stickerFile, auth.currentUser.uid, 'sticker');
       
       // Сохраняем стикер и отправляем
-      saveSticker(stickerUrl);
-      sendSticker(stickerUrl, 256, 256);
+      saveSticker(result.url);
+      sendSticker(result.url, 256, 256);
       
       // Очищаем форму
       setShowStickerCreator(false);
@@ -313,19 +295,7 @@ export default function ChatView() {
       setStickerFile(null);
     } catch (error: any) {
       console.error('Error creating sticker:', error);
-      let errorMessage = 'Ошибка при создании стикера';
-      
-      if (error.code === 'storage/unauthorized') {
-        errorMessage = 'Нет доступа для загрузки. Проверьте права доступа в Firebase.';
-      } else if (error.code === 'storage/canceled') {
-        errorMessage = 'Загрузка была отменена';
-      } else if (error.code === 'storage/quota-exceeded') {
-        errorMessage = 'Превышена квота хранилища';
-      } else if (error.message) {
-        errorMessage = `Ошибка: ${error.message}`;
-      }
-      
-      alert(errorMessage);
+      alert(error.message || 'Ошибка при создании стикера');
     } finally {
       setIsUploadingSticker(false);
     }
@@ -350,10 +320,10 @@ export default function ChatView() {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         if (stream) stream.getTracks().forEach(track => track.stop());
         try {
-          const storageRef = ref(storage, `audio/${auth.currentUser?.uid}/${Date.now()}.webm`);
-          await uploadBytes(storageRef, audioBlob);
-          const audioUrl = await getDownloadURL(storageRef);
-          sendMessage('Голосовое сообщение', { audioUrl });
+          // Загружаем через Supabase Storage
+          const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+          const result = await uploadFile(audioFile, auth.currentUser?.uid || '', 'audio');
+          sendMessage('Голосовое сообщение', { audioUrl: result.url });
         } catch (error) { console.error('Error uploading audio:', error); alert('Ошибка при загрузке голосового сообщения'); }
       };
       mediaRecorder.onerror = () => {
@@ -391,55 +361,32 @@ export default function ChatView() {
     setShowAttachMenu(false);
     
     try {
+      if (!auth.currentUser) {
+        alert('Пожалуйста, войдите в систему');
+        return;
+      }
+
+      // Загружаем через Supabase Storage (автоматически определит тип и сожмёт если нужно)
+      const result = await uploadFile(file, auth.currentUser.uid);
+      
       const fileType = file.type;
       const isImage = fileType.startsWith('image/');
       const isVideo = fileType.startsWith('video/');
       const isAudio = fileType.startsWith('audio/');
       
-      let uploadFile: File | Blob = file;
-      let folder = 'files';
-      
-      // Сжимаем изображения для экономии места
-      if (isImage && file.size > 500000) { // Если больше 500KB
-        try {
-          const compressed = await resizeImageFast(file);
-          uploadFile = compressed;
-          folder = 'images';
-        } catch (err) {
-          console.warn('Failed to compress image, uploading original:', err);
-        }
-      } else if (isImage) {
-        folder = 'images';
-      } else if (isVideo) {
-        folder = 'videos';
-      } else if (isAudio) {
-        folder = 'audio';
-      }
-      
-      const timestamp = Date.now();
-      const fileName = `${timestamp}_${file.name}`;
-      const storageRef = ref(storage, `${folder}/${auth.currentUser?.uid}/${fileName}`);
-      
-      await uploadBytes(storageRef, uploadFile, {
-        contentType: file.type,
-        cacheControl: 'public, max-age=31536000'
-      });
-      
-      const fileUrl = await getDownloadURL(storageRef);
-      
       // Отправляем сообщение с правильным типом
       if (isImage) {
-        sendMessage('', { fileUrl, fileName: file.name });
+        sendMessage('', { fileUrl: result.url, fileName: file.name });
       } else if (isVideo) {
-        sendMessage('', { fileUrl, fileName: file.name });
+        sendMessage('', { fileUrl: result.url, fileName: file.name });
       } else if (isAudio) {
-        sendMessage('', { audioUrl: fileUrl });
+        sendMessage('', { audioUrl: result.url });
       } else {
-        sendMessage(`Файл: ${file.name}`, { fileUrl, fileName: file.name });
+        sendMessage(`Файл: ${file.name}`, { fileUrl: result.url, fileName: file.name });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file:', error);
-      alert('Ошибка при загрузке файла. Попробуйте файл меньшего размера.');
+      alert(error.message || 'Ошибка при загрузке файла');
     }
     
     // Очищаем input для возможности загрузки того же файла снова
