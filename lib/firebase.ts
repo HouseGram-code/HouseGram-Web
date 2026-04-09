@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { getFirestore, persistentLocalCache, persistentMultipleTabManager, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -15,23 +15,16 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Используем новый API для кэширования (без предупреждений)
-export const db = getFirestore(app);
-
-// Настраиваем оффлайн поддержку с новым API
-if (typeof window !== 'undefined' && getApps().length === 1) {
-  try {
-    // Новый способ включения persistence без предупреждений
-    const firestoreSettings = {
+// Инициализируем Firestore с увеличенным таймаутом и оффлайн поддержкой
+export const db = getApps().length === 1 && typeof window !== 'undefined'
+  ? initializeFirestore(app, {
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager()
-      })
-    };
-    // Применяется автоматически при инициализации
-  } catch (err) {
-    console.warn('Firebase persistence setup:', err);
-  }
-}
+      }),
+      experimentalForceLongPolling: false, // Используем WebSocket
+      experimentalAutoDetectLongPolling: true, // Автоопределение
+    })
+  : getFirestore(app);
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);
