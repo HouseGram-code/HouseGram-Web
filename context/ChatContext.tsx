@@ -305,6 +305,136 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
+  // Подписка на сообщения активного чата
+  useEffect(() => {
+    if (!user || !activeChatId) return;
+    
+    // Для saved_messages не нужна подписка на Firebase
+    if (activeChatId === 'saved_messages') return;
+    
+    const chatId = [user.uid, activeChatId].sort().join('_');
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messages: Message[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        messages.push({
+          id: doc.id,
+          type: data.senderId === user.uid ? 'sent' : 'received',
+          text: data.text || '',
+          time: data.time || '',
+          status: data.status || 'sent',
+          senderId: data.senderId,
+          chatId: data.chatId,
+          audioUrl: data.audioUrl,
+          fileUrl: data.fileUrl,
+          fileName: data.fileName,
+          stickerUrl: data.stickerUrl,
+          gifUrl: data.gifUrl,
+          replyTo: data.replyTo,
+          forwardedFrom: data.forwardedFrom,
+          editedAt: data.editedAt
+        });
+      });
+      
+      setContacts(prev => ({
+        ...prev,
+        [activeChatId]: {
+          ...prev[activeChatId],
+          messages
+        }
+      }));
+    }, (error) => {
+      console.error('Messages listener error:', error);
+    });
+    
+    return () => unsubscribe();
+  }, [user, activeChatId]);
+
+  // Подписка на статусы пользователей в реальном времени
+  useEffect(() => {
+    if (!user) return;
+    
+    const contactIds = Object.keys(contacts).filter(id => 
+      id !== 'saved_messages' && id !== 'test_bot'
+    );
+    
+    if (contactIds.length === 0) return;
+    
+    const unsubscribes: (() => void)[] = [];
+    
+    contactIds.forEach(contactId => {
+      const userRef = doc(db, 'users', contactId);
+      const unsubscribe = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          
+          let statusOnline = 'был(а) недавно';
+          let statusOffline = 'был(а) недавно';
+          
+          // Проверяем статус и время последней активности
+          const isOnline = userData.status === 'online';
+          let isRecentlyActive = false;
+          
+          if (userData.lastSeen) {
+            try {
+              const lastSeenDate = userData.lastSeen.toDate ? userData.lastSeen.toDate() : new Date(userData.lastSeen);
+              const now = new Date();
+              const diffMinutes = Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000);
+              
+              // Считаем пользователя онлайн если он был активен менее 2 минут назад
+              isRecentlyActive = diffMinutes < 2;
+              
+              if (diffMinutes < 1) {
+                statusOffline = 'был(а) только что';
+              } else if (diffMinutes < 60) {
+                statusOffline = `был(а) ${diffMinutes} мин. назад`;
+              } else if (diffMinutes < 1440) {
+                const hours = Math.floor(diffMinutes / 60);
+                statusOffline = `был(а) ${hours} ч. назад`;
+              } else {
+                const days = Math.floor(diffMinutes / 1440);
+                statusOffline = `был(а) ${days} дн. назад`;
+              }
+            } catch (e) {
+              statusOffline = 'был(а) недавно';
+            }
+          }
+          
+          // Показываем "в сети" только если статус online И пользователь был активен недавно
+          if (isOnline && isRecentlyActive) {
+            statusOnline = 'в сети';
+            statusOffline = 'в сети';
+          } else {
+            statusOnline = statusOffline;
+          }
+          
+          setContacts(prev => {
+            if (!prev[contactId]) return prev;
+            return {
+              ...prev,
+              [contactId]: {
+                ...prev[contactId],
+                statusOnline,
+                statusOffline
+              }
+            };
+          });
+        }
+      }, (error) => {
+        console.error('User status listener error:', contactId, error);
+      });
+      
+      unsubscribes.push(unsubscribe);
+    });
+    
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [user, Object.keys(contacts).join(',')]);
+
   const logout = useCallback(async () => {
     if (auth.currentUser) {
       try { 
