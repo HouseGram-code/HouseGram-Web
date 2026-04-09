@@ -217,7 +217,25 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       if (auth.currentUser) {
         try {
           const st = document.visibilityState === 'visible' ? 'online' : 'offline';
-          await updateDoc(doc(db, 'users', auth.currentUser.uid), { status: st, lastSeen: serverTimestamp() });
+          await updateDoc(doc(db, 'users', auth.currentUser.uid), { 
+            status: st, 
+            lastSeen: serverTimestamp() 
+          });
+          
+          // Если стал видимым, устанавливаем таймер для проверки активности
+          if (st === 'online') {
+            // Обновляем статус каждые 30 секунд пока вкладка активна
+            const intervalId = setInterval(() => {
+              if (document.visibilityState === 'visible' && auth.currentUser) {
+                updateDoc(doc(db, 'users', auth.currentUser.uid), { 
+                  status: 'online', 
+                  lastSeen: serverTimestamp() 
+                }).catch(() => {});
+              } else {
+                clearInterval(intervalId);
+              }
+            }, 30000);
+          }
         } catch (e) {
           console.warn('Could not update visibility status:', e);
         }
@@ -226,7 +244,19 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     
     const handleBeforeUnload = () => {
       if (auth.currentUser) {
-        // Синхронное обновление статуса при закрытии
+        // Используем sendBeacon для надежной отправки при закрытии
+        const data = JSON.stringify({
+          userId: auth.currentUser.uid,
+          status: 'offline',
+          lastSeen: new Date().toISOString()
+        });
+        
+        // Пытаемся отправить через API
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/update-status', data);
+        }
+        
+        // Также пытаемся обновить напрямую (может не успеть)
         try {
           updateDoc(doc(db, 'users', auth.currentUser.uid), { 
             status: 'offline', 
@@ -240,7 +270,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     
     const handlePageHide = () => {
       if (auth.currentUser) {
-        // Дополнительный обработчик для более надежного обновления
+        // Синхронная попытка обновления
         try {
           updateDoc(doc(db, 'users', auth.currentUser.uid), { 
             status: 'offline', 

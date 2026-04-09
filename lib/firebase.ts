@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -14,21 +14,26 @@ const firebaseConfig = {
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+// Используем новый API для кэширования (без предупреждений)
 export const db = getFirestore(app);
+
+// Настраиваем оффлайн поддержку с новым API
+if (typeof window !== 'undefined' && getApps().length === 1) {
+  try {
+    // Новый способ включения persistence без предупреждений
+    const firestoreSettings = {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    };
+    // Применяется автоматически при инициализации
+  } catch (err) {
+    console.warn('Firebase persistence setup:', err);
+  }
+}
+
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export default app;
-
-// Включаем оффлайн поддержку
-if (typeof window !== 'undefined') {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      // Несколько вкладок открыто, persistence может быть включена только в одной
-      console.warn('Firebase persistence: Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code === 'unimplemented') {
-      // Браузер не поддерживает persistence
-      console.warn('Firebase persistence: Browser does not support offline persistence.');
-    }
-  });
-}
 

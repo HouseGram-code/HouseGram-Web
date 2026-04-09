@@ -180,25 +180,8 @@ export default function ChatList() {
               <button onClick={() => setSideMenuOpen(true)} className="p-2 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200">
                 <Menu size={22} />
               </button>
-              <div className="flex-grow">
-                <div className="text-[19px] font-semibold tracking-tight flex items-center gap-2">
-                  HouseGram
-                  <motion.div
-                    animate={{
-                      background: [
-                        'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-                        'linear-gradient(90deg, #f093fb 0%, #f5576c 100%)',
-                        'linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)',
-                        'linear-gradient(90deg, #43e97b 0%, #38f9d7 100%)',
-                        'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-                      ]
-                    }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                    className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider shadow-lg"
-                  >
-                    v2.0
-                  </motion.div>
-                </div>
+              <div className="flex-grow text-[19px] font-semibold tracking-tight">
+                HouseGram
               </div>
               <button 
                 onClick={() => setIsSearching(true)}
