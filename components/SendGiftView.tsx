@@ -116,22 +116,36 @@ export default function SendGiftView() {
 
       if (messageError) throw messageError;
 
+      // Получаем текущие значения отправителя
+      const { data: senderData } = await supabase
+        .from('users')
+        .select('gifts_sent')
+        .eq('id', currentUser.id)
+        .single();
+
       // Обновляем баланс отправителя
       const { error: senderError } = await supabase
         .from('users')
         .update({
           stars: userStars - selectedGift.cost,
-          gifts_sent: supabase.sql`gifts_sent + 1`
+          gifts_sent: (senderData?.gifts_sent || 0) + 1
         })
         .eq('id', currentUser.id);
 
       if (senderError) throw senderError;
 
+      // Получаем текущие значения получателя
+      const { data: receiverData } = await supabase
+        .from('users')
+        .select('gifts_received')
+        .eq('id', selectedUserId)
+        .single();
+
       // Обновляем статистику получателя
       const { error: receiverError } = await supabase
         .from('users')
         .update({
-          gifts_received: supabase.sql`gifts_received + 1`
+          gifts_received: (receiverData?.gifts_received || 0) + 1
         })
         .eq('id', selectedUserId);
 
