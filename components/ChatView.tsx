@@ -724,11 +724,14 @@ export default function ChatView() {
           );
         })}
 
-        {contact.isTyping && !contact.isBlocked && (
-          <div className="flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-sm mb-1.5 min-h-[44px]">
-            <div className="dot-flashing"></div>
-          </div>
-        )}
+        {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
+        <div 
+          className={`flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-sm mb-1.5 min-h-[44px] transition-opacity duration-200 ${
+            contact.isTyping && !contact.isBlocked ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="dot-flashing"></div>
+        </div>
         <div ref={messagesEndRef} />
       </div>
 
