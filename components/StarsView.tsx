@@ -5,13 +5,18 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Zap, TrendingUp, Gift, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 export default function StarsView() {
   const { setView, themeColor } = useChat();
-  const [stars, setStars] = useState(100); // Начальный баланс для теста
+  const [stars, setStars] = useState(100);
   const [loading, setLoading] = useState(true);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    giftsReceived: 0,
+    giftsSent: 0,
+    starsReceived: 0,
+    starsSent: 0
+  });
 
   useEffect(() => {
     loadStarsBalance();
@@ -38,7 +43,13 @@ export default function StarsView() {
           setStars(currentStars);
         }
         
-        setTransactions(data.starsTransactions || []);
+        // Загружаем статистику
+        setStats({
+          giftsReceived: data.giftsReceived || 0,
+          giftsSent: data.giftsSent || 0,
+          starsReceived: (data.giftsReceived || 0) * 15, // Примерно, каждый подарок = 15 молний
+          starsSent: (data.giftsSent || 0) * 15
+        });
       }
     } catch (e) {
       console.error('Failed to load stars:', e);
@@ -88,19 +99,20 @@ export default function StarsView() {
       <div className="flex-grow overflow-y-auto p-4">
         {/* Balance Card with Stars Animation */}
         <div className="relative bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 rounded-3xl p-6 mb-4 overflow-hidden">
-          {/* Animated Stars Background */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Animated Stars Background - за контентом */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
             {[...Array(15)].map((_, i) => (
               <motion.div
                 key={i}
-                className="absolute text-white/40"
+                className="absolute text-white/30"
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `${Math.random() * 100}%`,
+                  fontSize: '20px'
                 }}
                 animate={{
                   scale: [0, 1, 0],
-                  opacity: [0, 1, 0],
+                  opacity: [0, 0.6, 0],
                   rotate: [0, 180, 360],
                   x: [0, (Math.random() - 0.5) * 50],
                   y: [0, (Math.random() - 0.5) * 50],
@@ -117,8 +129,8 @@ export default function StarsView() {
             ))}
           </div>
 
-          {/* Content */}
-          <div className="relative z-10">
+          {/* Content - поверх звездочек */}
+          <div className="relative z-20">
             <div className="flex items-center gap-2 mb-2">
               <Zap size={24} className="text-white" fill="white" />
               <span className="text-white/90 text-[15px] font-medium">Ваш баланс</span>
@@ -163,25 +175,25 @@ export default function StarsView() {
             <div className="flex items-center justify-between">
               <span className="text-[15px] text-gray-700">Всего получено</span>
               <span className="text-[17px] font-semibold text-gray-900 flex items-center gap-1">
-                0 <Zap size={14} className="text-yellow-500" fill="currentColor" />
+                {stats.starsReceived} <Zap size={14} className="text-yellow-500" fill="currentColor" />
               </span>
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-[15px] text-gray-700">Всего отправлено</span>
               <span className="text-[17px] font-semibold text-gray-900 flex items-center gap-1">
-                0 <Zap size={14} className="text-yellow-500" fill="currentColor" />
+                {stats.starsSent} <Zap size={14} className="text-yellow-500" fill="currentColor" />
               </span>
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-[15px] text-gray-700">Подарков получено</span>
-              <span className="text-[17px] font-semibold text-gray-900">0</span>
+              <span className="text-[17px] font-semibold text-gray-900">{stats.giftsReceived}</span>
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-[15px] text-gray-700">Подарков отправлено</span>
-              <span className="text-[17px] font-semibold text-gray-900">0</span>
+              <span className="text-[17px] font-semibold text-gray-900">{stats.giftsSent}</span>
             </div>
           </div>
         </div>
