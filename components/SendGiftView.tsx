@@ -3,9 +3,9 @@
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Zap, Gift, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { doc, updateDoc, increment, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, increment, serverTimestamp, addDoc, collection, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
 
 const GIFTS = [
@@ -25,6 +25,7 @@ export default function SendGiftView() {
   const [selectedGift, setSelectedGift] = useState<typeof GIFTS[0] | null>(null);
   const [sending, setSending] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [userStars, setUserStars] = useState(100);
 
   const availableContacts = Object.values(contacts).filter(
     c => c.id !== 'saved_messages' && c.id !== 'test_bot' && !c.isChannel
@@ -32,18 +33,45 @@ export default function SendGiftView() {
 
   const selectedContact = selectedUserId ? contacts[selectedUserId] : null;
 
+  // Загружаем баланс пользователя
+  useEffect(() => {
+    const loadBalance = async () => {
+      if (!auth.currentUser) return;
+      try {
+        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        if (userDoc.exists()) {
+          setUserStars(userDoc.data().stars || 100);
+        }
+      } catch (e) {
+        console.error('Failed to load balance:', e);
+      }
+    };
+    loadBalance();
+  }, []);
+
   const handleSelectUser = (userId: string) => {
     setSelectedUserId(userId);
     setStep('select-gift');
   };
 
   const handleSelectGift = (gift: typeof GIFTS[0]) => {
+    // Проверяем достаточно ли молний
+    if (userStars < gift.cost) {
+      alert(`Недостаточно молний! У вас ${userStars}, а нужно ${gift.cost}`);
+      return;
+    }
     setSelectedGift(gift);
     setStep('confirm');
   };
 
   const handleSendGift = async () => {
     if (!selectedUserId || !selectedGift || !auth.currentUser) return;
+
+    // Еще раз проверяем баланс перед отправкой
+    if (userStars < selectedGift.cost) {
+      alert(`Недостаточно молний! У вас ${userStars}, а нужно ${selectedGift.cost}`);
+      return;
+    }
 
     setSending(true);
     try {

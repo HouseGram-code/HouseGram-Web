@@ -24,7 +24,20 @@ export default function StarsView() {
       const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
-        setStars(data.stars || 100); // Даем 100 звезд для теста
+        const currentStars = data.stars;
+        
+        // Если поле stars не существует, создаем его с начальным балансом 100
+        if (currentStars === undefined || currentStars === null) {
+          await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+            stars: 100,
+            giftsSent: 0,
+            giftsReceived: 0
+          });
+          setStars(100);
+        } else {
+          setStars(currentStars);
+        }
+        
         setTransactions(data.starsTransactions || []);
       }
     } catch (e) {
