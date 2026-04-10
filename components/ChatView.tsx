@@ -56,9 +56,9 @@ export default function ChatView() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const wasAtBottomRef = useRef(true);
 
-  const scrollToBottom = useCallback((force = false) => {
+  const scrollToBottom = useCallback((force = false, smooth = false) => {
     if (force || wasAtBottomRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
     }
   }, []);
 
@@ -71,9 +71,15 @@ export default function ChatView() {
     wasAtBottomRef.current = isAtBottom;
   }, []);
 
-  // Скроллим только при новых сообщениях, но не при изменении isTyping
+  // Скроллим только при новых сообщениях
+  const prevMessagesLengthRef = useRef(0);
   useEffect(() => { 
-    scrollToBottom(true); 
+    const currentLength = contact?.messages?.length || 0;
+    if (currentLength > prevMessagesLengthRef.current) {
+      // Новое сообщение - скроллим
+      scrollToBottom(true);
+    }
+    prevMessagesLengthRef.current = currentLength;
   }, [contact?.messages?.length, scrollToBottom]);
 
   // Обработка статуса печати
@@ -562,7 +568,7 @@ export default function ChatView() {
     >
       {/* Header */}
       <div
-        className={`text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0 transition-colors absolute top-0 left-0 w-full z-30 ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
+        className={`text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0 transition-colors fixed top-0 left-0 right-0 z-30 ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
         style={{ backgroundColor: isGlassEnabled ? themeColor + 'CC' : themeColor }}
       >
         <button onClick={(e) => { e.stopPropagation(); setView('menu'); }} className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors mr-1">
