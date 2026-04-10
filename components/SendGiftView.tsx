@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Zap, Gift, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { doc, updateDoc, increment, serverTimestamp, addDoc, collection, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, serverTimestamp, addDoc, collection, getDoc, setDoc } from 'firebase/firestore';
 import Image from 'next/image';
 
 const GIFTS = [
@@ -76,6 +76,27 @@ export default function SendGiftView() {
     setSending(true);
     try {
       const chatId = [auth.currentUser.uid, selectedUserId].sort().join('_');
+      const chatRef = doc(db, 'chats', chatId);
+      
+      // Проверяем существует ли чат, если нет - создаем
+      const chatDoc = await getDoc(chatRef);
+      if (!chatDoc.exists()) {
+        await updateDoc(chatRef, {
+          participants: [auth.currentUser.uid, selectedUserId],
+          updatedAt: serverTimestamp(),
+          lastMessage: '',
+          lastMessageSenderId: auth.currentUser.uid
+        }).catch(async () => {
+          // Если updateDoc не сработал (чат не существует), создаем через setDoc
+          const { setDoc } = await import('firebase/firestore');
+          await setDoc(chatRef, {
+            participants: [auth.currentUser.uid, selectedUserId],
+            updatedAt: serverTimestamp(),
+            lastMessage: '',
+            lastMessageSenderId: auth.currentUser.uid
+          });
+        });
+      }
       
       // Отправляем подарок как специальное сообщение
       const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
