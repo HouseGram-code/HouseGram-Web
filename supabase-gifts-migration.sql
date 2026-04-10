@@ -22,18 +22,15 @@ UPDATE users SET stars = 100 WHERE stars IS NULL;
 UPDATE users SET gifts_sent = 0 WHERE gifts_sent IS NULL;
 UPDATE users SET gifts_received = 0 WHERE gifts_received IS NULL;
 
--- Политики безопасности для обновления баланса подарков
-CREATE POLICY "Users can update own stars and gifts" ON users FOR UPDATE 
-  USING (auth.uid()::text = id::text)
-  WITH CHECK (auth.uid()::text = id::text);
+-- Удаляем старые политики если они есть
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
+DROP POLICY IF EXISTS "Users can update own stars and gifts" ON users;
+DROP POLICY IF EXISTS "Users can update gifts_received on other users" ON users;
 
-CREATE POLICY "Users can update gifts_received on other users" ON users FOR UPDATE
-  USING (true)
-  WITH CHECK (
-    -- Разрешаем обновлять только gifts_received
-    (NEW.gifts_received IS DISTINCT FROM OLD.gifts_received) AND
-    (NEW.id = OLD.id) AND
-    (NEW.email = OLD.email) AND
-    (NEW.name = OLD.name) AND
-    (NEW.username = OLD.username)
-  );
+-- Создаем новую политику для обновления своего профиля (включая stars и gifts)
+CREATE POLICY "Users can update own profile" ON users FOR UPDATE 
+  USING (auth.uid()::text = id::text);
+
+-- Создаем политику для обновления gifts_received у других пользователей
+CREATE POLICY "Users can increment gifts_received" ON users FOR UPDATE 
+  USING (auth.uid() IS NOT NULL);

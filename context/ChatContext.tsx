@@ -68,6 +68,7 @@ interface ChatContextType {
   setIsLocked: (locked: boolean) => void;
   updatePasscode: (code: string | null) => void;
   user: User | null;
+  currentUser: { id: string; email: string | null } | null;
   isAdmin: boolean;
   isMaintenance: boolean;
   logout: () => void;
@@ -1063,7 +1064,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
-      passcode, isLocked, setIsLocked, updatePasscode, user, isAdmin, isMaintenance, logout, setTypingStatus
+      passcode, isLocked, setIsLocked, updatePasscode, user, 
+      currentUser: user ? { id: user.uid, email: user.email } : null,
+      isAdmin, isMaintenance, logout, setTypingStatus
     }}>
       {!authReady ? (
         <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
