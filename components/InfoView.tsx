@@ -99,43 +99,144 @@ export default function InfoView() {
           </motion.div>
         </div>
 
-        {/* About Section with Stagger Animation */}
+        {/* About Section with Enhanced Design */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-4 bg-white border-y border-gray-200 px-4 py-5"
+          className="mt-4 bg-gradient-to-br from-white via-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 p-6 relative overflow-hidden"
         >
-          <h2 className="text-[14px] font-medium text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Info size={16} />
-            О приложении
-          </h2>
-          <p className="text-[15px] text-gray-700 leading-relaxed mb-4">
-            HouseGram Web — это современный, быстрый и безопасный мессенджер, созданный с фокусом на удобство использования и приватность. Общайтесь с друзьями, делитесь моментами и оставайтесь на связи где бы вы ни были.
-          </p>
-          <div className="space-y-2">
-            {[
-              'Быстрая и надежная доставка сообщений',
-              'Защита данных и конфиденциальность',
-              'Кастомизация интерфейса',
-              'Стикеры, GIF и медиафайлы'
-            ].map((feature, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 + i * 0.1 }}
-                className="flex items-center gap-3 text-[14px] text-gray-600"
-              >
-                <motion.div 
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
-                  className="w-2 h-2 rounded-full" 
-                  style={{ backgroundColor: themeColor }}
-                />
-                <span>{feature}</span>
-              </motion.div>
-            ))}
+          {/* Decorative Elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-pink-500/10 to-orange-500/10 rounded-full blur-2xl" />
+
+          <div className="relative z-10">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+              className="flex items-center gap-3 mb-4"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                <Info size={20} className="text-white" />
+              </div>
+              <h2 className="text-[18px] font-bold text-gray-900">О приложении</h2>
+            </motion.div>
+
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="text-[15px] text-gray-700 leading-relaxed mb-6 pl-1"
+            >
+              <span className="font-semibold text-gray-900">HouseGram Web</span> — это современный, быстрый и безопасный мессенджер, созданный с фокусом на удобство использования и приватность. Общайтесь с друзьями, делитесь моментами и оставайтесь на связи где бы вы ни были.
+            </motion.p>
+
+            {/* Feature Cards Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {
+                  icon: '⚡',
+                  title: 'Быстрая доставка',
+                  desc: 'Мгновенные сообщения',
+                  color: 'from-yellow-400 to-orange-500'
+                },
+                {
+                  icon: '🔒',
+                  title: 'Безопасность',
+                  desc: 'Защита данных',
+                  color: 'from-green-400 to-emerald-500'
+                },
+                {
+                  icon: '🎨',
+                  title: 'Кастомизация',
+                  desc: 'Настройка интерфейса',
+                  color: 'from-purple-400 to-pink-500'
+                },
+                {
+                  icon: '🎭',
+                  title: 'Медиа',
+                  desc: 'Стикеры, GIF, файлы',
+                  color: 'from-blue-400 to-cyan-500'
+                }
+              ].map((feature, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.8 + i * 0.1 }}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 relative overflow-hidden group cursor-pointer"
+                >
+                  {/* Gradient Background on Hover */}
+                  <motion.div
+                    className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+                  />
+
+                  <div className="relative z-10">
+                    <motion.div
+                      animate={{
+                        rotate: [0, 10, -10, 0],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatDelay: 3,
+                      }}
+                      className="text-3xl mb-2"
+                    >
+                      {feature.icon}
+                    </motion.div>
+                    <h3 className="text-[14px] font-bold text-gray-900 mb-1">
+                      {feature.title}
+                    </h3>
+                    <p className="text-[12px] text-gray-600">
+                      {feature.desc}
+                    </p>
+                  </div>
+
+                  {/* Shine Effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    animate={{
+                      x: ['-100%', '200%'],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      repeatDelay: 5,
+                    }}
+                  />
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Stats Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+              className="mt-6 grid grid-cols-3 gap-3"
+            >
+              {[
+                { value: '99.9%', label: 'Uptime' },
+                { value: '<100ms', label: 'Latency' },
+                { value: '24/7', label: 'Support' }
+              ].map((stat, i) => (
+                <motion.div
+                  key={i}
+                  whileHover={{ scale: 1.05 }}
+                  className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3 text-center border border-gray-100"
+                >
+                  <div className="text-[18px] font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    {stat.value}
+                  </div>
+                  <div className="text-[11px] text-gray-500 mt-1">
+                    {stat.label}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
         </motion.div>
 
