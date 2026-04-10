@@ -46,6 +46,13 @@ export interface Message {
   gifWidth?: number;
   gifHeight?: number;
   views?: number;
+  gift?: {
+    id: string;
+    name: string;
+    emoji: string;
+    cost: number;
+    from: string;
+  };
 }
 
 export interface Contact {
@@ -92,4 +99,4 @@ export interface UserProfile {
   savedStickers?: string[];
 }
 
-export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'privacy-settings' | 'notifications' | 'security' | 'admin' | 'auth' | 'info' | 'faq' | 'terms' | 'create-channel' | 'channel-info' | 'notification-stats' | 'server-status';
+export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'privacy-settings' | 'notifications' | 'security' | 'admin' | 'auth' | 'info' | 'faq' | 'terms' | 'create-channel' | 'channel-info' | 'notification-stats' | 'server-status' | 'stars' | 'send-gift';

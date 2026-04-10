@@ -1,0 +1,253 @@
+'use client';
+
+import { useChat } from '@/context/ChatContext';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Zap, Gift, Check } from 'lucide-react';
+import { useState } from 'react';
+import { auth, db } from '@/lib/firebase';
+import { doc, updateDoc, increment, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import Image from 'next/image';
+
+const GIFTS = [
+  {
+    id: 'teddy_bear',
+    name: 'Плюшевый мишка',
+    emoji: '🧸',
+    cost: 15,
+    animation: 'bounce'
+  }
+];
+
+export default function SendGiftView() {
+  const { setView, themeColor, contacts, sendMessage } = useChat();
+  const [step, setStep] = useState<'select-user' | 'select-gift' | 'confirm'>('select-user');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedGift, setSelectedGift] = useState<typeof GIFTS[0] | null>(null);
+  const [sending, setSending] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const availableContacts = Object.values(contacts).filter(
+    c => c.id !== 'saved_messages' && c.id !== 'test_bot' && !c.isChannel
+  );
+
+  const selectedContact = selectedUserId ? contacts[selectedUserId] : null;
+
+  const handleSelectUser = (userId: string) => {
+    setSelectedUserId(userId);
+    setStep('select-gift');
+  };
+
+  const handleSelectGift = (gift: typeof GIFTS[0]) => {
+    setSelectedGift(gift);
+    setStep('confirm');
+  };
+
+  const handleSendGift = async () => {
+    if (!selectedUserId || !selectedGift || !auth.currentUser) return;
+
+    setSending(true);
+    try {
+      const chatId = [auth.currentUser.uid, selectedUserId].sort().join('_');
+      
+      // Отправляем подарок как специальное сообщение
+      const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
+      
+      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+        type: 'sent',
+        text: '',
+        time: timeString,
+        status: 'sent',
+        senderId: auth.currentUser.uid,
+        chatId,
+        createdAt: serverTimestamp(),
+        gift: {
+          id: selectedGift.id,
+          name: selectedGift.name,
+          emoji: selectedGift.emoji,
+          cost: selectedGift.cost,
+          from: auth.currentUser.uid
+        }
+      });
+
+      // Обновляем баланс отправителя
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        stars: increment(-selectedGift.cost),
+        giftsSent: increment(1)
+      });
+
+      // Обновляем статистику получателя
+      await updateDoc(doc(db, 'users', selectedUserId), {
+        giftsReceived: increment(1)
+      });
+
+      setShowSuccess(true);
+      setTimeout(() => {
+        setView('menu');
+      }, 2000);
+    } catch (e) {
+      console.error('Failed to send gift:', e);
+      alert('Ошибка при отправке подарка');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className="absolute inset-0 bg-tg-bg-light flex flex-col z-10"
+    >
+      {/* Header */}
+      <div
+        className="text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0"
+        style={{ backgroundColor: themeColor }}
+      >
+        <button
+          onClick={() => step === 'select-user' ? setView('stars') : setStep(step === 'select-gift' ? 'select-user' : 'select-gift')}
+          className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <h1 className="text-[18px] font-medium">
+          {step === 'select-user' && 'Выберите получателя'}
+          {step === 'select-gift' && 'Выберите подарок'}
+          {step === 'confirm' && 'Отправить подарок'}
+        </h1>
+      </div>
+
+      {/* Content */}
+      <div className="flex-grow overflow-y-auto p-4">
+        {/* Select User */}
+        {step === 'select-user' && (
+          <div className="space-y-2">
+            {availableContacts.map(contact => (
+              <button
+                key={contact.id}
+                onClick={() => handleSelectUser(contact.id)}
+                className="w-full bg-white rounded-xl p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+              >
+                {contact.avatarUrl ? (
+                  <Image
+                    src={contact.avatarUrl}
+                    alt={contact.name}
+                    width={48}
+                    height={48}
+                    className="rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                    unoptimized
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium text-[18px]"
+                    style={{ backgroundColor: contact.avatarColor }}
+                  >
+                    {contact.initial}
+                  </div>
+                )}
+                <div className="flex-grow text-left">
+                  <div className="text-[16px] font-medium text-gray-900">{contact.name}</div>
+                  <div className="text-[14px] text-gray-500">{contact.statusOffline}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Select Gift */}
+        {step === 'select-gift' && (
+          <div className="space-y-4">
+            {GIFTS.map(gift => (
+              <button
+                key={gift.id}
+                onClick={() => handleSelectGift(gift)}
+                className="w-full bg-white rounded-2xl p-6 hover:bg-gray-50 transition-colors"
+              >
+                <div className="text-[80px] mb-3 text-center">{gift.emoji}</div>
+                <div className="text-[18px] font-medium text-gray-900 mb-2 text-center">{gift.name}</div>
+                <div className="flex items-center justify-center gap-1 text-yellow-600 font-semibold">
+                  <Zap size={18} fill="currentColor" />
+                  {gift.cost}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Confirm */}
+        {step === 'confirm' && selectedContact && selectedGift && (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-6 text-white text-center">
+              <div className="text-[100px] mb-4">{selectedGift.emoji}</div>
+              <h3 className="text-[20px] font-bold mb-2">{selectedGift.name}</h3>
+              <p className="text-white/90 text-[15px]">
+                Подарок для {selectedContact.name}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[15px] text-gray-700">Стоимость</span>
+                <span className="text-[17px] font-semibold text-gray-900 flex items-center gap-1">
+                  {selectedGift.cost} <Zap size={16} className="text-yellow-500" fill="currentColor" />
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[15px] text-gray-700">Получатель</span>
+                <span className="text-[17px] font-semibold text-gray-900">{selectedContact.name}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSendGift}
+              disabled={sending}
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {sending ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Отправка...
+                </>
+              ) : (
+                <>
+                  <Gift size={20} />
+                  Отправить подарок за <Zap size={16} fill="white" className="mx-1" /> {selectedGift.cost}
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {showSuccess && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: 180 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              className="bg-white rounded-3xl p-8 text-center"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+              >
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check size={40} className="text-green-500" />
+                </div>
+              </motion.div>
+              <h3 className="text-[20px] font-bold text-gray-900 mb-2">Подарок отправлен!</h3>
+              <p className="text-[15px] text-gray-600">
+                {selectedContact?.name} получит ваш подарок
+              </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}

@@ -684,6 +684,29 @@ export default function ChatView() {
                   <div className="p-2 bg-blue-500 text-white rounded-full"><FileIcon size={16} /></div>
                   <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline truncate max-w-[150px]">{msg.fileName}</a>
                 </div>
+              ) : msg.gift ? (
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                  className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-4 text-white text-center min-w-[200px]"
+                >
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                      rotate: [0, -10, 10, -10, 0]
+                    }}
+                    transition={{ 
+                      duration: 0.8,
+                      times: [0, 0.2, 0.5, 0.8, 1]
+                    }}
+                    className="text-[80px] mb-2"
+                  >
+                    {msg.gift.emoji}
+                  </motion.div>
+                  <div className="text-[16px] font-bold mb-1">{msg.gift.name}</div>
+                  <div className="text-[13px] text-white/90">Подарок от {isOwn ? 'вас' : contact.name}</div>
+                </motion.div>
               ) : isSticker ? (
                 <div className="relative group">
                   <img

@@ -63,6 +63,12 @@ const NotificationStatsView = dynamic(() => import('@/components/NotificationSta
 const ServerStatusView = dynamic(() => import('@/components/ServerStatusView'), {
   loading: () => <LoadingSpinner />
 });
+const StarsView = dynamic(() => import('@/components/StarsView'), {
+  loading: () => <LoadingSpinner />
+});
+const SendGiftView = dynamic(() => import('@/components/SendGiftView'), {
+  loading: () => <LoadingSpinner />
+});
 
 function LoadingSpinner() {
   return (
@@ -116,6 +122,8 @@ function AppContent() {
         {view === 'channel-info' && <ChannelInfoView key="channel-info" />}
         {view === 'notification-stats' && <NotificationStatsView key="notification-stats" />}
         {view === 'server-status' && <ServerStatusView key="server-status" />}
+        {view === 'stars' && <StarsView key="stars" />}
+        {view === 'send-gift' && <SendGiftView key="send-gift" />}
       </AnimatePresence>
       <SideMenu />
     </div>

@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap } from 'lucide-react';
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { storage, auth, db } from '@/lib/firebase';
@@ -261,6 +261,11 @@ export default function SettingsView() {
         <div className="px-4 py-2">
           <div className="text-[15px] font-medium mb-2" style={{ color: themeColor }}>Настройки</div>
           
+          <SettingsItem 
+            icon={<Zap size={24} className="text-yellow-500" fill="currentColor" />} 
+            text="Молнии" 
+            onClick={() => setView('stars')} 
+          />
           <SettingsItem 
             icon={<Bell size={24} />} 
             text="Уведомления и звуки" 
