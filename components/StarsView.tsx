@@ -61,30 +61,30 @@ export default function StarsView() {
         {/* Balance Card with Stars Animation */}
         <div className="relative bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 rounded-3xl p-6 mb-4 overflow-hidden">
           {/* Animated Stars Background */}
-          <div className="absolute inset-0 overflow-hidden">
-            {[...Array(20)].map((_, i) => (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {[...Array(15)].map((_, i) => (
               <motion.div
                 key={i}
-                className="absolute"
-                initial={{
-                  x: Math.random() * 100 + '%',
-                  y: Math.random() * 100 + '%',
-                  scale: 0,
-                  opacity: 0
+                className="absolute text-white/40"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
                 }}
                 animate={{
                   scale: [0, 1, 0],
                   opacity: [0, 1, 0],
-                  rotate: [0, 180, 360]
+                  rotate: [0, 180, 360],
+                  x: [0, (Math.random() - 0.5) * 50],
+                  y: [0, (Math.random() - 0.5) * 50],
                 }}
                 transition={{
-                  duration: 3,
+                  duration: 2 + Math.random() * 2,
                   repeat: Infinity,
-                  delay: i * 0.2,
+                  delay: i * 0.15,
                   ease: "easeInOut"
                 }}
               >
-                <Sparkles size={16} className="text-white/30" />
+                ⭐
               </motion.div>
             ))}
           </div>

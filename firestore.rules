@@ -49,7 +49,10 @@ service cloud.firestore {
              (!('lastSeen' in data) || data.lastSeen == null || data.lastSeen is timestamp) &&
              (!('role' in data) || data.role == null || data.role in ['user', 'admin']) &&
              (!('isBanned' in data) || data.isBanned == null || data.isBanned is bool) &&
-             (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp);
+             (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp) &&
+             (!('stars' in data) || data.stars == null || data.stars is int) &&
+             (!('giftsSent' in data) || data.giftsSent == null || data.giftsSent is int) &&
+             (!('giftsReceived' in data) || data.giftsReceived == null || data.giftsReceived is int);
     }
     
     function isValidChat(data) {
@@ -71,7 +74,8 @@ service cloud.firestore {
              (!('time' in data) || data.time is string) &&
              (!('audioUrl' in data) || data.audioUrl is string) &&
              (!('fileUrl' in data) || data.fileUrl is string) &&
-             (!('fileName' in data) || data.fileName is string);
+             (!('fileName' in data) || data.fileName is string) &&
+             (!('gift' in data) || (data.gift is map && data.gift.keys().hasAll(['id', 'name', 'emoji', 'cost', 'from'])));
     }
     
     function isValidSettings(data) {

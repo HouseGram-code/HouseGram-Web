@@ -693,19 +693,23 @@ export default function ChatView() {
                 >
                   <motion.div
                     animate={{ 
-                      scale: [1, 1.1, 1],
-                      rotate: [0, -10, 10, -10, 0]
+                      scale: [1, 1.15, 1],
+                      rotate: [0, -15, 15, -10, 10, -5, 5, 0],
+                      y: [0, -10, 0, -5, 0]
                     }}
                     transition={{ 
-                      duration: 0.8,
-                      times: [0, 0.2, 0.5, 0.8, 1]
+                      duration: 1.5,
+                      times: [0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 1],
+                      ease: "easeInOut"
                     }}
                     className="text-[80px] mb-2"
                   >
                     {msg.gift.emoji}
                   </motion.div>
                   <div className="text-[16px] font-bold mb-1">{msg.gift.name}</div>
-                  <div className="text-[13px] text-white/90">Подарок от {isOwn ? 'вас' : contact.name}</div>
+                  <div className="text-[13px] text-white/90 flex items-center justify-center gap-1">
+                    Подарок от {isOwn ? 'вас' : contact.name}
+                  </div>
                 </motion.div>
               ) : isSticker ? (
                 <div className="relative group">
