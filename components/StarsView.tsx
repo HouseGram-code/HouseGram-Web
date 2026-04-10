@@ -24,14 +24,14 @@ export default function StarsView() {
       const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
-        const currentStars = data.stars;
+        let currentStars = data.stars;
         
-        // Если поле stars не существует, создаем его с начальным балансом 100
-        if (currentStars === undefined || currentStars === null) {
+        // Если поле stars не существует или отрицательное, сбрасываем на 100
+        if (currentStars === undefined || currentStars === null || currentStars < 0) {
           await updateDoc(doc(db, 'users', auth.currentUser.uid), {
             stars: 100,
-            giftsSent: 0,
-            giftsReceived: 0
+            giftsSent: data.giftsSent || 0,
+            giftsReceived: data.giftsReceived || 0
           });
           setStars(100);
         } else {
@@ -44,6 +44,21 @@ export default function StarsView() {
       console.error('Failed to load stars:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resetBalance = async () => {
+    if (!auth.currentUser) return;
+    
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        stars: 100
+      });
+      setStars(100);
+      alert('Баланс сброшен на 100 молний!');
+    } catch (e) {
+      console.error('Failed to reset balance:', e);
+      alert('Ошибка при сбросе баланса');
     }
   };
 
@@ -172,7 +187,7 @@ export default function StarsView() {
         </div>
 
         {/* Info */}
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-4">
           <div className="flex items-start gap-3">
             <Sparkles size={20} className="text-blue-500 shrink-0 mt-0.5" />
             <div>
@@ -183,6 +198,16 @@ export default function StarsView() {
             </div>
           </div>
         </div>
+
+        {/* Reset Button (для тестирования) */}
+        {stars < 0 && (
+          <button
+            onClick={resetBalance}
+            className="w-full bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
+          >
+            Сбросить баланс на 100
+          </button>
+        )}
       </div>
     </motion.div>
   );
