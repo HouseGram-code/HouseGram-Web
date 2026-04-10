@@ -50,9 +50,9 @@ service cloud.firestore {
              (!('role' in data) || data.role == null || data.role in ['user', 'admin']) &&
              (!('isBanned' in data) || data.isBanned == null || data.isBanned is bool) &&
              (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp) &&
-             (!('stars' in data) || data.stars == null || data.stars is int) &&
-             (!('giftsSent' in data) || data.giftsSent == null || data.giftsSent is int) &&
-             (!('giftsReceived' in data) || data.giftsReceived == null || data.giftsReceived is int);
+             (!('stars' in data) || data.stars == null || data.stars is int || data.stars is number) &&
+             (!('giftsSent' in data) || data.giftsSent == null || data.giftsSent is int || data.giftsSent is number) &&
+             (!('giftsReceived' in data) || data.giftsReceived == null || data.giftsReceived is int || data.giftsReceived is number);
     }
     
     function isValidChat(data) {
@@ -96,7 +96,7 @@ service cloud.firestore {
         (request.auth.token.email == 'veraloktushina1958@gmail.com')
       );
       
-      // User can update their own profile (name, username, bio, status, lastSeen) but not role/isBanned. Admin can update anything.
+      // User can update their own profile (name, username, bio, status, lastSeen, stars, gifts) but not role/isBanned. Admin can update anything.
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && (
         isAdmin() || 
         (isOwner(userId) && isNotBanned() && 
@@ -104,6 +104,11 @@ service cloud.firestore {
          (!('isBanned' in resource.data) || request.resource.data.isBanned == resource.data.isBanned) &&
          (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt))
       );
+      
+      // Allow any authenticated user to update gift-related fields on other users (for gift receiving)
+      allow update: if isAuthenticated() && isNotBanned() &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['giftsReceived']) &&
+                    isValidUser(request.resource.data);
       
       allow delete: if isAdmin();
     }
