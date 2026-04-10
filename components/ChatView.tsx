@@ -19,7 +19,7 @@ const isOnlyEmojis = (str: string) => {
 type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 
 export default function ChatView() {
-  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user } = useChat();
+  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus } = useChat();
   const [inputText, setInputText] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
@@ -32,6 +32,7 @@ export default function ChatView() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +59,47 @@ export default function ChatView() {
   }, []);
 
   useEffect(() => { scrollToBottom(); }, [contact?.messages?.length, contact?.isTyping]);
+
+  // Обработка статуса печати
+  const handleInputChange = useCallback((text: string) => {
+    setInputText(text);
+    
+    if (!activeChatId || !setTypingStatus) return;
+    
+    // Если текст не пустой, отправляем статус "печатает"
+    if (text.trim()) {
+      setTypingStatus(activeChatId, true);
+      
+      // Сбрасываем предыдущий таймер
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+      
+      // Через 2 секунды после остановки печати убираем статус
+      typingTimerRef.current = setTimeout(() => {
+        setTypingStatus(activeChatId, false);
+      }, 2000);
+    } else {
+      // Если текст пустой, сразу убираем статус
+      setTypingStatus(activeChatId, false);
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+    }
+  }, [activeChatId, setTypingStatus]);
+
+  // Очистка таймера при размонтировании
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+      // Убираем статус печати при выходе из чата
+      if (activeChatId && setTypingStatus) {
+        setTypingStatus(activeChatId, false);
+      }
+    };
+  }, [activeChatId, setTypingStatus]);
 
   // Загрузка информации о владельце канала
   useEffect(() => {
@@ -110,6 +152,14 @@ export default function ChatView() {
       setInputText('');
       setShowPicker(false);
       setReplyingTo(null);
+      
+      // Убираем статус печати после отправки
+      if (activeChatId && setTypingStatus) {
+        setTypingStatus(activeChatId, false);
+        if (typingTimerRef.current) {
+          clearTimeout(typingTimerRef.current);
+        }
+      }
     }
   };
 
@@ -973,7 +1023,7 @@ export default function ChatView() {
               <input
                 type="text"
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
                 disabled={isRecording}

@@ -72,6 +72,7 @@ interface ChatContextType {
   isMaintenance: boolean;
   logout: () => void;
   addContact: (contact: Contact) => void;
+  setTypingStatus: (chatId: string, isTyping: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -437,6 +438,57 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [user, Object.keys(contacts).join(',')]);
 
+  // Подписка на статус печати в активном чате
+  useEffect(() => {
+    if (!user || !activeChatId) return;
+    
+    // Не слушаем статус для ботов и специальных чатов
+    if (activeChatId === 'saved_messages' || activeChatId === 'test_bot') return;
+    
+    const chatDocId = [user.uid, activeChatId].sort().join('_');
+    const chatRef = doc(db, 'chats', chatDocId);
+    
+    const unsubscribe = onSnapshot(chatRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const typingData = data.typing || {};
+        
+        // Проверяем печатает ли другой пользователь
+        const otherUserId = activeChatId;
+        const otherUserTyping = typingData[otherUserId];
+        
+        let isTyping = false;
+        if (otherUserTyping) {
+          try {
+            const typingTime = otherUserTyping.toDate ? otherUserTyping.toDate() : new Date(otherUserTyping);
+            const now = new Date();
+            const diffSeconds = Math.floor((now.getTime() - typingTime.getTime()) / 1000);
+            
+            // Считаем что печатает если прошло менее 3 секунд
+            isTyping = diffSeconds < 3;
+          } catch (e) {
+            isTyping = false;
+          }
+        }
+        
+        setContacts(prev => {
+          if (!prev[activeChatId]) return prev;
+          return {
+            ...prev,
+            [activeChatId]: {
+              ...prev[activeChatId],
+              isTyping
+            }
+          };
+        });
+      }
+    }, (error) => {
+      console.debug('Typing status listener error:', error);
+    });
+    
+    return () => unsubscribe();
+  }, [user, activeChatId]);
+
   const logout = useCallback(async () => {
     if (auth.currentUser) {
       try { 
@@ -732,6 +784,24 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     setContacts(prev => { if (prev[contact.id]) return prev; return { ...prev, [contact.id]: contact }; });
   }, []);
 
+  const setTypingStatus = useCallback(async (chatId: string, isTyping: boolean) => {
+    if (!user || !chatId) return;
+    
+    // Не отправляем статус для ботов и специальных чатов
+    if (chatId === 'saved_messages' || chatId === 'test_bot') return;
+    
+    const chatDocId = [user.uid, chatId].sort().join('_');
+    
+    try {
+      await updateDoc(doc(db, 'chats', chatDocId), {
+        [`typing.${user.uid}`]: isTyping ? serverTimestamp() : null
+      });
+    } catch (e) {
+      // Если чат еще не создан, игнорируем ошибку
+      console.debug('Could not update typing status:', e);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     const chatsRef = collection(db, 'chats');
@@ -989,7 +1059,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
-      passcode, isLocked, setIsLocked, updatePasscode, user, isAdmin, isMaintenance, logout
+      passcode, isLocked, setIsLocked, updatePasscode, user, isAdmin, isMaintenance, logout, setTypingStatus
     }}>
       {!authReady ? (
         <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
