@@ -80,7 +80,7 @@ export default function SendGiftView() {
       
       // Проверяем существует ли чат, если нет - создаем
       const chatDoc = await getDoc(chatRef);
-      if (!chatDoc.exists()) {
+      if (!chatDoc.exists() && auth.currentUser) {
         await updateDoc(chatRef, {
           participants: [auth.currentUser.uid, selectedUserId],
           updatedAt: serverTimestamp(),
@@ -88,7 +88,7 @@ export default function SendGiftView() {
           lastMessageSenderId: auth.currentUser.uid
         }).catch(async () => {
           // Если updateDoc не сработал (чат не существует), создаем через setDoc
-          const { setDoc } = await import('firebase/firestore');
+          if (!auth.currentUser) return;
           await setDoc(chatRef, {
             participants: [auth.currentUser.uid, selectedUserId],
             updatedAt: serverTimestamp(),
