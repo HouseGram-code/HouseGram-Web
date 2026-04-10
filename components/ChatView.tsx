@@ -53,12 +53,28 @@ export default function ChatView() {
   const [channelOwnerId, setChannelOwnerId] = useState<string | null>(null);
 
   const contact = activeChatId ? contacts[activeChatId] : null;
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const wasAtBottomRef = useRef(true);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = useCallback((force = false) => {
+    if (force || wasAtBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [contact?.messages?.length, contact?.isTyping]);
+  // Отслеживаем позицию скролла
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+    wasAtBottomRef.current = isAtBottom;
+  }, []);
+
+  // Скроллим только при новых сообщениях, но не при изменении isTyping
+  useEffect(() => { 
+    scrollToBottom(true); 
+  }, [contact?.messages?.length, scrollToBottom]);
 
   // Обработка статуса печати
   const handleInputChange = useCallback((text: string) => {
@@ -597,6 +613,8 @@ export default function ChatView() {
 
       {/* Messages */}
       <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
         className="flex-grow overflow-y-auto p-2.5 pt-14 flex flex-col no-scrollbar relative z-10"
         style={{
           backgroundImage: wallpaper && !wallpaper.startsWith('linear') ? `url('${wallpaper}')` : 'none',
@@ -707,7 +725,7 @@ export default function ChatView() {
         })}
 
         {contact.isTyping && !contact.isBlocked && (
-          <div className="flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-sm mb-1.5">
+          <div className="flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-sm mb-1.5 min-h-[44px]">
             <div className="dot-flashing"></div>
           </div>
         )}
