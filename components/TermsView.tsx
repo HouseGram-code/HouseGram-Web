@@ -30,7 +30,7 @@ export default function TermsView() {
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Условия использования HouseGram Web</h2>
           <p className="text-[14px] text-gray-500">
-            Последнее обновление: 7 апреля 2026
+            Последнее обновление: 11 апреля 2026
           </p>
         </div>
 

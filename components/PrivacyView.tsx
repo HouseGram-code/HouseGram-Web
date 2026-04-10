@@ -30,7 +30,7 @@ export default function PrivacyView() {
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Политика конфиденциальности</h2>
           <p className="text-[14px] text-gray-500 mb-4">
-            Последнее обновление: 7 апреля 2026
+            Последнее обновление: 11 апреля 2026
           </p>
           <p className="text-[15px] text-gray-600 leading-relaxed">
             В HouseGram мы серьезно относимся к защите вашей конфиденциальности. Эта политика объясняет, как мы собираем, используем и защищаем вашу личную информацию.

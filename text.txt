@@ -1,13 +1,132 @@
+� ОБНОВЛЕНИЕ HouseGram Web v2.0.1-beta 🔥
 
-🚀 **Обновление HouseGram v0.0.1.6**
+Привет, друзья! 👋
 
-🎨 **Визуальное обновление**:
-• **Новый экран входа**: Мы полностью переработали дизайн авторизации. Теперь он светлый, чистый и минималистичный с фирменным красным самолетиком.
-• **Улучшенный интерфейс чата**: Добавлена отдельная кнопка для эмодзи и стикеров рядом с полем ввода для более быстрого доступа.
+Мы рады представить вам новое обновление HouseGram Web с множеством улучшений и исправлений!
 
-🔧 **Улучшения и исправления**:
-• Оптимизирована работа на мобильных устройствах.
-• Исправлены мелкие баги в отображении сообщений.
-• Повышена стабильность соединения.
+✨ ЧТО НОВОГО:
 
-Спасибо, что вы с нами! HouseGram становится лучше каждый день. ✨
+🎨 Полностью переработанный дизайн:
+• Новый раздел "О приложении" с красивыми карточками функций
+• Анимированные FAQ с цветными иконками для каждого вопроса
+• Улучшенная страница "Информация" с эпическими эффектами
+• Красно-черная кнопка GitHub с анимацией "ОТКРЫТО"
+
+🎁 Система подарков:
+• Исправлена отправка подарков через Supabase
+• Реальная статистика подарков и молний
+• Автоматическое создание пользователей при отправке
+• Красивые анимации звездочек на заднем плане
+
+💬 Улучшения чата:
+• Исправлено прыгание аватара при печати
+• Оптимизирован автоскролл сообщений
+• Фиксированная шапка чата
+• Плавные анимации
+
+📚 Документация:
+• Мощный README с красно-черной темой
+• Двуязычная документация (EN/RU)
+• Анимированные баннеры и бейджи
+• Полные инструкции по установке
+
+🔧 Технические улучшения:
+• Миграция подарков на Supabase
+• Обновленные правила Firestore
+• Исправлены TypeScript ошибки
+• Оптимизация производительности
+
+🐛 Исправления:
+• Решены проблемы с permissions в Firebase
+• Исправлены ошибки 406 и 409 в Supabase
+• Улучшена совместимость ID между Firebase и Supabase
+• Множество мелких багфиксов
+
+📊 Статистика:
+• 99.9% Uptime
+• <100ms Latency
+• 24/7 Support
+
+🚀 Что дальше?
+В следующих обновлениях мы планируем:
+• Голосовые и видеозвонки
+• Групповые чаты
+• Больше стикеров и GIF
+• Темная тема
+• И многое другое!
+
+💖 Спасибо за вашу поддержку!
+
+Если вам нравится HouseGram, поставьте ⭐ на GitHub:
+https://github.com/HouseGram-code/HouseGram-Web
+
+---
+
+🌐 English Version:
+
+🔥 HouseGram Web v2.0.1-beta UPDATE 🔥
+
+Hello, friends! 👋
+
+We're excited to present the new HouseGram Web update with tons of improvements and fixes!
+
+✨ WHAT'S NEW:
+
+🎨 Completely redesigned interface:
+• New "About" section with beautiful feature cards
+• Animated FAQ with colorful icons for each question
+• Enhanced "Info" page with epic effects
+• Red-black GitHub button with "OPEN" animation
+
+🎁 Gift System:
+• Fixed gift sending via Supabase
+• Real gift and lightning statistics
+• Auto-create users when sending gifts
+• Beautiful star animations in background
+
+💬 Chat Improvements:
+• Fixed avatar jumping while typing
+• Optimized message auto-scroll
+• Fixed chat header
+• Smooth animations
+
+📚 Documentation:
+• Powerful README with red-black theme
+• Bilingual documentation (EN/RU)
+• Animated banners and badges
+• Complete installation instructions
+
+🔧 Technical Improvements:
+• Gift migration to Supabase
+• Updated Firestore rules
+• Fixed TypeScript errors
+• Performance optimization
+
+🐛 Bug Fixes:
+• Resolved Firebase permissions issues
+• Fixed 406 and 409 errors in Supabase
+• Improved ID compatibility between Firebase and Supabase
+• Many minor bugfixes
+
+📊 Stats:
+• 99.9% Uptime
+• <100ms Latency
+• 24/7 Support
+
+🚀 What's Next?
+In upcoming updates we plan:
+• Voice and video calls
+• Group chats
+• More stickers and GIFs
+• Dark theme
+• And much more!
+
+💖 Thank you for your support!
+
+If you like HouseGram, give us a ⭐ on GitHub:
+https://github.com/HouseGram-code/HouseGram-Web
+
+---
+
+Made with ❤️ by HouseGram Team
+© 2026 HouseGram. All rights reserved.

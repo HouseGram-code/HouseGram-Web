@@ -85,7 +85,7 @@ export default function InfoView() {
             transition={{ delay: 0.3 }}
             className="text-gray-500 mt-1 relative z-10"
           >
-            Версия 2.0.0-beta
+            Версия 2.0.1-beta
           </motion.p>
           
           <motion.div 
