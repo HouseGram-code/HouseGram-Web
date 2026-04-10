@@ -58,7 +58,7 @@ export default function ChatView() {
 
   const scrollToBottom = useCallback((force = false) => {
     if (force || wasAtBottomRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
     }
   }, []);
 
@@ -726,8 +726,10 @@ export default function ChatView() {
 
         {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
         <div 
-          className={`flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-sm mb-1.5 min-h-[44px] transition-opacity duration-200 ${
-            contact.isTyping && !contact.isBlocked ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          className={`flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-sm transition-all duration-200 ${
+            contact.isTyping && !contact.isBlocked 
+              ? 'opacity-100 mb-1.5 min-h-[44px]' 
+              : 'opacity-0 pointer-events-none h-0 mb-0 overflow-hidden'
           }`}
         >
           <div className="dot-flashing"></div>

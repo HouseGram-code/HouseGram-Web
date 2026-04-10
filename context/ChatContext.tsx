@@ -473,6 +473,10 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         
         setContacts(prev => {
           if (!prev[activeChatId]) return prev;
+          
+          // Проверяем изменился ли статус, чтобы избежать лишних ре-рендеров
+          if (prev[activeChatId].isTyping === isTyping) return prev;
+          
           return {
             ...prev,
             [activeChatId]: {
