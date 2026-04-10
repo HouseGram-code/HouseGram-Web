@@ -109,8 +109,19 @@ export default function SendGiftView() {
         .maybeSingle();
 
       if (!existingReceiver) {
-        alert('Получатель не найден в системе');
-        return;
+        // Создаем получателя в Supabase
+        const contact = contacts[selectedUserId];
+        await supabase
+          .from('users')
+          .insert({
+            id: selectedUserId,
+            email: `${selectedUserId}@temp.com`,
+            name: contact?.name || 'User',
+            username: `@${selectedUserId.substring(0, 10)}`,
+            stars: 100,
+            gifts_sent: 0,
+            gifts_received: 0
+          });
       }
 
       const chatId = [currentUser.id, selectedUserId].sort().join('_');
