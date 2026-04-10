@@ -4,8 +4,7 @@ import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Zap, Gift, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { auth, db } from '@/lib/firebase';
-import { doc, updateDoc, increment, serverTimestamp, addDoc, collection, getDoc, setDoc } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
 
 const GIFTS = [
@@ -19,7 +18,7 @@ const GIFTS = [
 ];
 
 export default function SendGiftView() {
-  const { setView, themeColor, contacts, sendMessage } = useChat();
+  const { setView, themeColor, contacts, currentUser } = useChat();
   const [step, setStep] = useState<'select-user' | 'select-gift' | 'confirm'>('select-user');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedGift, setSelectedGift] = useState<typeof GIFTS[0] | null>(null);
@@ -36,18 +35,23 @@ export default function SendGiftView() {
   // Загружаем баланс пользователя
   useEffect(() => {
     const loadBalance = async () => {
-      if (!auth.currentUser) return;
+      if (!currentUser?.id) return;
       try {
-        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-        if (userDoc.exists()) {
-          setUserStars(userDoc.data().stars || 100);
+        const { data, error } = await supabase
+          .from('users')
+          .select('stars')
+          .eq('id', currentUser.id)
+          .single();
+        
+        if (data && !error) {
+          setUserStars(data.stars || 100);
         }
       } catch (e) {
         console.error('Failed to load balance:', e);
       }
     };
     loadBalance();
-  }, []);
+  }, [currentUser]);
 
   const handleSelectUser = (userId: string) => {
     setSelectedUserId(userId);
@@ -65,7 +69,7 @@ export default function SendGiftView() {
   };
 
   const handleSendGift = async () => {
-    if (!selectedUserId || !selectedGift || !auth.currentUser) return;
+    if (!selectedUserId || !selectedGift || !currentUser?.id) return;
 
     // Еще раз проверяем баланс перед отправкой
     if (userStars < selectedGift.cost) {
@@ -75,59 +79,63 @@ export default function SendGiftView() {
 
     setSending(true);
     try {
-      const chatId = [auth.currentUser.uid, selectedUserId].sort().join('_');
-      const chatRef = doc(db, 'chats', chatId);
+      const chatId = [currentUser.id, selectedUserId].sort().join('_');
       
       // Проверяем существует ли чат, если нет - создаем
-      const chatDoc = await getDoc(chatRef);
-      if (!chatDoc.exists() && auth.currentUser) {
-        await updateDoc(chatRef, {
-          participants: [auth.currentUser.uid, selectedUserId],
-          updatedAt: serverTimestamp(),
-          lastMessage: '',
-          lastMessageSenderId: auth.currentUser.uid
-        }).catch(async () => {
-          // Если updateDoc не сработал (чат не существует), создаем через setDoc
-          if (!auth.currentUser) return;
-          await setDoc(chatRef, {
-            participants: [auth.currentUser.uid, selectedUserId],
-            updatedAt: serverTimestamp(),
-            lastMessage: '',
-            lastMessageSenderId: auth.currentUser.uid
+      const { data: existingChat } = await supabase
+        .from('chats')
+        .select('id')
+        .eq('id', chatId)
+        .single();
+
+      if (!existingChat) {
+        await supabase
+          .from('chats')
+          .insert({
+            id: chatId,
+            participants: [currentUser.id, selectedUserId],
+            updated_at: new Date().toISOString()
           });
-        });
       }
       
       // Отправляем подарок как специальное сообщение
-      const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
-      
-      await addDoc(collection(db, 'chats', chatId, 'messages'), {
-        type: 'sent',
-        text: '',
-        time: timeString,
-        status: 'sent',
-        senderId: auth.currentUser.uid,
-        chatId,
-        createdAt: serverTimestamp(),
-        gift: {
-          id: selectedGift.id,
-          name: selectedGift.name,
-          emoji: selectedGift.emoji,
-          cost: selectedGift.cost,
-          from: auth.currentUser.uid
-        }
-      });
+      const { error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          chat_id: chatId,
+          sender_id: currentUser.id,
+          text: '',
+          type: 'gift',
+          status: 'sent',
+          gift_id: selectedGift.id,
+          gift_name: selectedGift.name,
+          gift_emoji: selectedGift.emoji,
+          gift_cost: selectedGift.cost,
+          gift_from: currentUser.id
+        });
+
+      if (messageError) throw messageError;
 
       // Обновляем баланс отправителя
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        stars: increment(-selectedGift.cost),
-        giftsSent: increment(1)
-      });
+      const { error: senderError } = await supabase
+        .from('users')
+        .update({
+          stars: userStars - selectedGift.cost,
+          gifts_sent: supabase.sql`gifts_sent + 1`
+        })
+        .eq('id', currentUser.id);
+
+      if (senderError) throw senderError;
 
       // Обновляем статистику получателя
-      await updateDoc(doc(db, 'users', selectedUserId), {
-        giftsReceived: increment(1)
-      });
+      const { error: receiverError } = await supabase
+        .from('users')
+        .update({
+          gifts_received: supabase.sql`gifts_received + 1`
+        })
+        .eq('id', selectedUserId);
+
+      if (receiverError) throw receiverError;
 
       setShowSuccess(true);
       setTimeout(() => {
