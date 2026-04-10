@@ -79,6 +79,40 @@ export default function SendGiftView() {
 
     setSending(true);
     try {
+      // Сначала создаем/обновляем пользователя в Supabase если его нет
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+
+      if (!existingUser) {
+        // Создаем пользователя в Supabase
+        await supabase
+          .from('users')
+          .insert({
+            id: currentUser.id,
+            email: currentUser.email || 'user@example.com',
+            name: 'User',
+            username: '@user',
+            stars: 100,
+            gifts_sent: 0,
+            gifts_received: 0
+          });
+      }
+
+      // Проверяем получателя
+      const { data: existingReceiver } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', selectedUserId)
+        .maybeSingle();
+
+      if (!existingReceiver) {
+        alert('Получатель не найден в системе');
+        return;
+      }
+
       const chatId = [currentUser.id, selectedUserId].sort().join('_');
       
       // Проверяем существует ли чат, если нет - создаем
@@ -86,16 +120,21 @@ export default function SendGiftView() {
         .from('chats')
         .select('id')
         .eq('id', chatId)
-        .single();
+        .maybeSingle();
 
       if (!existingChat) {
-        await supabase
+        const { error: chatError } = await supabase
           .from('chats')
           .insert({
             id: chatId,
             participants: [currentUser.id, selectedUserId],
             updated_at: new Date().toISOString()
           });
+        
+        if (chatError) {
+          console.error('Chat creation error:', chatError);
+          throw chatError;
+        }
       }
       
       // Отправляем подарок как специальное сообщение
@@ -114,7 +153,10 @@ export default function SendGiftView() {
           gift_from: currentUser.id
         });
 
-      if (messageError) throw messageError;
+      if (messageError) {
+        console.error('Message error:', messageError);
+        throw messageError;
+      }
 
       // Получаем текущие значения отправителя
       const { data: senderData } = await supabase
@@ -132,7 +174,10 @@ export default function SendGiftView() {
         })
         .eq('id', currentUser.id);
 
-      if (senderError) throw senderError;
+      if (senderError) {
+        console.error('Sender update error:', senderError);
+        throw senderError;
+      }
 
       // Получаем текущие значения получателя
       const { data: receiverData } = await supabase
@@ -149,7 +194,10 @@ export default function SendGiftView() {
         })
         .eq('id', selectedUserId);
 
-      if (receiverError) throw receiverError;
+      if (receiverError) {
+        console.error('Receiver update error:', receiverError);
+        throw receiverError;
+      }
 
       setShowSuccess(true);
       setTimeout(() => {
@@ -157,7 +205,7 @@ export default function SendGiftView() {
       }, 2000);
     } catch (e) {
       console.error('Failed to send gift:', e);
-      alert('Ошибка при отправке подарка');
+      alert(`Ошибка при отправке подарка: ${e instanceof Error ? e.message : 'Unknown error'}`);
     } finally {
       setSending(false);
     }
