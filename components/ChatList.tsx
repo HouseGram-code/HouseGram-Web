@@ -195,6 +195,84 @@ export default function ChatList() {
       </div>
 
       <div className="flex-grow overflow-y-auto pt-14 no-scrollbar">
+        {/* Пасхальный баннер */}
+        {!isSearching && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-4 mt-2 mb-3 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 rounded-2xl p-4 cursor-pointer hover:scale-[1.02] transition-transform relative overflow-hidden"
+            onClick={() => setView('send-gift')}
+          >
+            {/* Анимированные цветы на фоне */}
+            <div className="absolute inset-0 opacity-20">
+              <motion.div 
+                className="absolute top-2 left-2 text-[25px]"
+                animate={{ rotate: [0, 10, -10, 0], y: [0, -3, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                🌸
+              </motion.div>
+              <motion.div 
+                className="absolute top-2 right-2 text-[25px]"
+                animate={{ rotate: [0, -10, 10, 0], y: [0, -3, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+              >
+                🌷
+              </motion.div>
+              <motion.div 
+                className="absolute bottom-2 left-2 text-[25px]"
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+              >
+                🌼
+              </motion.div>
+              <motion.div 
+                className="absolute bottom-2 right-2 text-[25px]"
+                animate={{ rotate: [0, -10, 10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
+              >
+                🌺
+              </motion.div>
+            </div>
+
+            <div className="flex items-center gap-3 relative z-10">
+              {/* Анимированный заяц */}
+              <motion.div
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [0, -5, 5, 0],
+                  y: [0, -5, 0]
+                }}
+                transition={{ 
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="text-[40px]"
+              >
+                🐰
+              </motion.div>
+
+              <div className="flex-grow">
+                <div className="text-white font-bold text-[16px] mb-0.5">
+                  Скоро Пасха! Готовьтесь! 🥚
+                </div>
+                <div className="text-white/90 text-[13px]">
+                  Эксклюзивный подарок • 12 апреля • Лимит 15 шт
+                </div>
+              </div>
+
+              <motion.div
+                animate={{ x: [0, 5, 0] }}
+                transition={{ duration: 1, repeat: Infinity }}
+                className="text-white text-[20px]"
+              >
+                →
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+
         {isSearching && searchQuery.trim().length > 2 && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
