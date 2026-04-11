@@ -154,6 +154,14 @@ export default function StarsView() {
           </button>
           
           <button
+            onClick={() => setView('my-gifts')}
+            className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity mb-3"
+          >
+            <Gift size={20} />
+            Отправить себе подарок
+          </button>
+          
+          <button
             disabled
             className="w-full bg-gray-100 text-gray-400 py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 cursor-not-allowed"
           >

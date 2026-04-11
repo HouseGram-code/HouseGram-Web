@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Zap, Gift, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { db, auth } from '@/lib/firebase';
+import { collection, addDoc, doc, updateDoc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
 
 const GIFTS = [
@@ -13,6 +15,55 @@ const GIFTS = [
     name: 'Плюшевый мишка',
     emoji: '🧸',
     cost: 15,
+    animation: 'bounce'
+  },
+  {
+    id: 'red_heart',
+    name: 'Красное сердце',
+    emoji: '❤️',
+    cost: 10,
+    animation: 'pulse'
+  },
+  {
+    id: 'rose',
+    name: 'Роза',
+    emoji: '🌹',
+    cost: 12,
+    animation: 'bounce'
+  },
+  {
+    id: 'cake',
+    name: 'Торт',
+    emoji: '🎂',
+    cost: 18,
+    animation: 'bounce'
+  },
+  {
+    id: 'star',
+    name: 'Звезда',
+    emoji: '⭐',
+    cost: 20,
+    animation: 'spin'
+  },
+  {
+    id: 'gift_box',
+    name: 'Подарочная коробка',
+    emoji: '🎁',
+    cost: 25,
+    animation: 'bounce'
+  },
+  {
+    id: 'diamond',
+    name: 'Бриллиант',
+    emoji: '💎',
+    cost: 50,
+    animation: 'sparkle'
+  },
+  {
+    id: 'crown',
+    name: 'Корона',
+    emoji: '👑',
+    cost: 100,
     animation: 'bounce'
   }
 ];
@@ -240,6 +291,75 @@ export default function SendGiftView() {
         alert(`Ошибка при сохранении подарка: ${giftError.message}`);
       }
 
+      // Также отправляем подарок в Firebase для отображения в чате
+      try {
+        const firebaseChatId = [currentUser.id, selectedUserId].sort().join('_');
+        
+        // Создаем/обновляем чат в Firebase
+        const chatRef = doc(db, 'chats', firebaseChatId);
+        const chatDoc = await getDoc(chatRef);
+        
+        if (!chatDoc.exists()) {
+          await setDoc(chatRef, {
+            participants: [currentUser.id, selectedUserId],
+            updatedAt: serverTimestamp(),
+            lastMessage: `Подарок: ${selectedGift.name}`,
+            lastMessageSenderId: currentUser.id
+          });
+        } else {
+          await updateDoc(chatRef, {
+            updatedAt: serverTimestamp(),
+            lastMessage: `Подарок: ${selectedGift.name}`,
+            lastMessageSenderId: currentUser.id
+          });
+        }
+        
+        // Отправляем сообщение с подарком в Firebase
+        await addDoc(collection(db, 'chats', firebaseChatId, 'messages'), {
+          chatId: firebaseChatId,
+          senderId: currentUser.id,
+          text: '',
+          createdAt: serverTimestamp(),
+          status: 'sent',
+          type: 'sent',
+          gift: {
+            id: selectedGift.id,
+            name: selectedGift.name,
+            emoji: selectedGift.emoji,
+            cost: selectedGift.cost,
+            from: currentUser.id
+          }
+        });
+
+        // Обновляем баланс в Firebase
+        if (auth.currentUser) {
+          const userRef = doc(db, 'users', auth.currentUser.uid);
+          const userDoc = await getDoc(userRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            await updateDoc(userRef, {
+              stars: (userData.stars || 100) - selectedGift.cost,
+              giftsSent: (userData.giftsSent || 0) + 1
+            });
+          }
+        }
+
+        // Обновляем получателя в Firebase
+        const receiverRef = doc(db, 'users', selectedUserId);
+        const receiverDoc = await getDoc(receiverRef);
+        
+        if (receiverDoc.exists()) {
+          const receiverData = receiverDoc.data();
+          await updateDoc(receiverRef, {
+            giftsReceived: (receiverData.giftsReceived || 0) + 1
+          });
+        }
+      } catch (firebaseError) {
+        console.error('Firebase gift error:', firebaseError);
+        // Не показываем ошибку пользователю, так как подарок уже отправлен в Supabase
+      }
+
       setShowSuccess(true);
       setTimeout(() => {
         setView('menu');
@@ -341,21 +461,38 @@ export default function SendGiftView() {
 
         {/* Select Gift */}
         {step === 'select-gift' && (
-          <div className="space-y-4">
-            {GIFTS.map(gift => (
-              <button
-                key={gift.id}
-                onClick={() => handleSelectGift(gift)}
-                className="w-full bg-white rounded-2xl p-6 hover:bg-gray-50 transition-colors"
-              >
-                <div className="text-[80px] mb-3 text-center">{gift.emoji}</div>
-                <div className="text-[18px] font-medium text-gray-900 mb-2 text-center">{gift.name}</div>
-                <div className="flex items-center justify-center gap-1 text-yellow-600 font-semibold">
-                  <Zap size={18} fill="currentColor" />
-                  {gift.cost}
-                </div>
-              </button>
-            ))}
+          <div>
+            <div className="mb-4 text-center">
+              <h3 className="text-[17px] font-medium text-gray-900 mb-1">Выберите подарок</h3>
+              <p className="text-[14px] text-gray-500">Для {selectedContact?.name}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {GIFTS.map(gift => (
+                <button
+                  key={gift.id}
+                  onClick={() => handleSelectGift(gift)}
+                  disabled={userStars < gift.cost}
+                  className={`bg-white rounded-2xl p-4 hover:bg-gray-50 transition-all hover:scale-105 ${
+                    userStars < gift.cost ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <div className="text-[60px] mb-2 text-center">{gift.emoji}</div>
+                  <div className="text-[15px] font-medium text-gray-900 mb-1 text-center truncate">{gift.name}</div>
+                  <div className="flex items-center justify-center gap-1 text-yellow-600 font-semibold text-[14px]">
+                    <Zap size={14} fill="currentColor" />
+                    {gift.cost}
+                  </div>
+                  {userStars < gift.cost && (
+                    <div className="text-[11px] text-red-500 mt-1 text-center">Недостаточно</div>
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+              <p className="text-[13px] text-gray-600">
+                Ваш баланс: <span className="font-semibold text-gray-900">{userStars}</span> <Zap size={12} className="inline text-yellow-500" fill="currentColor" />
+              </p>
+            </div>
           </div>
         )}
 
