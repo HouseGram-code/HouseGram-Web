@@ -30,12 +30,7 @@ export default function MyGiftsView() {
   }, []);
 
   const loadReceivedGifts = async () => {
-    if (!currentUser?.id) {
-      console.log('No current user, cannot load gifts');
-      return;
-    }
-    
-    console.log('Loading gifts for user:', currentUser.id);
+    if (!currentUser?.id) return;
     
     try {
       const { data, error } = await supabase
@@ -43,8 +38,6 @@ export default function MyGiftsView() {
         .select('*')
         .eq('user_id', currentUser.id)
         .order('received_at', { ascending: false });
-      
-      console.log('Supabase response:', { data, error });
       
       if (error) {
         console.error('Error loading gifts:', error);
@@ -63,7 +56,6 @@ export default function MyGiftsView() {
         canConvert: item.can_convert !== false
       }));
       
-      console.log('Loaded gifts:', loadedGifts);
       setGifts(loadedGifts);
     } catch (e) {
       console.error('Failed to load gifts:', e);

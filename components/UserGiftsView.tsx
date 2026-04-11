@@ -30,8 +30,6 @@ export default function UserGiftsView() {
   const loadUserGifts = async () => {
     if (!activeChatId) return;
     
-    console.log('Loading gifts for user:', activeChatId);
-    
     try {
       const { data, error } = await supabase
         .from('received_gifts')
@@ -39,9 +37,10 @@ export default function UserGiftsView() {
         .eq('user_id', activeChatId)
         .order('received_at', { ascending: false });
       
-      console.log('User gifts response:', { data, error });
-      
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading user gifts:', error);
+        throw error;
+      }
       
       const loadedGifts: UserGift[] = (data || []).map(item => ({
         id: item.id,
