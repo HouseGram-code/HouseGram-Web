@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift } from 'lucide-react';
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { storage, auth, db } from '@/lib/firebase';
@@ -265,6 +265,11 @@ export default function SettingsView() {
             icon={<Zap size={24} className="text-yellow-500" fill="currentColor" />} 
             text="Молнии" 
             onClick={() => setView('stars')} 
+          />
+          <SettingsItem 
+            icon={<Gift size={24} className="text-pink-500" />} 
+            text="Мои подарки" 
+            onClick={() => setView('my-gifts')} 
           />
           <SettingsItem 
             icon={<Bell size={24} />} 

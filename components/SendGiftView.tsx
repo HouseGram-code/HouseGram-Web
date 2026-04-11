@@ -210,6 +210,26 @@ export default function SendGiftView() {
         throw receiverError;
       }
 
+      // Добавляем подарок в коллекцию receivedGifts получателя
+      const { error: giftError } = await supabase
+        .from('received_gifts')
+        .insert({
+          user_id: selectedUserId,
+          gift_id: selectedGift.id,
+          name: selectedGift.name,
+          emoji: selectedGift.emoji,
+          cost: selectedGift.cost,
+          from_user_id: currentUser.id,
+          from_name: currentUser.email?.split('@')[0] || 'Пользователь',
+          can_convert: true,
+          received_at: new Date().toISOString()
+        });
+
+      if (giftError) {
+        console.error('Gift storage error:', giftError);
+        // Не прерываем процесс, если не удалось сохранить в receivedGifts
+      }
+
       setShowSuccess(true);
       setTimeout(() => {
         setView('menu');
