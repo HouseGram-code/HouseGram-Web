@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 import { supabase } from '@/lib/supabase';
@@ -617,7 +617,7 @@ export default function AdminView() {
                         <div className="text-sm text-gray-500 truncate">{user.email}</div>
                       </div>
                       {user.isOfficial && (
-                        <CheckCircle size={16} className="text-blue-500 shrink-0" />
+                        <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white shrink-0" />
                       )}
                     </button>
                   ))}
@@ -630,7 +630,10 @@ export default function AdminView() {
                       {selectedUser.name?.charAt(0) || '?'}
                     </div>
                     <div className="flex-grow">
-                      <div className="font-medium">{selectedUser.name}</div>
+                      <div className="font-medium flex items-center gap-1">
+                        {selectedUser.name}
+                        {selectedUser.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
+                      </div>
                       <div className="text-sm text-gray-500">{selectedUser.email}</div>
                     </div>
                   </div>
