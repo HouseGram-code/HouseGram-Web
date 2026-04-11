@@ -97,15 +97,16 @@ service cloud.firestore {
         (request.auth.token.email == 'veraloktushina1958@gmail.com')
       );
       
-      // User can update their own profile (name, username, bio, status, lastSeen, stars, gifts) but not role/isBanned/isOfficial. Admin can update anything.
-      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (
-        isAdmin() || 
-        (isOwner(userId) && isNotBanned() && 
-         (!('role' in resource.data) || request.resource.data.role == resource.data.role) && 
-         (!('isBanned' in resource.data) || request.resource.data.isBanned == resource.data.isBanned) &&
-         (!('isOfficial' in resource.data) || request.resource.data.isOfficial == resource.data.isOfficial) &&
-         (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt))
-      );
+      // Admin can update anything without validation
+      allow update: if isAdmin();
+      
+      // User can update their own profile (name, username, bio, status, lastSeen, stars, gifts) but not role/isBanned/isOfficial
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+        isOwner(userId) && isNotBanned() && 
+        (!('role' in resource.data) || request.resource.data.role == resource.data.role) && 
+        (!('isBanned' in resource.data) || request.resource.data.isBanned == resource.data.isBanned) &&
+        (!('isOfficial' in resource.data) || request.resource.data.isOfficial == resource.data.isOfficial) &&
+        (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt);
       
       // Allow any authenticated user to update gift-related fields on other users (for gift receiving)
       allow update: if isAuthenticated() && isNotBanned() &&
