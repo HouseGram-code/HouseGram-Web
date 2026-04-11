@@ -26,6 +26,9 @@ export default function AdminView() {
     bannedUsers: 0
   });
   const [supabaseConnected, setSupabaseConnected] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [starsAmount, setStarsAmount] = useState(100);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -107,6 +110,90 @@ export default function AdminView() {
     } catch (err) {
       console.error('Error toggling maintenance', err);
       alert('Ошибка при изменении режима тех. работ');
+    }
+  };
+
+  const giveStars = async (userId: string, amount: number) => {
+    try {
+      // Обновляем в Firebase
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
+      
+      if (!userDoc.empty) {
+        const currentStars = userDoc.docs[0].data().stars || 0;
+        await updateDoc(userRef, {
+          stars: currentStars + amount
+        });
+      }
+
+      // Обновляем в Supabase если подключен
+      if (supabaseConnected) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('stars')
+          .eq('id', userId)
+          .single();
+        
+        const currentStars = userData?.stars || 0;
+        await supabase
+          .from('users')
+          .update({ stars: currentStars + amount })
+          .eq('id', userId);
+      }
+
+      alert(`✅ Выдано ${amount} ⚡ пользователю ${selectedUser?.name}`);
+      setShowUserModal(false);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error giving stars:', err);
+      alert('Ошибка при выдаче молний');
+    }
+  };
+
+  const toggleOfficialBadge = async (userId: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        isOfficial: !currentStatus
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isOfficial: !currentStatus } : u));
+      alert(`✅ Синий значок ${!currentStatus ? 'выдан' : 'убран'}`);
+      setShowUserModal(false);
+    } catch (err) {
+      console.error('Error toggling badge:', err);
+      alert('Ошибка при изменении значка');
+    }
+  };
+
+  const makeAdmin = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'admin'
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'admin' } : u));
+      alert(`✅ Пользователь ${selectedUser?.name} теперь администратор`);
+      setShowUserModal(false);
+      fetchStats();
+    } catch (err) {
+      console.error('Error making admin:', err);
+      alert('Ошибка при назначении администратором');
+    }
+  };
+
+  const removeAdmin = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'user'
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'user' } : u));
+      alert(`✅ Права администратора убраны у ${selectedUser?.name}`);
+      setShowUserModal(false);
+      fetchStats();
+    } catch (err) {
+      console.error('Error removing admin:', err);
+      alert('Ошибка при удалении прав администратора');
     }
   };
 
@@ -380,9 +467,57 @@ export default function AdminView() {
                 </div>
               </div>
 
+              <div className="bg-white border-y border-gray-100 mb-4">
+                <div className="px-4 py-2 text-[14px] font-medium" style={{ color: themeColor }}>
+                  Управление пользователями
+                </div>
+                
+                <button
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setShowUserModal(true);
+                  }}
+                  className="w-full flex items-center px-4 py-3 gap-4 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <div className="text-yellow-500"><Activity size={24} /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Выдать молнии</span>
+                    <span className="text-[13px] text-gray-500">Начислить молнии пользователю</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setShowUserModal(true);
+                  }}
+                  className="w-full flex items-center px-4 py-3 gap-4 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
+                >
+                  <div className="text-blue-500"><CheckCircle size={24} /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Управление значком</span>
+                    <span className="text-[13px] text-gray-500">Выдать или убрать синий значок</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setShowUserModal(true);
+                  }}
+                  className="w-full flex items-center px-4 py-3 gap-4 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
+                >
+                  <div className="text-purple-500"><Shield size={24} /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Управление правами</span>
+                    <span className="text-[13px] text-gray-500">Назначить или убрать администратора</span>
+                  </div>
+                </button>
+              </div>
+
               <div className="px-4">
                 <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-4 text-white">
-                  <h3 className="text-lg font-semibold mb-2">HouseGram v2.0 Beta</h3>
+                  <h3 className="text-lg font-semibold mb-2">HouseGram v2.1 Beta</h3>
                   <p className="text-sm opacity-90">
                     Система работает стабильно. Все сервисы доступны.
                   </p>
@@ -444,6 +579,156 @@ export default function AdminView() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* User Management Modal */}
+      <AnimatePresence>
+        {showUserModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowUserModal(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl p-6 z-50 shadow-2xl max-h-[80vh] overflow-y-auto"
+            >
+              <h3 className="text-xl font-bold mb-4">Управление пользователем</h3>
+              
+              {/* User Selection */}
+              {!selectedUser ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <p className="text-sm text-gray-600 mb-3">Выберите пользователя:</p>
+                  {users.map(user => (
+                    <button
+                      key={user.id}
+                      onClick={() => setSelectedUser(user)}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium shrink-0">
+                        {user.name?.charAt(0) || '?'}
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <div className="font-medium truncate">{user.name}</div>
+                        <div className="text-sm text-gray-500 truncate">{user.email}</div>
+                      </div>
+                      {user.isOfficial && (
+                        <CheckCircle size={16} className="text-blue-500 shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Selected User Info */}
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
+                      {selectedUser.name?.charAt(0) || '?'}
+                    </div>
+                    <div className="flex-grow">
+                      <div className="font-medium">{selectedUser.name}</div>
+                      <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="space-y-3">
+                    {/* Give Stars */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <label className="block text-sm font-medium mb-2">Выдать молнии ⚡</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          value={starsAmount}
+                          onChange={(e) => setStarsAmount(parseInt(e.target.value) || 0)}
+                          className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                          placeholder="Количество"
+                        />
+                        <button
+                          onClick={() => giveStars(selectedUser.id, starsAmount)}
+                          className="px-4 py-2 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors"
+                        >
+                          Выдать
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Toggle Official Badge */}
+                    <button
+                      onClick={() => toggleOfficialBadge(selectedUser.id, selectedUser.isOfficial)}
+                      className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-colors ${
+                        selectedUser.isOfficial
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <CheckCircle size={24} className="text-blue-500" />
+                        <div className="text-left">
+                          <div className="font-medium">Синий значок</div>
+                          <div className="text-sm text-gray-500">
+                            {selectedUser.isOfficial ? 'Убрать значок' : 'Выдать значок'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`w-10 h-6 rounded-full p-1 transition-colors ${selectedUser.isOfficial ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                        <div className={`w-4 h-4 rounded-full bg-white transition-transform ${selectedUser.isOfficial ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                    </button>
+
+                    {/* Toggle Admin */}
+                    {selectedUser.role !== 'admin' ? (
+                      <button
+                        onClick={() => makeAdmin(selectedUser.id)}
+                        className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-purple-200 hover:border-purple-400 transition-colors"
+                      >
+                        <Shield size={24} className="text-purple-500" />
+                        <div className="text-left flex-grow">
+                          <div className="font-medium">Назначить администратором</div>
+                          <div className="text-sm text-gray-500">Полный доступ к панели</div>
+                        </div>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => removeAdmin(selectedUser.id)}
+                        className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-red-200 hover:border-red-400 transition-colors"
+                      >
+                        <Shield size={24} className="text-red-500" />
+                        <div className="text-left flex-grow">
+                          <div className="font-medium">Убрать права администратора</div>
+                          <div className="text-sm text-gray-500">Сделать обычным пользователем</div>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Back Button */}
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    ← Назад к списку
+                  </button>
+                </div>
+              )}
+
+              {/* Close Button */}
+              {!selectedUser && (
+                <button
+                  onClick={() => setShowUserModal(false)}
+                  className="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Закрыть
+                </button>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
