@@ -80,10 +80,13 @@ const GIFTS = [
     emoji: '🐰🥚',
     cost: 50,
     animation: 'easter',
-    available: false, // Будет доступен только в определенное время
-    unlockDate: new Date('2026-04-12T09:00:00'), // 12 апреля 2026, 9:00 утра
+    available: false,
+    unlockDate: new Date('2026-04-12T09:00:00'),
     special: true,
-    description: 'Эксклюзивный пасхальный подарок'
+    description: 'Эксклюзивный пасхальный подарок',
+    limited: true,
+    totalLimit: 15,
+    gifUrl: 'https://media.tenor.com/images/15755652607176951873/tenor.gif' // Анимированный заяц с яйцом
   }
 ];
 
@@ -97,6 +100,8 @@ export default function SendGiftView() {
   const [userStars, setUserStars] = useState(100);
   const [sendToSelf, setSendToSelf] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [previewGift, setPreviewGift] = useState<typeof GIFTS[0] | null>(null);
+  const [easterBunnyRemaining, setEasterBunnyRemaining] = useState(15);
 
   // Обновляем время каждую минуту для проверки доступности пасхального подарка
   useEffect(() => {
@@ -110,28 +115,16 @@ export default function SendGiftView() {
   const isGiftAvailable = (gift: typeof GIFTS[0]) => {
     if (!gift.unlockDate) return true;
     
+    // Проверяем лимит для ограниченных подарков
+    if (gift.limited && gift.id === 'easter_bunny' && easterBunnyRemaining <= 0) {
+      return false;
+    }
+    
     // Получаем текущее время пользователя
     const now = new Date();
-    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
-    // Создаем дату разблокировки для часового пояса пользователя
-    const unlockDate = new Date(gift.unlockDate);
-    
-    // Для разных городов
-    const timezones: Record<string, number> = {
-      'Europe/Moscow': 3,      // Москва UTC+3
-      'Asia/Yekaterinburg': 5, // Екатеринбург UTC+5
-      'Asia/Krasnoyarsk': 7,   // Красноярск UTC+7
-      'Asia/Irkutsk': 8,       // Иркутск UTC+8
-      'Asia/Yakutsk': 9,       // Якутск UTC+9
-      'Asia/Vladivostok': 10,  // Владивосток UTC+10
-    };
-    
-    // Если часовой пояс пользователя в списке, используем его
-    let userOffset = now.getTimezoneOffset() / -60;
     
     // Проверяем, наступило ли время разблокировки
-    return now >= unlockDate;
+    return now >= gift.unlockDate;
   };
 
   // Функция для получения времени до разблокировки
@@ -211,6 +204,27 @@ export default function SendGiftView() {
     };
     loadBalance();
   }, [currentUser]);
+
+  // Загружаем количество оставшихся пасхальных подарков
+  useEffect(() => {
+    const loadEasterBunnyCount = async () => {
+      try {
+        // Получаем количество отправленных пасхальных зайцев из Firebase
+        const { data, error } = await supabase
+          .from('received_gifts')
+          .select('id', { count: 'exact' })
+          .eq('gift_id', 'easter_bunny');
+        
+        if (!error && data) {
+          const sent = data.length || 0;
+          setEasterBunnyRemaining(Math.max(0, 15 - sent));
+        }
+      } catch (e) {
+        console.error('Failed to load easter bunny count:', e);
+      }
+    };
+    loadEasterBunnyCount();
+  }, []);
 
   const handleSelectUser = (userId: string) => {
     setSelectedUserId(userId);
@@ -468,6 +482,11 @@ export default function SendGiftView() {
         // Не показываем ошибку пользователю, так как подарок уже отправлен в Supabase
       }
 
+      // Обновляем счетчик для ограниченных подарков
+      if (selectedGift.limited && selectedGift.id === 'easter_bunny') {
+        setEasterBunnyRemaining(prev => Math.max(0, prev - 1));
+      }
+
       setShowSuccess(true);
       setTimeout(() => {
         setView('menu');
@@ -592,20 +611,26 @@ export default function SendGiftView() {
                 const timeUntilUnlock = getTimeUntilUnlock(gift);
                 const isLocked = !available;
                 const canAfford = userStars >= gift.cost;
+                const isSoldOut = gift.limited && gift.id === 'easter_bunny' && easterBunnyRemaining <= 0;
                 
                 return (
                   <button
                     key={gift.id}
-                    onClick={() => available && canAfford && handleSelectGift(gift)}
-                    disabled={isLocked || !canAfford}
+                    onClick={() => {
+                      if (isLocked || isSoldOut) {
+                        setPreviewGift(gift);
+                      } else if (canAfford) {
+                        handleSelectGift(gift);
+                      }
+                    }}
                     className={`relative rounded-2xl p-4 transition-all overflow-hidden ${
                       gift.special 
                         ? 'bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100' 
                         : 'bg-white'
                     } ${
-                      !isLocked && canAfford ? 'hover:bg-gray-50 hover:scale-105' : ''
+                      !isLocked && !isSoldOut && canAfford ? 'hover:bg-gray-50 hover:scale-105' : ''
                     } ${
-                      isLocked || !canAfford ? 'opacity-60 cursor-not-allowed' : ''
+                      (isLocked || isSoldOut || !canAfford) && !gift.special ? 'opacity-60' : ''
                     }`}
                   >
                     {/* Пасхальный фон */}
@@ -630,7 +655,17 @@ export default function SendGiftView() {
                         {gift.name}
                       </div>
                       
-                      {isLocked ? (
+                      {isSoldOut ? (
+                        <div className="text-center">
+                          <div className="text-[20px] mb-1">🔒</div>
+                          <div className="text-[11px] text-red-600 font-medium">
+                            Распродано
+                          </div>
+                          <div className="text-[10px] text-gray-500 mt-1">
+                            0 из {gift.totalLimit}
+                          </div>
+                        </div>
+                      ) : isLocked ? (
                         <div className="text-center">
                           <div className="text-[20px] mb-1">🔒</div>
                           <div className="text-[11px] text-purple-600 font-medium">
@@ -639,6 +674,11 @@ export default function SendGiftView() {
                           <div className="text-[10px] text-gray-500 mt-1">
                             12 апреля, 9:00
                           </div>
+                          {gift.limited && (
+                            <div className="text-[10px] text-purple-600 mt-1">
+                              {easterBunnyRemaining} из {gift.totalLimit}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <>
@@ -649,10 +689,15 @@ export default function SendGiftView() {
                           {!canAfford && (
                             <div className="text-[11px] text-red-500 mt-1 text-center">Недостаточно</div>
                           )}
+                          {gift.limited && (
+                            <div className="text-[10px] text-purple-600 mt-1 text-center">
+                              {easterBunnyRemaining} из {gift.totalLimit}
+                            </div>
+                          )}
                         </>
                       )}
                       
-                      {gift.special && available && (
+                      {gift.special && available && !isSoldOut && (
                         <div className="mt-2 text-[10px] text-purple-600 font-medium text-center">
                           ✨ Эксклюзив ✨
                         </div>
@@ -716,6 +761,133 @@ export default function SendGiftView() {
           </div>
         )}
       </div>
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {previewGift && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              className="bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 rounded-3xl p-6 max-w-sm w-full relative overflow-hidden"
+            >
+              {/* Пасхальный фон */}
+              <div className="absolute inset-0 opacity-20">
+                <motion.div 
+                  className="absolute top-4 left-4 text-[40px]"
+                  animate={{ rotate: [0, 10, -10, 0], y: [0, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  🌸
+                </motion.div>
+                <motion.div 
+                  className="absolute top-4 right-4 text-[40px]"
+                  animate={{ rotate: [0, -10, 10, 0], y: [0, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                >
+                  🌷
+                </motion.div>
+                <motion.div 
+                  className="absolute bottom-4 left-4 text-[40px]"
+                  animate={{ rotate: [0, 10, -10, 0], y: [0, 5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                >
+                  🌼
+                </motion.div>
+                <motion.div 
+                  className="absolute bottom-4 right-4 text-[40px]"
+                  animate={{ rotate: [0, -10, 10, 0], y: [0, 5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
+                >
+                  🌺
+                </motion.div>
+              </div>
+
+              <div className="relative z-10">
+                {/* Анимированный заяц */}
+                {previewGift.gifUrl ? (
+                  <div className="mb-4 flex justify-center">
+                    <img 
+                      src={previewGift.gifUrl} 
+                      alt={previewGift.name}
+                      className="w-48 h-48 object-contain"
+                    />
+                  </div>
+                ) : (
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.1, 1],
+                      rotate: [0, -5, 5, -3, 3, 0],
+                      y: [0, -15, 0, -8, 0]
+                    }}
+                    transition={{ 
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="text-[120px] text-center mb-4"
+                  >
+                    {previewGift.emoji}
+                  </motion.div>
+                )}
+
+                <h3 className="text-[24px] font-bold text-gray-900 mb-2 text-center">
+                  {previewGift.name}
+                </h3>
+                
+                <p className="text-[14px] text-gray-600 mb-4 text-center">
+                  {previewGift.description}
+                </p>
+
+                {/* Информация */}
+                <div className="bg-white/80 rounded-2xl p-4 mb-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[15px] text-gray-700">Стоимость</span>
+                    <span className="text-[17px] font-semibold text-gray-900 flex items-center gap-1">
+                      {previewGift.cost} <Zap size={16} className="text-yellow-500" fill="currentColor" />
+                    </span>
+                  </div>
+                  
+                  {previewGift.limited && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[15px] text-gray-700">Доступно</span>
+                      <span className="text-[17px] font-semibold text-purple-600">
+                        {easterBunnyRemaining} из {previewGift.totalLimit}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {previewGift.unlockDate && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[15px] text-gray-700">Открытие</span>
+                      <span className="text-[15px] font-semibold text-gray-900">
+                        12 апреля, 9:00
+                      </span>
+                    </div>
+                  )}
+                  
+                  {getTimeUntilUnlock(previewGift) && (
+                    <div className="text-center pt-2 border-t border-gray-200">
+                      <span className="text-[13px] text-purple-600 font-medium">
+                        🔒 {getTimeUntilUnlock(previewGift)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setPreviewGift(null)}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3.5 rounded-xl font-medium hover:opacity-90 transition-opacity"
+                >
+                  Назад
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Success Modal */}
       <AnimatePresence>
