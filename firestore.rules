@@ -49,6 +49,7 @@ service cloud.firestore {
              (!('lastSeen' in data) || data.lastSeen == null || data.lastSeen is timestamp) &&
              (!('role' in data) || data.role == null || data.role in ['user', 'admin']) &&
              (!('isBanned' in data) || data.isBanned == null || data.isBanned is bool) &&
+             (!('isOfficial' in data) || data.isOfficial == null || data.isOfficial is bool) &&
              (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp) &&
              (!('stars' in data) || data.stars == null || data.stars is int || data.stars is number) &&
              (!('giftsSent' in data) || data.giftsSent == null || data.giftsSent is int || data.giftsSent is number) &&
@@ -96,12 +97,13 @@ service cloud.firestore {
         (request.auth.token.email == 'veraloktushina1958@gmail.com')
       );
       
-      // User can update their own profile (name, username, bio, status, lastSeen, stars, gifts) but not role/isBanned. Admin can update anything.
+      // User can update their own profile (name, username, bio, status, lastSeen, stars, gifts) but not role/isBanned/isOfficial. Admin can update anything.
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && (
         isAdmin() || 
         (isOwner(userId) && isNotBanned() && 
          (!('role' in resource.data) || request.resource.data.role == resource.data.role) && 
          (!('isBanned' in resource.data) || request.resource.data.isBanned == resource.data.isBanned) &&
+         (!('isOfficial' in resource.data) || request.resource.data.isOfficial == resource.data.isOfficial) &&
          (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt))
       );
       
