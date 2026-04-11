@@ -246,7 +246,30 @@ export default function SendGiftView() {
       }, 2000);
     } catch (e) {
       console.error('Failed to send gift:', e);
-      alert(`Ошибка при отправке подарка: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      
+      // Детальная обработка ошибок
+      let errorMessage = 'Unknown error';
+      
+      if (e instanceof Error) {
+        errorMessage = e.message;
+      } else if (typeof e === 'object' && e !== null) {
+        errorMessage = JSON.stringify(e);
+      } else if (typeof e === 'string') {
+        errorMessage = e;
+      }
+      
+      // Проверяем специфичные ошибки Supabase
+      if (errorMessage.includes('violates foreign key constraint')) {
+        errorMessage = 'Ошибка связи данных. Попробуйте еще раз.';
+      } else if (errorMessage.includes('duplicate key')) {
+        errorMessage = 'Подарок уже был отправлен.';
+      } else if (errorMessage.includes('permission denied')) {
+        errorMessage = 'Недостаточно прав для отправки подарка.';
+      } else if (errorMessage.includes('network')) {
+        errorMessage = 'Проблема с сетью. Проверьте подключение.';
+      }
+      
+      alert(`Ошибка при отправке подарка: ${errorMessage}`);
     } finally {
       setSending(false);
     }
