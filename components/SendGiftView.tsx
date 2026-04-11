@@ -211,6 +211,15 @@ export default function SendGiftView() {
       }
 
       // Добавляем подарок в коллекцию receivedGifts получателя
+      // Получаем имя отправителя из userProfile
+      const { data: senderProfile } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', currentUser.id)
+        .single();
+
+      const senderName = senderProfile?.name || currentUser.email?.split('@')[0] || 'Пользователь';
+
       const { error: giftError } = await supabase
         .from('received_gifts')
         .insert({
@@ -220,7 +229,7 @@ export default function SendGiftView() {
           emoji: selectedGift.emoji,
           cost: selectedGift.cost,
           from_user_id: currentUser.id,
-          from_name: currentUser.email?.split('@')[0] || 'Пользователь',
+          from_name: senderName,
           can_convert: true,
           received_at: new Date().toISOString()
         });
