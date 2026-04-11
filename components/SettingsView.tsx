@@ -115,9 +115,9 @@ export default function SettingsView() {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="absolute inset-0 bg-white flex flex-col z-20"
     >
-      {/* Header */}
+      {/* Header - Fixed */}
       <div 
-        className="text-white px-2.5 h-14 flex items-center gap-4 shrink-0 relative z-30"
+        className="text-white px-2.5 h-14 flex items-center gap-4 shrink-0 sticky top-0 z-30"
         style={{ backgroundColor: themeColor }}
       >
         <button onClick={() => setView('menu')} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
@@ -157,7 +157,7 @@ export default function SettingsView() {
 
       {/* Profile Info Area */}
       <div 
-        className="text-white px-6 pb-6 pt-2 relative shrink-0"
+        className="text-white px-6 pb-6 pt-2 shrink-0"
         style={{ backgroundColor: themeColor }}
       >
         <div className="flex items-center gap-4">
