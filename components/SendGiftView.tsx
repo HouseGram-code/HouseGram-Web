@@ -86,7 +86,7 @@ const GIFTS = [
     description: 'Эксклюзивный пасхальный подарок',
     limited: true,
     totalLimit: 15,
-    gifUrl: 'https://media.tenor.com/images/15755652607176951873/tenor.gif' // Анимированный заяц с яйцом
+    gifUrl: 'https://media1.tenor.com/m/easter-bunny-gif-15755652607176951873/tenor.gif'
   }
 ];
 
@@ -806,16 +806,8 @@ export default function SendGiftView() {
               </div>
 
               <div className="relative z-10">
-                {/* Анимированный заяц */}
-                {previewGift.gifUrl ? (
-                  <div className="mb-4 flex justify-center">
-                    <img 
-                      src={previewGift.gifUrl} 
-                      alt={previewGift.name}
-                      className="w-48 h-48 object-contain"
-                    />
-                  </div>
-                ) : (
+                {/* Анимированный заяц - всегда показываем эмодзи с красивой анимацией */}
+                <div className="mb-4 flex justify-center relative">
                   <motion.div
                     animate={{
                       scale: [1, 1.1, 1],
@@ -827,11 +819,27 @@ export default function SendGiftView() {
                       repeat: Infinity,
                       ease: "easeInOut"
                     }}
-                    className="text-[120px] text-center mb-4"
+                    className="text-[120px] text-center"
                   >
-                    {previewGift.emoji}
+                    🐰
                   </motion.div>
-                )}
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      rotate: [0, 10, -10, 0],
+                      x: [0, 5, -5, 0]
+                    }}
+                    transition={{ 
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 0.3
+                    }}
+                    className="text-[60px] absolute bottom-0 right-1/4"
+                  >
+                    🥚
+                  </motion.div>
+                </div>
 
                 <h3 className="text-[24px] font-bold text-gray-900 mb-2 text-center">
                   {previewGift.name}
