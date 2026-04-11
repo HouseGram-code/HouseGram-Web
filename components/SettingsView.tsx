@@ -220,18 +220,33 @@ export default function SettingsView() {
           
           <div className="py-2.5 border-b border-gray-100">
             {isEditing ? (
-              <input 
-                type="text" 
-                value={editProfile.username.startsWith('@') ? editProfile.username : '@' + editProfile.username}
-                onChange={e => {
-                  let val = e.target.value;
-                  if (!val.startsWith('@')) val = '@' + val.replace(/@/g, '');
-                  setEditProfile({...editProfile, username: val});
-                }}
-                maxLength={15}
-                className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1"
-                placeholder="Имя пользователя"
-              />
+              <>
+                <input 
+                  type="text" 
+                  value={editProfile.username.startsWith('@') ? editProfile.username : '@' + editProfile.username}
+                  onChange={e => {
+                    let val = e.target.value;
+                    if (!val.startsWith('@')) val = '@' + val.replace(/@/g, '');
+                    
+                    // Проверяем на русские буквы
+                    const cyrillicPattern = /[а-яА-ЯёЁ]/;
+                    if (cyrillicPattern.test(val)) {
+                      alert('⚠️ Имя пользователя может содержать только английские буквы, цифры и подчеркивание');
+                      return;
+                    }
+                    
+                    // Разрешаем только английские буквы, цифры и подчеркивание
+                    const validPattern = /^@[a-zA-Z0-9_]*$/;
+                    if (validPattern.test(val) || val === '@') {
+                      setEditProfile({...editProfile, username: val});
+                    }
+                  }}
+                  maxLength={15}
+                  className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1"
+                  placeholder="Имя пользователя"
+                />
+                <div className="text-[12px] text-gray-400 mt-1">Только английские буквы, цифры и _</div>
+              </>
             ) : (
               <div className="text-[16px] text-black">{userProfile.username}</div>
             )}
