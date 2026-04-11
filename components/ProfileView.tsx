@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle, Gift } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -126,6 +126,14 @@ export default function ProfileView() {
 
         <div className="bg-tg-bg-light border-y border-tg-divider mb-2.5">
           {!contact.isChannel && <ActionButton text="Отправить сообщение" onClick={() => setView('chat')} color={themeColor} />}
+          {!contact.isChannel && contact.id !== 'saved_messages' && contact.id !== 'test_bot' && (
+            <ActionButton 
+              text="Подарки" 
+              icon={<Gift size={20} />}
+              onClick={() => setView('user-gifts')} 
+              color={themeColor} 
+            />
+          )}
           {!contact.isChannel && contact.id !== 'saved_messages' && (
             <>
               <ActionButton text="Поделиться контактом" onClick={() => setShowShareModal(true)} color={themeColor} />
@@ -227,16 +235,17 @@ function InfoItem({ label, value, isLink, color }: { label: string; value: strin
   );
 }
 
-function ActionButton({ text, isDestructive, onClick, color }: { text: string; isDestructive?: boolean; onClick?: () => void; color?: string }) {
+function ActionButton({ text, isDestructive, onClick, color, icon }: { text: string; isDestructive?: boolean; onClick?: () => void; color?: string; icon?: React.ReactNode }) {
   return (
     <button 
       onClick={onClick}
       className={`block w-full px-4 py-3 text-left text-[16px] border-b border-tg-divider last:border-b-0 transition-colors hover:bg-gray-50 active:bg-gray-100 ${
         isDestructive ? 'text-tg-red' : ''
-      }`}
+      } flex items-center gap-3`}
       style={!isDestructive && color ? { color } : {}}
     >
-      {text}
+      {icon && <span>{icon}</span>}
+      <span>{text}</span>
     </button>
   );
 }

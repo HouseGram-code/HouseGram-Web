@@ -72,6 +72,9 @@ const SendGiftView = dynamic(() => import('@/components/SendGiftView'), {
 const MyGiftsView = dynamic(() => import('@/components/MyGiftsView'), {
   loading: () => <LoadingSpinner />
 });
+const UserGiftsView = dynamic(() => import('@/components/UserGiftsView'), {
+  loading: () => <LoadingSpinner />
+});
 
 function LoadingSpinner() {
   return (
@@ -128,6 +131,7 @@ function AppContent() {
         {view === 'stars' && <StarsView key="stars" />}
         {view === 'send-gift' && <SendGiftView key="send-gift" />}
         {view === 'my-gifts' && <MyGiftsView key="my-gifts" />}
+        {view === 'user-gifts' && <UserGiftsView key="user-gifts" />}
       </AnimatePresence>
       <SideMenu />
     </div>
