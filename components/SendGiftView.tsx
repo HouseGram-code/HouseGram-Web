@@ -76,6 +76,18 @@ export default function SendGiftView() {
   const [sending, setSending] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [userStars, setUserStars] = useState(100);
+  const [sendToSelf, setSendToSelf] = useState(false);
+
+  // Проверяем, нужно ли отправить подарок себе (из localStorage)
+  useEffect(() => {
+    const shouldSendToSelf = localStorage.getItem('sendGiftToSelf');
+    if (shouldSendToSelf === 'true' && currentUser?.id) {
+      setSendToSelf(true);
+      setSelectedUserId(currentUser.id);
+      setStep('select-gift');
+      localStorage.removeItem('sendGiftToSelf');
+    }
+  }, [currentUser]);
 
   const availableContacts = Object.values(contacts).filter(
     c => c.id !== 'saved_messages' && c.id !== 'test_bot' && !c.isChannel
@@ -409,15 +421,25 @@ export default function SendGiftView() {
         style={{ backgroundColor: themeColor }}
       >
         <button
-          onClick={() => step === 'select-user' ? setView('stars') : setStep(step === 'select-gift' ? 'select-user' : 'select-gift')}
+          onClick={() => {
+            if (step === 'select-user') {
+              setView('stars');
+            } else if (step === 'select-gift' && sendToSelf) {
+              setView('stars');
+            } else if (step === 'select-gift') {
+              setStep('select-user');
+            } else {
+              setStep('select-gift');
+            }
+          }}
           className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
         >
           <ArrowLeft size={24} />
         </button>
         <h1 className="text-[18px] font-medium">
           {step === 'select-user' && 'Выберите получателя'}
-          {step === 'select-gift' && 'Выберите подарок'}
-          {step === 'confirm' && 'Отправить подарок'}
+          {step === 'select-gift' && (sendToSelf ? 'Подарок себе' : 'Выберите подарок')}
+          {step === 'confirm' && (sendToSelf ? 'Отправить себе' : 'Отправить подарок')}
         </h1>
       </div>
 
@@ -464,7 +486,9 @@ export default function SendGiftView() {
           <div>
             <div className="mb-4 text-center">
               <h3 className="text-[17px] font-medium text-gray-900 mb-1">Выберите подарок</h3>
-              <p className="text-[14px] text-gray-500">Для {selectedContact?.name}</p>
+              <p className="text-[14px] text-gray-500">
+                {sendToSelf ? 'Для себя' : `Для ${selectedContact?.name}`}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {GIFTS.map(gift => (
@@ -503,7 +527,7 @@ export default function SendGiftView() {
               <div className="text-[100px] mb-4">{selectedGift.emoji}</div>
               <h3 className="text-[20px] font-bold mb-2">{selectedGift.name}</h3>
               <p className="text-white/90 text-[15px]">
-                Подарок для {selectedContact.name}
+                {sendToSelf ? 'Подарок для себя' : `Подарок для ${selectedContact.name}`}
               </p>
             </div>
 
@@ -516,7 +540,9 @@ export default function SendGiftView() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[15px] text-gray-700">Получатель</span>
-                <span className="text-[17px] font-semibold text-gray-900">{selectedContact.name}</span>
+                <span className="text-[17px] font-semibold text-gray-900">
+                  {sendToSelf ? 'Вы' : selectedContact.name}
+                </span>
               </div>
             </div>
 
@@ -562,7 +588,7 @@ export default function SendGiftView() {
               </motion.div>
               <h3 className="text-[20px] font-bold text-gray-900 mb-2">Подарок отправлен!</h3>
               <p className="text-[15px] text-gray-600">
-                {selectedContact?.name} получит ваш подарок
+                {sendToSelf ? 'Вы получили подарок!' : `${selectedContact?.name} получит ваш подарок`}
               </p>
             </motion.div>
           </div>

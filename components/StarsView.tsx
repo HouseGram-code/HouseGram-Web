@@ -154,7 +154,10 @@ export default function StarsView() {
           </button>
           
           <button
-            onClick={() => setView('my-gifts')}
+            onClick={() => {
+              localStorage.setItem('sendGiftToSelf', 'true');
+              setView('send-gift');
+            }}
             className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity mb-3"
           >
             <Gift size={20} />
