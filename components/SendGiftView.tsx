@@ -93,7 +93,28 @@ export default function SendGiftView() {
     c => c.id !== 'saved_messages' && c.id !== 'test_bot' && !c.isChannel
   );
 
-  const selectedContact = selectedUserId ? contacts[selectedUserId] : null;
+  // Получаем выбранный контакт или создаем временный для себя
+  const selectedContact = selectedUserId 
+    ? (selectedUserId === currentUser?.id && sendToSelf
+        ? {
+            id: currentUser.id,
+            name: 'Вы',
+            initial: currentUser.email?.charAt(0).toUpperCase() || 'Я',
+            avatarColor: '#6B7280',
+            avatarUrl: '',
+            statusOnline: 'в сети',
+            statusOffline: 'в сети',
+            phone: '',
+            bio: '',
+            username: '',
+            messages: [],
+            isTyping: false,
+            unread: 0,
+            isChannel: false,
+            isOfficial: false
+          }
+        : contacts[selectedUserId])
+    : null;
 
   // Загружаем баланс пользователя
   useEffect(() => {
