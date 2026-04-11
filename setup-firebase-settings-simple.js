@@ -18,17 +18,20 @@ function loadEnv() {
   }
 
   const envContent = fs.readFileSync(envPath, 'utf-8');
-  const config = {};
   
-  envContent.split('\n').forEach(line => {
-    const match = line.match(/^NEXT_PUBLIC_FIREBASE_(.+?)=(.+)$/);
-    if (match) {
-      const key = match[1].toLowerCase().replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-      config[key] = match[2].trim();
+  // Ищем NEXT_PUBLIC_FIREBASE_CONFIG
+  const configMatch = envContent.match(/NEXT_PUBLIC_FIREBASE_CONFIG=(.+)/);
+  if (configMatch) {
+    try {
+      return JSON.parse(configMatch[1]);
+    } catch (e) {
+      console.error('❌ Ошибка парсинга NEXT_PUBLIC_FIREBASE_CONFIG');
+      process.exit(1);
     }
-  });
+  }
 
-  return config;
+  console.error('❌ NEXT_PUBLIC_FIREBASE_CONFIG не найден в .env.local');
+  process.exit(1);
 }
 
 const rl = readline.createInterface({
