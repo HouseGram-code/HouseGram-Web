@@ -7,6 +7,7 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { GoogleGenAI } from '@google/genai';
+import { initializeFirebaseSettings } from '@/lib/init-firebase-settings';
 
 // Генерация цвета аватара на основе ID пользователя
 const getAvatarColor = (userId: string) => {
@@ -140,6 +141,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       if (savedNotif !== null) setNotificationsEnabled(savedNotif === 'true');
       if (savedSound !== null) setSoundEnabled(savedSound === 'true');
     }
+
+    // Инициализируем settings/global если его нет
+    initializeFirebaseSettings();
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
