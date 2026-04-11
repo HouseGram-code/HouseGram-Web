@@ -158,7 +158,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
               name: data.name || 'Ваше Имя', username: data.username || '', bio: data.bio || '',
               phone: data.phone || '+7 9XX XXX XX XX', avatarUrl: data.avatarUrl || '',
               status: 'online', lastSeen: data.lastSeen,
-              isOfficial: currentUser.email === 'veraloktushina1958@gmail.com' || data.role === 'admin'
+              isOfficial: data.isOfficial === true || currentUser.email === 'veraloktushina1958@gmail.com' || data.role === 'admin'
             });
             
             // Обновляем статус пользователя на "в сети"
@@ -882,7 +882,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
               avatarColor: getAvatarColor(otherUserId), avatarUrl: userData.avatarUrl || '', statusOnline, statusOffline,
               phone: userData.phone || '', bio: userData.bio || '', username: userData.username || '',
               messages: dummyMessages, isTyping: false, unread: 0, isChannel: false,
-              isOfficial: userData.role === 'admin' || userData.email === 'veraloktushina1958@gmail.com'
+              isOfficial: userData.isOfficial === true || userData.role === 'admin' || userData.email === 'veraloktushina1958@gmail.com'
             };
           }
         } catch (e) { console.error('Error fetching user doc for chat:', otherUserId, e); }
