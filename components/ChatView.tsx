@@ -695,27 +695,79 @@ export default function ChatView() {
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                  className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-4 text-white text-center min-w-[200px]"
+                  className={`rounded-2xl p-4 text-white text-center min-w-[200px] relative overflow-hidden ${
+                    msg.gift.id === 'easter_bunny' 
+                      ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400' 
+                      : 'bg-gradient-to-br from-purple-500 to-pink-500'
+                  }`}
                 >
+                  {/* Пасхальный фон для зайца */}
+                  {msg.gift.id === 'easter_bunny' && (
+                    <div className="absolute inset-0 opacity-20">
+                      <motion.div 
+                        className="absolute top-2 left-2 text-[25px]"
+                        animate={{ rotate: [0, 10, -10, 0], y: [0, -5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        🌸
+                      </motion.div>
+                      <motion.div 
+                        className="absolute top-2 right-2 text-[25px]"
+                        animate={{ rotate: [0, -10, 10, 0], y: [0, -5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                      >
+                        🌷
+                      </motion.div>
+                      <motion.div 
+                        className="absolute bottom-2 left-2 text-[25px]"
+                        animate={{ rotate: [0, 10, -10, 0], y: [0, 5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                      >
+                        🌼
+                      </motion.div>
+                      <motion.div 
+                        className="absolute bottom-2 right-2 text-[25px]"
+                        animate={{ rotate: [0, -10, 10, 0], y: [0, 5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
+                      >
+                        🌺
+                      </motion.div>
+                    </div>
+                  )}
+                  
                   <motion.div
-                    animate={{ 
-                      scale: [1, 1.15, 1],
-                      rotate: [0, -15, 15, -10, 10, -5, 5, 0],
-                      y: [0, -10, 0, -5, 0]
-                    }}
+                    animate={
+                      msg.gift.id === 'easter_bunny'
+                        ? {
+                            scale: [1, 1.1, 1],
+                            rotate: [0, -5, 5, -3, 3, 0],
+                            y: [0, -15, 0, -8, 0]
+                          }
+                        : {
+                            scale: [1, 1.15, 1],
+                            rotate: [0, -15, 15, -10, 10, -5, 5, 0],
+                            y: [0, -10, 0, -5, 0]
+                          }
+                    }
                     transition={{ 
-                      duration: 1.5,
+                      duration: msg.gift.id === 'easter_bunny' ? 2 : 1.5,
                       times: [0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 1],
-                      ease: "easeInOut"
+                      ease: "easeInOut",
+                      repeat: msg.gift.id === 'easter_bunny' ? Infinity : 0
                     }}
-                    className="text-[80px] mb-2"
+                    className="text-[80px] mb-2 relative z-10"
                   >
                     {msg.gift.emoji}
                   </motion.div>
-                  <div className="text-[16px] font-bold mb-1">{msg.gift.name}</div>
-                  <div className="text-[13px] text-white/90 flex items-center justify-center gap-1">
+                  <div className="text-[16px] font-bold mb-1 relative z-10">{msg.gift.name}</div>
+                  <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10">
                     Подарок от {isOwn ? 'вас' : contact.name}
                   </div>
+                  {msg.gift.id === 'easter_bunny' && (
+                    <div className="text-[11px] text-white/80 mt-1 relative z-10">
+                      ✨ Эксклюзивный пасхальный подарок ✨
+                    </div>
+                  )}
                 </motion.div>
               ) : isSticker ? (
                 <div className="relative group">

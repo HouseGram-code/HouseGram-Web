@@ -15,56 +15,75 @@ const GIFTS = [
     name: 'Плюшевый мишка',
     emoji: '🧸',
     cost: 15,
-    animation: 'bounce'
+    animation: 'bounce',
+    available: true
   },
   {
     id: 'red_heart',
     name: 'Красное сердце',
     emoji: '❤️',
     cost: 10,
-    animation: 'pulse'
+    animation: 'pulse',
+    available: true
   },
   {
     id: 'rose',
     name: 'Роза',
     emoji: '🌹',
     cost: 12,
-    animation: 'bounce'
+    animation: 'bounce',
+    available: true
   },
   {
     id: 'cake',
     name: 'Торт',
     emoji: '🎂',
     cost: 18,
-    animation: 'bounce'
+    animation: 'bounce',
+    available: true
   },
   {
     id: 'star',
     name: 'Звезда',
     emoji: '⭐',
     cost: 20,
-    animation: 'spin'
+    animation: 'spin',
+    available: true
   },
   {
     id: 'gift_box',
     name: 'Подарочная коробка',
     emoji: '🎁',
     cost: 25,
-    animation: 'bounce'
+    animation: 'bounce',
+    available: true
   },
   {
     id: 'diamond',
     name: 'Бриллиант',
     emoji: '💎',
     cost: 50,
-    animation: 'sparkle'
+    animation: 'sparkle',
+    available: true
   },
   {
     id: 'crown',
     name: 'Корона',
     emoji: '👑',
     cost: 100,
-    animation: 'bounce'
+    animation: 'bounce',
+    available: true
+  },
+  {
+    id: 'easter_bunny',
+    name: 'Пасхальный заяц',
+    emoji: '🐰🥚',
+    cost: 50,
+    animation: 'easter',
+    available: false, // Будет доступен только в определенное время
+    unlockDate: new Date('2026-04-12T09:00:00'), // 12 апреля 2026, 9:00 утра
+    special: true,
+    description: 'Эксклюзивный пасхальный подарок'
   }
 ];
 
@@ -77,6 +96,62 @@ export default function SendGiftView() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [userStars, setUserStars] = useState(100);
   const [sendToSelf, setSendToSelf] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Обновляем время каждую минуту для проверки доступности пасхального подарка
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Каждую минуту
+    return () => clearInterval(timer);
+  }, []);
+
+  // Функция проверки доступности подарка
+  const isGiftAvailable = (gift: typeof GIFTS[0]) => {
+    if (!gift.unlockDate) return true;
+    
+    // Получаем текущее время пользователя
+    const now = new Date();
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Создаем дату разблокировки для часового пояса пользователя
+    const unlockDate = new Date(gift.unlockDate);
+    
+    // Для разных городов
+    const timezones: Record<string, number> = {
+      'Europe/Moscow': 3,      // Москва UTC+3
+      'Asia/Yekaterinburg': 5, // Екатеринбург UTC+5
+      'Asia/Krasnoyarsk': 7,   // Красноярск UTC+7
+      'Asia/Irkutsk': 8,       // Иркутск UTC+8
+      'Asia/Yakutsk': 9,       // Якутск UTC+9
+      'Asia/Vladivostok': 10,  // Владивосток UTC+10
+    };
+    
+    // Если часовой пояс пользователя в списке, используем его
+    let userOffset = now.getTimezoneOffset() / -60;
+    
+    // Проверяем, наступило ли время разблокировки
+    return now >= unlockDate;
+  };
+
+  // Функция для получения времени до разблокировки
+  const getTimeUntilUnlock = (gift: typeof GIFTS[0]) => {
+    if (!gift.unlockDate) return '';
+    
+    const now = new Date();
+    const unlock = new Date(gift.unlockDate);
+    const diff = unlock.getTime() - now.getTime();
+    
+    if (diff <= 0) return '';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) return `Откроется через ${days}д ${hours}ч`;
+    if (hours > 0) return `Откроется через ${hours}ч ${minutes}м`;
+    return `Откроется через ${minutes}м`;
+  };
 
   // Проверяем, нужно ли отправить подарок себе (из localStorage)
   useEffect(() => {
@@ -512,26 +587,80 @@ export default function SendGiftView() {
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {GIFTS.map(gift => (
-                <button
-                  key={gift.id}
-                  onClick={() => handleSelectGift(gift)}
-                  disabled={userStars < gift.cost}
-                  className={`bg-white rounded-2xl p-4 hover:bg-gray-50 transition-all hover:scale-105 ${
-                    userStars < gift.cost ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  <div className="text-[60px] mb-2 text-center">{gift.emoji}</div>
-                  <div className="text-[15px] font-medium text-gray-900 mb-1 text-center truncate">{gift.name}</div>
-                  <div className="flex items-center justify-center gap-1 text-yellow-600 font-semibold text-[14px]">
-                    <Zap size={14} fill="currentColor" />
-                    {gift.cost}
-                  </div>
-                  {userStars < gift.cost && (
-                    <div className="text-[11px] text-red-500 mt-1 text-center">Недостаточно</div>
-                  )}
-                </button>
-              ))}
+              {GIFTS.map(gift => {
+                const available = isGiftAvailable(gift);
+                const timeUntilUnlock = getTimeUntilUnlock(gift);
+                const isLocked = !available;
+                const canAfford = userStars >= gift.cost;
+                
+                return (
+                  <button
+                    key={gift.id}
+                    onClick={() => available && canAfford && handleSelectGift(gift)}
+                    disabled={isLocked || !canAfford}
+                    className={`relative rounded-2xl p-4 transition-all overflow-hidden ${
+                      gift.special 
+                        ? 'bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100' 
+                        : 'bg-white'
+                    } ${
+                      !isLocked && canAfford ? 'hover:bg-gray-50 hover:scale-105' : ''
+                    } ${
+                      isLocked || !canAfford ? 'opacity-60 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {/* Пасхальный фон */}
+                    {gift.special && (
+                      <div className="absolute inset-0 opacity-20">
+                        <div className="absolute top-0 left-0 text-[30px]">🌸</div>
+                        <div className="absolute top-0 right-0 text-[25px]">🌷</div>
+                        <div className="absolute bottom-0 left-0 text-[25px]">🌼</div>
+                        <div className="absolute bottom-0 right-0 text-[30px]">🌺</div>
+                      </div>
+                    )}
+                    
+                    <div className="relative z-10">
+                      <div 
+                        className={`text-[60px] mb-2 text-center ${
+                          gift.animation === 'easter' && available ? 'animate-bounce' : ''
+                        }`}
+                      >
+                        {gift.emoji}
+                      </div>
+                      <div className="text-[15px] font-medium text-gray-900 mb-1 text-center truncate">
+                        {gift.name}
+                      </div>
+                      
+                      {isLocked ? (
+                        <div className="text-center">
+                          <div className="text-[20px] mb-1">🔒</div>
+                          <div className="text-[11px] text-purple-600 font-medium">
+                            {timeUntilUnlock}
+                          </div>
+                          <div className="text-[10px] text-gray-500 mt-1">
+                            12 апреля, 9:00
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-center gap-1 text-yellow-600 font-semibold text-[14px]">
+                            <Zap size={14} fill="currentColor" />
+                            {gift.cost}
+                          </div>
+                          {!canAfford && (
+                            <div className="text-[11px] text-red-500 mt-1 text-center">Недостаточно</div>
+                          )}
+                        </>
+                      )}
+                      
+                      {gift.special && available && (
+                        <div className="mt-2 text-[10px] text-purple-600 font-medium text-center">
+                          ✨ Эксклюзив ✨
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
               <p className="text-[13px] text-gray-600">
