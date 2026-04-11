@@ -220,7 +220,17 @@ export default function SendGiftView() {
 
       const senderName = senderProfile?.name || currentUser.email?.split('@')[0] || 'Пользователь';
 
-      const { error: giftError } = await supabase
+      console.log('Attempting to insert gift:', {
+        user_id: selectedUserId,
+        gift_id: selectedGift.id,
+        name: selectedGift.name,
+        emoji: selectedGift.emoji,
+        cost: selectedGift.cost,
+        from_user_id: currentUser.id,
+        from_name: senderName
+      });
+
+      const { data: insertedGift, error: giftError } = await supabase
         .from('received_gifts')
         .insert({
           user_id: selectedUserId,
@@ -232,11 +242,15 @@ export default function SendGiftView() {
           from_name: senderName,
           can_convert: true,
           received_at: new Date().toISOString()
-        });
+        })
+        .select();
 
       if (giftError) {
         console.error('Gift storage error:', giftError);
-        // Не прерываем процесс, если не удалось сохранить в receivedGifts
+        alert(`Ошибка при сохранении подарка: ${giftError.message}`);
+        // Не прерываем процесс, но показываем ошибку
+      } else {
+        console.log('Gift inserted successfully:', insertedGift);
       }
 
       setShowSuccess(true);

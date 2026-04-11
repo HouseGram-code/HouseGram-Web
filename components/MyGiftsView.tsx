@@ -30,7 +30,12 @@ export default function MyGiftsView() {
   }, []);
 
   const loadReceivedGifts = async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      console.log('No current user, cannot load gifts');
+      return;
+    }
+    
+    console.log('Loading gifts for user:', currentUser.id);
     
     try {
       const { data, error } = await supabase
@@ -39,7 +44,12 @@ export default function MyGiftsView() {
         .eq('user_id', currentUser.id)
         .order('received_at', { ascending: false });
       
-      if (error) throw error;
+      console.log('Supabase response:', { data, error });
+      
+      if (error) {
+        console.error('Error loading gifts:', error);
+        throw error;
+      }
       
       const loadedGifts: ReceivedGift[] = (data || []).map(item => ({
         id: item.id,
@@ -53,6 +63,7 @@ export default function MyGiftsView() {
         canConvert: item.can_convert !== false
       }));
       
+      console.log('Loaded gifts:', loadedGifts);
       setGifts(loadedGifts);
     } catch (e) {
       console.error('Failed to load gifts:', e);
