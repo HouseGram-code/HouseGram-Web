@@ -155,65 +155,67 @@ export default function SettingsView() {
         )}
       </div>
 
-      {/* Profile Info Area */}
-      <div 
-        className="text-white px-6 pb-6 pt-2 shrink-0"
-        style={{ backgroundColor: themeColor }}
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-[72px] h-[72px] rounded-full bg-gray-300 flex items-center justify-center text-gray-500 text-3xl font-medium overflow-hidden relative">
-            {currentProfile.avatarUrl ? (
-              <Image src={currentProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
-            ) : (
-              <User size={40} className="text-white" fill="currentColor" />
-            )}
-          </div>
-          <div className="flex flex-col flex-grow">
-            {isEditing ? (
-              <input 
-                type="text" 
-                value={editProfile.name}
-                onChange={e => setEditProfile({...editProfile, name: e.target.value})}
-                maxLength={45}
-                className="bg-white/20 text-white placeholder-white/50 border-none outline-none rounded px-2 py-1 text-[20px] font-medium w-full"
-                placeholder="Имя"
-              />
-            ) : (
-              <div className="text-[24px] font-medium leading-tight flex items-center gap-1">
-                {userProfile.name}
-                {userProfile.isOfficial && <BadgeCheck size={24} className="text-white fill-blue-500" />}
-              </div>
-            )}
-            <div className="text-[14px] text-white/70 mt-1">{getStatusText()}</div>
-          </div>
-        </div>
-        
-        {/* Floating Camera Button */}
-        {isEditing && (
-          <>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*" 
-              onChange={handleAvatarUpload} 
-            />
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="absolute -bottom-7 right-6 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors border border-gray-100 z-10"
-            >
-              {isUploading ? (
-                <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+      {/* Scrollable Content */}
+      <div className="flex-grow overflow-y-auto no-scrollbar bg-white">
+        {/* Profile Info Area */}
+        <div 
+          className="text-white px-6 pb-6 pt-2 relative"
+          style={{ backgroundColor: themeColor }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-[72px] h-[72px] rounded-full bg-gray-300 flex items-center justify-center text-gray-500 text-3xl font-medium overflow-hidden relative">
+              {currentProfile.avatarUrl ? (
+                <Image src={currentProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
               ) : (
-                <Camera size={28} strokeWidth={1.5} />
+                <User size={40} className="text-white" fill="currentColor" />
               )}
-            </button>
-          </>
-        )}
-      </div>
+            </div>
+            <div className="flex flex-col flex-grow">
+              {isEditing ? (
+                <input 
+                  type="text" 
+                  value={editProfile.name}
+                  onChange={e => setEditProfile({...editProfile, name: e.target.value})}
+                  maxLength={45}
+                  className="bg-white/20 text-white placeholder-white/50 border-none outline-none rounded px-2 py-1 text-[20px] font-medium w-full"
+                  placeholder="Имя"
+                />
+              ) : (
+                <div className="text-[24px] font-medium leading-tight flex items-center gap-1">
+                  {userProfile.name}
+                  {userProfile.isOfficial && <BadgeCheck size={24} className="text-white fill-blue-500" />}
+                </div>
+              )}
+              <div className="text-[14px] text-white/70 mt-1">{getStatusText()}</div>
+            </div>
+          </div>
+          
+          {/* Floating Camera Button */}
+          {isEditing && (
+            <>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleAvatarUpload} 
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="absolute -bottom-7 right-6 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors border border-gray-100 z-10"
+              >
+                {isUploading ? (
+                  <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Camera size={28} strokeWidth={1.5} />
+                )}
+              </button>
+            </>
+          )}
+        </div>
 
-      <div className="flex-grow overflow-y-auto pt-4 pb-10 no-scrollbar bg-white">
+        <div className="pt-4 pb-10 bg-white">
         {/* Account Section */}
         <div className="px-4 py-2">
           <div className="text-[15px] font-medium mb-2" style={{ color: themeColor }}>Аккаунт</div>
@@ -332,6 +334,7 @@ export default function SettingsView() {
               <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isGlassEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </div>
+        </div>
         </div>
       </div>
     </motion.div>
