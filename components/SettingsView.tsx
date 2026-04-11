@@ -29,16 +29,24 @@ export default function SettingsView() {
       return;
     }
     
+    // Очищаем username от недопустимых символов перед сохранением
+    let cleanUsername = editProfile.username;
+    if (!cleanUsername.startsWith('@')) {
+      cleanUsername = '@' + cleanUsername;
+    }
+    // Удаляем все символы кроме английских букв, цифр и подчеркивания
+    cleanUsername = cleanUsername.replace(/[^@a-zA-Z0-9_]/g, '');
+    
     try {
       if (auth.currentUser) {
         await updateDoc(doc(db, 'users', auth.currentUser.uid), {
           name: editProfile.name,
-          username: editProfile.username,
+          username: cleanUsername,
           bio: editProfile.bio,
           phone: editProfile.phone,
         });
       }
-      setUserProfile(editProfile);
+      setUserProfile({...editProfile, username: cleanUsername});
       setIsEditing(false);
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -228,13 +236,14 @@ export default function SettingsView() {
                   value={editProfile.username.startsWith('@') ? editProfile.username : '@' + editProfile.username}
                   onChange={e => {
                     let val = e.target.value;
+                    // Убеждаемся что начинается с @
                     if (!val.startsWith('@')) val = '@' + val.replace(/@/g, '');
                     
-                    // Разрешаем только английские буквы, цифры и подчеркивание
-                    const validPattern = /^@[a-zA-Z0-9_]*$/;
-                    if (validPattern.test(val) || val === '@') {
-                      setEditProfile({...editProfile, username: val});
-                    }
+                    // Удаляем все недопустимые символы (оставляем только @, английские буквы, цифры и _)
+                    val = val.replace(/[^@a-zA-Z0-9_]/g, '');
+                    
+                    // Обновляем значение
+                    setEditProfile({...editProfile, username: val});
                   }}
                   maxLength={16}
                   className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1"
