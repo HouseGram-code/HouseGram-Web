@@ -87,6 +87,20 @@ const GIFTS = [
     limited: true,
     totalLimit: 15,
     gifUrl: 'https://media1.tenor.com/m/easter-bunny-gif-15755652607176951873/tenor.gif'
+  },
+  {
+    id: 'cosmonaut',
+    name: 'Космонавт',
+    emoji: '👨‍🚀🚀',
+    cost: 50,
+    animation: 'space',
+    available: false,
+    unlockDate: new Date('2026-04-12T00:00:00'),
+    special: true,
+    description: 'День космонавтики! Полетели в космос!',
+    limited: true,
+    totalLimit: 20,
+    spaceTheme: true
   }
 ];
 
@@ -102,6 +116,7 @@ export default function SendGiftView() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [previewGift, setPreviewGift] = useState<typeof GIFTS[0] | null>(null);
   const [easterBunnyRemaining, setEasterBunnyRemaining] = useState(15);
+  const [cosmonautRemaining, setCosmonautRemaining] = useState(20);
 
   // Обновляем время каждую минуту для проверки доступности пасхального подарка
   useEffect(() => {
@@ -116,8 +131,9 @@ export default function SendGiftView() {
     if (!gift.unlockDate) return true;
     
     // Проверяем лимит для ограниченных подарков
-    if (gift.limited && gift.id === 'easter_bunny' && easterBunnyRemaining <= 0) {
-      return false;
+    if (gift.limited) {
+      if (gift.id === 'easter_bunny' && easterBunnyRemaining <= 0) return false;
+      if (gift.id === 'cosmonaut' && cosmonautRemaining <= 0) return false;
     }
     
     // Получаем текущее время пользователя
@@ -224,6 +240,26 @@ export default function SendGiftView() {
       }
     };
     loadEasterBunnyCount();
+  }, []);
+
+  // Загружаем количество оставшихся космонавтов
+  useEffect(() => {
+    const loadCosmonautCount = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('received_gifts')
+          .select('id', { count: 'exact' })
+          .eq('gift_id', 'cosmonaut');
+        
+        if (!error && data) {
+          const sent = data.length || 0;
+          setCosmonautRemaining(Math.max(0, 20 - sent));
+        }
+      } catch (e) {
+        console.error('Failed to load cosmonaut count:', e);
+      }
+    };
+    loadCosmonautCount();
   }, []);
 
   const handleSelectUser = (userId: string) => {
@@ -483,8 +519,12 @@ export default function SendGiftView() {
       }
 
       // Обновляем счетчик для ограниченных подарков
-      if (selectedGift.limited && selectedGift.id === 'easter_bunny') {
-        setEasterBunnyRemaining(prev => Math.max(0, prev - 1));
+      if (selectedGift.limited) {
+        if (selectedGift.id === 'easter_bunny') {
+          setEasterBunnyRemaining(prev => Math.max(0, prev - 1));
+        } else if (selectedGift.id === 'cosmonaut') {
+          setCosmonautRemaining(prev => Math.max(0, prev - 1));
+        }
       }
 
       setShowSuccess(true);
@@ -611,7 +651,13 @@ export default function SendGiftView() {
                 const timeUntilUnlock = getTimeUntilUnlock(gift);
                 const isLocked = !available;
                 const canAfford = userStars >= gift.cost;
-                const isSoldOut = gift.limited && gift.id === 'easter_bunny' && easterBunnyRemaining <= 0;
+                const isSoldOut = gift.limited && (
+                  (gift.id === 'easter_bunny' && easterBunnyRemaining <= 0) ||
+                  (gift.id === 'cosmonaut' && cosmonautRemaining <= 0)
+                );
+                
+                const remaining = gift.id === 'easter_bunny' ? easterBunnyRemaining : 
+                                 gift.id === 'cosmonaut' ? cosmonautRemaining : 0;
                 
                 return (
                   <button
@@ -624,17 +670,63 @@ export default function SendGiftView() {
                       }
                     }}
                     className={`relative rounded-2xl p-4 transition-all overflow-hidden ${
-                      gift.special 
+                      gift.spaceTheme
+                        ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black'
+                        : gift.special 
                         ? 'bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100' 
                         : 'bg-white'
                     } ${
                       !isLocked && !isSoldOut && canAfford ? 'hover:bg-gray-50 hover:scale-105' : ''
                     } ${
-                      (isLocked || isSoldOut || !canAfford) && !gift.special ? 'opacity-60' : ''
+                      (isLocked || isSoldOut || !canAfford) && !gift.special && !gift.spaceTheme ? 'opacity-60' : ''
                     }`}
                   >
+                    {/* Космический фон */}
+                    {gift.spaceTheme && (
+                      <div className="absolute inset-0">
+                        {/* Звезды */}
+                        {[...Array(15)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="absolute text-white"
+                            style={{
+                              left: `${Math.random() * 100}%`,
+                              top: `${Math.random() * 100}%`,
+                              fontSize: `${8 + Math.random() * 8}px`
+                            }}
+                            animate={{
+                              opacity: [0.3, 1, 0.3],
+                              scale: [0.8, 1.2, 0.8]
+                            }}
+                            transition={{
+                              duration: 2 + Math.random() * 2,
+                              repeat: Infinity,
+                              delay: i * 0.1
+                            }}
+                          >
+                            ⭐
+                          </motion.div>
+                        ))}
+                        {/* Планеты */}
+                        <motion.div 
+                          className="absolute top-1 right-1 text-[20px]"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                        >
+                          🪐
+                        </motion.div>
+                        <motion.div 
+                          className="absolute bottom-1 left-1 text-[18px]"
+                          animate={{ y: [-5, 5, -5] }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        >
+                          🌍
+                        </motion.div>
+                      </div>
+                    )}
+                    
                     {/* Пасхальный фон */}
-                    {gift.special && (
+                    {gift.special && !gift.spaceTheme && (
                       <div className="absolute inset-0 opacity-20">
                         <div className="absolute top-0 left-0 text-[30px]">🌸</div>
                         <div className="absolute top-0 right-0 text-[25px]">🌷</div>
@@ -644,14 +736,33 @@ export default function SendGiftView() {
                     )}
                     
                     <div className="relative z-10">
-                      <div 
-                        className={`text-[60px] mb-2 text-center ${
-                          gift.animation === 'easter' && available ? 'animate-bounce' : ''
-                        }`}
-                      >
-                        {gift.emoji}
-                      </div>
-                      <div className="text-[15px] font-medium text-gray-900 mb-1 text-center truncate">
+                      {gift.spaceTheme ? (
+                        <motion.div
+                          animate={{
+                            y: [0, -20, 0],
+                            rotate: [0, 10, -10, 0]
+                          }}
+                          transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                          className="text-[60px] mb-2 text-center"
+                        >
+                          {gift.emoji}
+                        </motion.div>
+                      ) : (
+                        <div 
+                          className={`text-[60px] mb-2 text-center ${
+                            gift.animation === 'easter' && available ? 'animate-bounce' : ''
+                          }`}
+                        >
+                          {gift.emoji}
+                        </div>
+                      )}
+                      <div className={`text-[15px] font-medium mb-1 text-center truncate ${
+                        gift.spaceTheme ? 'text-white' : 'text-gray-900'
+                      }`}>
                         {gift.name}
                       </div>
                       
@@ -675,8 +786,8 @@ export default function SendGiftView() {
                             12 апреля, 9:00
                           </div>
                           {gift.limited && (
-                            <div className="text-[10px] text-purple-600 mt-1">
-                              {easterBunnyRemaining} из {gift.totalLimit}
+                            <div className={`text-[10px] mt-1 ${gift.spaceTheme ? 'text-cyan-300' : 'text-purple-600'}`}>
+                              {remaining} из {gift.totalLimit}
                             </div>
                           )}
                         </div>
@@ -690,8 +801,8 @@ export default function SendGiftView() {
                             <div className="text-[11px] text-red-500 mt-1 text-center">Недостаточно</div>
                           )}
                           {gift.limited && (
-                            <div className="text-[10px] text-purple-600 mt-1 text-center">
-                              {easterBunnyRemaining} из {gift.totalLimit}
+                            <div className={`text-[10px] mt-1 text-center ${gift.spaceTheme ? 'text-cyan-300' : 'text-purple-600'}`}>
+                              {remaining} из {gift.totalLimit}
                             </div>
                           )}
                         </>
@@ -862,7 +973,7 @@ export default function SendGiftView() {
                     <div className="flex items-center justify-between">
                       <span className="text-[15px] text-gray-700">Доступно</span>
                       <span className="text-[17px] font-semibold text-purple-600">
-                        {easterBunnyRemaining} из {previewGift.totalLimit}
+                        {previewGift.id === 'easter_bunny' ? easterBunnyRemaining : cosmonautRemaining} из {previewGift.totalLimit}
                       </span>
                     </div>
                   )}
