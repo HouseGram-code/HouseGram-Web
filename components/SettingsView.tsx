@@ -2,26 +2,59 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { storage, auth, db } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import imageCompression from 'browser-image-compression';
 
 export default function SettingsView() {
-  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile } = useChat();
+  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile, user } = useChat();
   const [isEditing, setIsEditing] = useState(false);
   const [editProfile, setEditProfile] = useState(userProfile);
   const [isUploading, setIsUploading] = useState(false);
+  const [accountStats, setAccountStats] = useState({ messages: 0, chats: 0, days: 0 });
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentProfile = isEditing ? editProfile : userProfile;
+
+  useEffect(() => {
+    loadAccountStats();
+  }, [user]);
+
+  const loadAccountStats = async () => {
+    if (!auth.currentUser) return;
+    
+    try {
+      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        const createdAt = data.createdAt?.toDate() || new Date();
+        const daysSinceCreation = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Подсчет чатов
+        const chatsQuery = query(
+          collection(db, 'chats'),
+          where('participants', 'array-contains', auth.currentUser.uid)
+        );
+        const chatsSnapshot = await getDocs(chatsQuery);
+        
+        setAccountStats({
+          messages: 0, // Можно добавить подсчет сообщений
+          chats: chatsSnapshot.size,
+          days: daysSinceCreation || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
 
   const handleSave = async () => {
     if (!editProfile.name.trim()) {
@@ -230,27 +263,25 @@ export default function SettingsView() {
           
           <div className="py-2.5 border-b border-gray-100">
             {isEditing ? (
-              <>
+              <div>
                 <input 
                   type="text" 
                   value={editProfile.username.startsWith('@') ? editProfile.username : '@' + editProfile.username}
                   onChange={e => {
                     let val = e.target.value;
-                    // Убеждаемся что начинается с @
                     if (!val.startsWith('@')) val = '@' + val.replace(/@/g, '');
-                    
-                    // Удаляем все недопустимые символы (оставляем только @, английские буквы, цифры и _)
                     val = val.replace(/[^@a-zA-Z0-9_]/g, '');
-                    
-                    // Обновляем значение
                     setEditProfile({...editProfile, username: val});
                   }}
                   maxLength={16}
                   className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1"
                   placeholder="@username"
                 />
-                <div className="text-[12px] text-gray-400 mt-1">Только английские буквы, цифры и _</div>
-              </>
+                <div className="flex justify-between items-center mt-1">
+                  <div className="text-[12px] text-gray-400">Только английские буквы, цифры и _</div>
+                  <div className="text-[11px] text-gray-400">{editProfile.username.length}/16</div>
+                </div>
+              </div>
             ) : (
               <div className="text-[16px] text-black">{userProfile.username}</div>
             )}
@@ -259,20 +290,54 @@ export default function SettingsView() {
           
           <div className="py-2.5 border-b border-gray-100">
             {isEditing ? (
-              <input 
-                type="text" 
-                value={editProfile.bio}
-                onChange={e => setEditProfile({...editProfile, bio: e.target.value})}
-                maxLength={50}
-                className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1"
-                placeholder="О себе"
-              />
+              <div>
+                <textarea 
+                  value={editProfile.bio}
+                  onChange={e => setEditProfile({...editProfile, bio: e.target.value})}
+                  maxLength={70}
+                  rows={2}
+                  className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1 resize-none"
+                  placeholder="О себе"
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <div className="text-[12px] text-gray-400">Расскажите о себе</div>
+                  <div className="text-[11px] text-gray-400">{editProfile.bio.length}/70</div>
+                </div>
+              </div>
             ) : (
-              <div className="text-[16px] text-black">{userProfile.bio}</div>
+              <div className="text-[16px] text-black">{userProfile.bio || 'Не указано'}</div>
             )}
             <div className="text-[13px] text-gray-500 mt-1">О себе</div>
           </div>
         </div>
+
+        {/* Account Stats */}
+        {!isEditing && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="px-4 py-3 mx-4 my-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp size={16} className="text-blue-600" />
+              <span className="text-[13px] font-medium text-gray-700">Статистика аккаунта</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center">
+                <div className="text-[20px] font-bold text-blue-600">{accountStats.chats}</div>
+                <div className="text-[11px] text-gray-600">Чатов</div>
+              </div>
+              <div className="text-center border-x border-blue-200">
+                <div className="text-[20px] font-bold text-purple-600">{accountStats.days}</div>
+                <div className="text-[11px] text-gray-600">Дней</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[20px] font-bold text-pink-600">{userProfile.giftsSent || 0}</div>
+                <div className="text-[11px] text-gray-600">Подарков</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         <div className="h-2 bg-gray-100 w-full my-2"></div>
 
