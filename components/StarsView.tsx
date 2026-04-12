@@ -31,14 +31,14 @@ export default function StarsView() {
         const data = userDoc.data();
         let currentStars = data.stars;
         
-        // Если поле stars не существует или отрицательное, сбрасываем на 100
+        // Если поле stars не существует или отрицательное, сбрасываем на 0
         if (currentStars === undefined || currentStars === null || currentStars < 0) {
           await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-            stars: 100,
+            stars: 0,
             giftsSent: data.giftsSent || 0,
             giftsReceived: data.giftsReceived || 0
           });
-          setStars(100);
+          setStars(0);
         } else {
           setStars(currentStars);
         }
@@ -63,10 +63,10 @@ export default function StarsView() {
     
     try {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        stars: 100
+        stars: 0
       });
-      setStars(100);
-      alert('Баланс сброшен на 100 молний!');
+      setStars(0);
+      alert('Баланс сброшен на 0 молний!');
     } catch (e) {
       console.error('Failed to reset balance:', e);
       alert('Ошибка при сбросе баланса');
@@ -228,7 +228,7 @@ export default function StarsView() {
             onClick={resetBalance}
             className="w-full bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
           >
-            Сбросить баланс на 100
+            Сбросить баланс на 0
           </button>
         )}
       </div>

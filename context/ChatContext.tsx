@@ -202,7 +202,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
                 name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
                 username: finalUsername.substring(0, 15), bio: '',
                 role: currentUser.email === 'veraloktushina1958@gmail.com' ? 'admin' : 'user',
-                isBanned: false, createdAt: serverTimestamp(), status: 'online', lastSeen: serverTimestamp()
+                isBanned: false, createdAt: serverTimestamp(), status: 'online', lastSeen: serverTimestamp(),
+                stars: 0, giftsSent: 0, giftsReceived: 0
               });
               setIsAdmin(currentUser.email === 'veraloktushina1958@gmail.com');
               setUserProfile({
