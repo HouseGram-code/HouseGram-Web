@@ -278,62 +278,95 @@ export default function SettingsView() {
 
         {/* Settings Section */}
         <div className="px-4 py-2">
-          <div className="text-[15px] font-medium mb-2" style={{ color: themeColor }}>Настройки</div>
+          <div className="text-[15px] font-medium mb-3 text-gray-500 uppercase tracking-wide">Настройки</div>
           
-          <SettingsItem 
-            icon={<Zap size={24} className="text-yellow-500" fill="currentColor" />} 
-            text="Молнии" 
-            onClick={() => setView('stars')} 
-          />
-          <SettingsItem 
-            icon={<Gift size={24} className="text-pink-500" />} 
-            text="Мои подарки" 
-            onClick={() => setView('my-gifts')} 
-          />
-          <SettingsItem 
-            icon={<Bell size={24} />} 
-            text="Уведомления и звуки" 
-            onClick={() => setView('notifications')} 
-          />
-          <SettingsItem 
-            icon={<Lock size={24} />} 
-            text="Конфиденциальность" 
-            onClick={() => setView('privacy-settings')} 
-          />
-          <SettingsItem 
-            icon={<ShieldCheck size={24} />} 
-            text="Безопасность" 
-            onClick={() => setView('security')} 
-          />
-          <SettingsItem icon={<Database size={24} />} text="Данные и память" soon />
-          <SettingsItem 
-            icon={<MessageCircle size={24} />} 
-            text="Настройки чата" 
-            onClick={() => setView('chat-settings')} 
-          />
-          <SettingsItem 
-            icon={<Server size={24} />} 
-            text="Статус сервера" 
-            onClick={() => setView('server-status')} 
-          />
-          <SettingsItem 
-            icon={<Info size={24} />} 
-            text="Правила и политика" 
-            onClick={() => setView('privacy')} 
-          />
-          <SettingsItem 
-            icon={<Info size={24} />} 
-            text="О приложении" 
-            onClick={() => setView('info')} 
-          />
-          <div 
-            className="flex items-center py-3 gap-5 cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => setIsGlassEnabled(!isGlassEnabled)}
-          >
-            <div className="text-gray-500"><Layers size={24} /></div>
-            <span className="text-[16px] text-black flex-grow">Стеклянный дизайн</span>
-            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isGlassEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
-              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isGlassEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+          {/* Группа: Персонализация */}
+          <div className="bg-white rounded-2xl overflow-hidden mb-3 shadow-sm">
+            <SettingsItem 
+              icon={<Zap size={22} className="text-yellow-500" fill="currentColor" />} 
+              text="Молнии" 
+              subtitle="Баланс и подарки"
+              onClick={() => setView('stars')} 
+            />
+            <SettingsItem 
+              icon={<Gift size={22} className="text-pink-500" />} 
+              text="Мои подарки" 
+              subtitle="Полученные подарки"
+              onClick={() => setView('my-gifts')} 
+              divider
+            />
+          </div>
+
+          {/* Группа: Приватность */}
+          <div className="bg-white rounded-2xl overflow-hidden mb-3 shadow-sm">
+            <SettingsItem 
+              icon={<Bell size={22} className="text-blue-500" />} 
+              text="Уведомления и звуки" 
+              onClick={() => setView('notifications')} 
+            />
+            <SettingsItem 
+              icon={<Lock size={22} className="text-purple-500" />} 
+              text="Конфиденциальность" 
+              onClick={() => setView('privacy-settings')} 
+              divider
+            />
+            <SettingsItem 
+              icon={<ShieldCheck size={22} className="text-green-500" />} 
+              text="Безопасность" 
+              onClick={() => setView('security')} 
+              divider
+            />
+          </div>
+
+          {/* Группа: Данные */}
+          <div className="bg-white rounded-2xl overflow-hidden mb-3 shadow-sm">
+            <SettingsItem 
+              icon={<Database size={22} className="text-gray-500" />} 
+              text="Данные и память" 
+              soon 
+            />
+            <SettingsItem 
+              icon={<MessageCircle size={22} className="text-indigo-500" />} 
+              text="Настройки чата" 
+              onClick={() => setView('chat-settings')} 
+              divider
+            />
+          </div>
+
+          {/* Группа: Информация */}
+          <div className="bg-white rounded-2xl overflow-hidden mb-3 shadow-sm">
+            <SettingsItem 
+              icon={<Server size={22} className="text-cyan-500" />} 
+              text="Статус сервера" 
+              onClick={() => setView('server-status')} 
+            />
+            <SettingsItem 
+              icon={<Info size={22} className="text-orange-500" />} 
+              text="Правила и политика" 
+              onClick={() => setView('privacy')} 
+              divider
+            />
+            <SettingsItem 
+              icon={<Info size={22} className="text-teal-500" />} 
+              text="О приложении" 
+              onClick={() => setView('info')} 
+              divider
+            />
+          </div>
+
+          {/* Стеклянный дизайн */}
+          <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+            <div 
+              className="flex items-center px-4 py-3.5 gap-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              onClick={() => setIsGlassEnabled(!isGlassEnabled)}
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                <Layers size={18} className="text-blue-600" />
+              </div>
+              <span className="text-[16px] text-gray-900 flex-grow font-medium">Стеклянный дизайн</span>
+              <div className={`w-12 h-7 rounded-full p-1 transition-all duration-300 ${isGlassEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${isGlassEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+              </div>
             </div>
           </div>
         </div>
@@ -343,20 +376,31 @@ export default function SettingsView() {
   );
 }
 
-function SettingsItem({ icon, text, onClick, soon }: { icon: React.ReactNode; text: string; onClick?: () => void; soon?: boolean }) {
+function SettingsItem({ icon, text, subtitle, onClick, soon, divider }: { icon: React.ReactNode; text: string; subtitle?: string; onClick?: () => void; soon?: boolean; divider?: boolean }) {
   return (
-    <div 
-      className={`flex items-center py-3 gap-5 transition-colors ${soon ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'}`}
-      onClick={!soon ? onClick : undefined}
-    >
-      <div className="text-gray-500">{icon}</div>
-      <span className="text-[16px] text-black flex-grow">{text}</span>
-      {soon && (
-        <div className="flex items-center gap-1 text-xs text-gray-400 font-medium bg-gray-100 px-2 py-1 rounded-md">
-          <span>soon!</span>
-          <Lock size={12} />
+    <div className={divider ? 'border-t border-gray-100' : ''}>
+      <div 
+        className={`flex items-center px-4 py-3.5 gap-4 transition-colors ${
+          soon 
+            ? 'opacity-50 cursor-not-allowed' 
+            : 'cursor-pointer hover:bg-gray-50 active:bg-gray-100'
+        }`}
+        onClick={!soon ? onClick : undefined}
+      >
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center shrink-0">
+          {icon}
         </div>
-      )}
+        <div className="flex-grow">
+          <div className="text-[16px] text-gray-900 font-medium">{text}</div>
+          {subtitle && <div className="text-[13px] text-gray-500 mt-0.5">{subtitle}</div>}
+        </div>
+        {soon && (
+          <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium bg-gray-100 px-2.5 py-1 rounded-full">
+            <span>soon!</span>
+            <Lock size={10} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
