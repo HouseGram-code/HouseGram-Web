@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck, CreditCard, Zap, Clock, CheckCheck, X } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 import { supabase } from '@/lib/supabase';
 
-type TabType = 'users' | 'stats' | 'system' | 'database';
+type TabType = 'users' | 'stats' | 'system' | 'database' | 'payments';
 
 export default function AdminView() {
   const { setView, themeColor, isGlassEnabled, isAdmin } = useChat();
@@ -29,6 +29,8 @@ export default function AdminView() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [starsAmount, setStarsAmount] = useState(100);
+  const [paymentRequests, setPaymentRequests] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -39,6 +41,7 @@ export default function AdminView() {
     checkSupabaseConnection();
     fetchUsers();
     fetchStats();
+    fetchPaymentRequests();
 
     const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
@@ -46,7 +49,23 @@ export default function AdminView() {
       }
     });
 
-    return () => unsubscribe();
+    // Подписка на заявки в реальном времени
+    const unsubscribeRequests = onSnapshot(
+      collection(db, 'payment_requests'),
+      (snapshot) => {
+        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPaymentRequests(requests.sort((a, b) => {
+          if (a.status === 'pending' && b.status !== 'pending') return -1;
+          if (a.status !== 'pending' && b.status === 'pending') return 1;
+          return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+        }));
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      unsubscribeRequests();
+    };
   }, [isAdmin, setView]);
 
   const checkSupabaseConnection = async () => {
@@ -86,6 +105,62 @@ export default function AdminView() {
       });
     } catch (err) {
       console.error('Error fetching stats', err);
+    }
+  };
+
+  const fetchPaymentRequests = async () => {
+    try {
+      setLoadingRequests(true);
+      const snapshot = await getDocs(collection(db, 'payment_requests'));
+      const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPaymentRequests(requests.sort((a: any, b: any) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      }));
+    } catch (err) {
+      console.error('Error fetching payment requests', err);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  const approvePayment = async (requestId: string, userId: string, stars: number) => {
+    try {
+      // Начисляем молнии
+      const userRef = doc(db, 'users', userId);
+      const userSnap = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
+      
+      if (!userSnap.empty) {
+        const currentStars = userSnap.docs[0].data().stars || 0;
+        await updateDoc(userRef, {
+          stars: currentStars + stars
+        });
+      }
+
+      // Обновляем статус заявки
+      await updateDoc(doc(db, 'payment_requests', requestId), {
+        status: 'approved',
+        approvedAt: new Date().toISOString()
+      });
+
+      alert(`✅ Заявка одобрена! Начислено ${stars} ⚡`);
+    } catch (err) {
+      console.error('Error approving payment:', err);
+      alert('Ошибка при одобрении заявки');
+    }
+  };
+
+  const rejectPayment = async (requestId: string) => {
+    try {
+      await updateDoc(doc(db, 'payment_requests', requestId), {
+        status: 'rejected',
+        rejectedAt: new Date().toISOString()
+      });
+      alert('❌ Заявка отклонена');
+    } catch (err) {
+      console.error('Error rejecting payment:', err);
+      alert('Ошибка при отклонении заявки');
     }
   };
 
@@ -240,12 +315,18 @@ export default function AdminView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 bg-white px-2 shrink-0">
+      <div className="flex border-b border-gray-200 bg-white px-2 shrink-0 overflow-x-auto">
         <TabButton 
           active={activeTab === 'users'} 
           onClick={() => setActiveTab('users')}
           icon={<Users size={18} />}
           label="Пользователи"
+        />
+        <TabButton 
+          active={activeTab === 'payments'} 
+          onClick={() => setActiveTab('payments')}
+          icon={<CreditCard size={18} />}
+          label="Пополнения"
         />
         <TabButton 
           active={activeTab === 'stats'} 
@@ -374,6 +455,109 @@ export default function AdminView() {
                   </div>
                 )}
               </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'payments' && (
+            <motion.div
+              key="payments"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4"
+            >
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Заявки на пополнение</h2>
+                <p className="text-sm text-gray-600">
+                  Управление заявками на покупку молний от пользователей
+                </p>
+              </div>
+
+              {paymentRequests.length === 0 ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <CreditCard size={48} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-500">Нет заявок на пополнение</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {paymentRequests.map((request: any) => (
+                    <div
+                      key={request.id}
+                      className={`bg-white rounded-xl p-4 border-2 ${
+                        request.status === 'pending'
+                          ? 'border-yellow-300 bg-yellow-50'
+                          : request.status === 'approved'
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-red-300 bg-red-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">
+                              {request.userName || 'Пользователь'}
+                            </span>
+                            {request.status === 'pending' && (
+                              <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <Clock size={12} />
+                                Ожидает
+                              </span>
+                            )}
+                            {request.status === 'approved' && (
+                              <span className="px-2 py-0.5 bg-green-200 text-green-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <CheckCheck size={12} />
+                                Одобрено
+                              </span>
+                            )}
+                            {request.status === 'rejected' && (
+                              <span className="px-2 py-0.5 bg-red-200 text-red-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <X size={12} />
+                                Отклонено
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">{request.userEmail}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            ID: {request.id.slice(0, 8)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-yellow-600 font-bold text-lg">
+                            <Zap size={20} fill="currentColor" />
+                            {request.stars}
+                          </div>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {request.price} ₽
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500 mb-3">
+                        {request.createdAt && new Date(request.createdAt.seconds * 1000).toLocaleString('ru-RU')}
+                      </div>
+
+                      {request.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => approvePayment(request.id, request.userId, request.stars)}
+                            className="flex-1 bg-green-500 text-white py-2 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle size={18} />
+                            Одобрить
+                          </button>
+                          <button
+                            onClick={() => rejectPayment(request.id)}
+                            className="flex-1 bg-red-500 text-white py-2 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Ban size={18} />
+                            Отклонить
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 

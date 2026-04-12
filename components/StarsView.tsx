@@ -165,11 +165,11 @@ export default function StarsView() {
           </button>
           
           <button
-            disabled
-            className="w-full bg-gray-100 text-gray-400 py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 cursor-not-allowed"
+            onClick={() => setView('buy-stars')}
+            className="w-full bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
           >
-            <Zap size={20} />
-            Пополнить (скоро)
+            <Zap size={20} fill="white" />
+            Пополнить молнии
           </button>
         </div>
 

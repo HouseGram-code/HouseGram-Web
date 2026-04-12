@@ -1,31 +1,40 @@
 @echo off
+chcp 65001 >nul
 echo ========================================
 echo   HouseGram Web - Push to GitHub
 echo ========================================
 echo.
 
-echo Checking git status...
+echo Проверка статуса git...
 git status
 echo.
 
-echo Adding DEPLOY_TO_GITHUB.md...
-git add DEPLOY_TO_GITHUB.md
-git add PUSH_TO_GITHUB.bat
-git commit -m "docs: Add deployment instructions"
+set /p commit_msg="Введите сообщение коммита (или Enter для автоматического): "
+
+if "%commit_msg%"=="" (
+    set commit_msg=feat: Добавлена система ручного пополнения молний через поддержку
+)
+
+echo.
+echo Добавление файлов...
+git add .
 echo.
 
-echo Pushing to GitHub...
+echo Создание коммита: %commit_msg%
+git commit -m "%commit_msg%"
 echo.
-echo Please enter your GitHub credentials when prompted.
-echo If you don't have a Personal Access Token, create one at:
-echo https://github.com/settings/tokens
+
+echo Отправка на GitHub...
+echo.
+echo Если потребуется, введите ваши учетные данные GitHub.
+echo Для Personal Access Token: https://github.com/settings/tokens
 echo.
 
 git push -u origin main
 
 echo.
 echo ========================================
-echo   Done! Check GitHub:
+echo   Готово! Проверьте GitHub:
 echo   https://github.com/HouseGram-code/HouseGram-Web
 echo ========================================
 echo.
