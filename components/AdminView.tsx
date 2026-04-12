@@ -53,7 +53,7 @@ export default function AdminView() {
     const unsubscribeRequests = onSnapshot(
       collection(db, 'payment_requests'),
       (snapshot) => {
-        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
         setPaymentRequests(requests.sort((a, b) => {
           if (a.status === 'pending' && b.status !== 'pending') return -1;
           if (a.status !== 'pending' && b.status === 'pending') return 1;
@@ -112,8 +112,8 @@ export default function AdminView() {
     try {
       setLoadingRequests(true);
       const snapshot = await getDocs(collection(db, 'payment_requests'));
-      const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPaymentRequests(requests.sort((a: any, b: any) => {
+      const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      setPaymentRequests(requests.sort((a, b) => {
         if (a.status === 'pending' && b.status !== 'pending') return -1;
         if (a.status !== 'pending' && b.status === 'pending') return 1;
         return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
