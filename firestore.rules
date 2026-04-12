@@ -212,5 +212,52 @@ service cloud.firestore {
         isAdmin()
       );
     }
+    
+    // ===============================================================
+    // Payment Requests Rules
+    // ===============================================================
+    
+    match /payment_requests/{requestId} {
+      // Пользователи могут читать только свои заявки, админы - все
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+      
+      // Любой авторизованный пользователь может создать заявку
+      allow create: if isAuthenticated() && isNotBanned() &&
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.stars is int && request.resource.data.stars > 0 &&
+                    request.resource.data.price is number && request.resource.data.price > 0 &&
+                    request.resource.data.status == 'pending' &&
+                    request.resource.data.createdAt is timestamp;
+      
+      // Только админы могут обновлять заявки (одобрять/отклонять)
+      allow update: if isAdmin();
+      
+      // Только админы могут удалять заявки
+      allow delete: if isAdmin();
+    }
+    
+    // ===============================================================
+    // Transactions Rules (для истории платежей)
+    // ===============================================================
+    
+    match /transactions/{transactionId} {
+      // Пользователи могут читать только свои транзакции, админы - все
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+      
+      // Только админы могут создавать транзакции
+      allow create: if isAdmin();
+      
+      // Никто не может обновлять транзакции (immutable)
+      allow update: if false;
+      
+      // Только админы могут удалять транзакции
+      allow delete: if isAdmin();
+    }
   }
 }
