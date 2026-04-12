@@ -97,6 +97,8 @@ export interface UserProfile {
   lastSeen?: Date | { toDate: () => Date } | null;
   isOfficial?: boolean;
   savedStickers?: string[];
+  giftsSent?: number;
+  giftsReceived?: number;
 }
 
 export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'privacy-settings' | 'notifications' | 'security' | 'admin' | 'auth' | 'info' | 'faq' | 'terms' | 'create-channel' | 'channel-info' | 'notification-stats' | 'server-status' | 'stars' | 'send-gift' | 'my-gifts' | 'user-gifts' | 'buy-stars';
