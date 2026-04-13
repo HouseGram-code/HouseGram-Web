@@ -20,7 +20,8 @@ export default function PremiumView() {
     'Расширенные настройки приватности',
     'Дополнительные темы оформления',
     'Без рекламы',
-    'Ранний доступ к новым функциям'
+    'Ранний доступ к новым функциям',
+    'История покупок (скоро)'
   ];
 
   return (
@@ -148,7 +149,7 @@ export default function PremiumView() {
         </div>
 
         {/* Pricing Card */}
-        <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 rounded-2xl p-6 mb-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 rounded-2xl p-6 mb-4 text-white shadow-lg">
           <div className="text-center mb-4">
             <div className="text-[48px] font-bold mb-1">₽299</div>
             <div className="text-[15px] opacity-90">в месяц</div>
@@ -157,9 +158,17 @@ export default function PremiumView() {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full bg-white text-purple-600 font-semibold py-3.5 rounded-xl text-[16px] shadow-lg"
+            className="w-full bg-white text-purple-600 font-semibold py-3.5 rounded-xl text-[16px] shadow-lg mb-3"
           >
             Оформить подписку
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full bg-white/20 backdrop-blur-sm text-white font-semibold py-3 rounded-xl text-[15px] border border-white/30"
+          >
+            🎁 Взять 1 день тест
           </motion.button>
         </div>
 

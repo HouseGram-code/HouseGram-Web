@@ -9,6 +9,7 @@ import { db, auth } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import Stories from './Stories';
 
 // Генерация цвета аватара на основе ID пользователя
 const getAvatarColor = (userId: string) => {
@@ -195,6 +196,9 @@ export default function ChatList() {
       </div>
 
       <div className="flex-grow overflow-y-auto pt-14 no-scrollbar">
+        {/* Stories - только когда не в режиме поиска */}
+        {!isSearching && <Stories />}
+        
         {isSearching && searchQuery.trim().length > 2 && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
