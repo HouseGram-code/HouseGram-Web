@@ -387,7 +387,7 @@ const FILE_CONFIG: Record<FileType, FileConfig> = {
     bucket: 'files',
     folder: 'videos',
     maxSize: 100 * 1024 * 1024, // 100MB
-    allowedTypes: ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'],
+    allowedTypes: ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/avi', 'video/mpeg', 'video/3gpp', 'video/x-matroska'],
     compress: false
   },
   audio: {

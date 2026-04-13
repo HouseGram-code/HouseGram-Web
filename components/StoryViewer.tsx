@@ -112,26 +112,46 @@ export default function StoryViewer({
       const video = videoRef.current;
       video.currentTime = 0;
       
-      // Используем промис для безопасного воспроизведения
-      const playPromise = video.play();
+      // Добавляем обработчики событий для отладки
+      const handleLoadedData = () => {
+        console.log('Video loaded successfully');
+      };
       
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          // Игнорируем ошибки AbortError при быстром переключении
-          if (error.name !== 'AbortError') {
-            console.error('Video play error:', error);
-          }
-        });
-      }
+      const handleError = (e: Event) => {
+        console.error('Video error:', e);
+        const videoElement = e.target as HTMLVideoElement;
+        if (videoElement.error) {
+          console.error('Video error code:', videoElement.error.code);
+          console.error('Video error message:', videoElement.error.message);
+        }
+      };
+      
+      video.addEventListener('loadeddata', handleLoadedData);
+      video.addEventListener('error', handleError);
+      
+      // Загружаем видео
+      video.load();
+      
+      // Пытаемся воспроизвести после загрузки
+      video.addEventListener('canplay', () => {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            if (error.name !== 'AbortError') {
+              console.error('Video play error:', error);
+            }
+          });
+        }
+      }, { once: true });
+      
+      // Cleanup
+      return () => {
+        video.removeEventListener('loadeddata', handleLoadedData);
+        video.removeEventListener('error', handleError);
+        video.pause();
+      };
     }
-    
-    // Cleanup при размонтировании
-    return () => {
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-    };
-  }, [currentIndex, story.mediaType]);
+  }, [currentIndex, story.mediaType, story.mediaUrl]);
 
   const handlePause = () => {
     setIsPaused(true);
@@ -256,14 +276,27 @@ export default function StoryViewer({
         ) : (
           <video
             ref={videoRef}
-            src={story.mediaUrl}
             className="max-w-full max-h-full object-contain"
             playsInline
             muted
             loop
-            preload="auto"
-            style={{ backgroundColor: 'black' }}
-          />
+            preload="metadata"
+            crossOrigin="anonymous"
+            controls={false}
+            style={{ backgroundColor: 'black', width: '100%', height: '100%' }}
+            onError={(e) => {
+              console.error('Video element error:', e);
+              const video = e.currentTarget;
+              console.error('Video src:', video.src);
+              console.error('Video error:', video.error);
+            }}
+            onLoadedMetadata={() => console.log('Video metadata loaded')}
+            onLoadedData={() => console.log('Video data loaded')}
+          >
+            <source src={story.mediaUrl} type="video/mp4" />
+            <source src={story.mediaUrl} type="video/webm" />
+            Ваш браузер не поддерживает видео.
+          </video>
         )}
       </div>
 
