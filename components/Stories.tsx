@@ -7,9 +7,9 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { auth, db, storage } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { collection, addDoc, query, where, getDocs, orderBy, updateDoc, doc, arrayUnion } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { supabase, uploadFile } from '@/lib/supabase';
 import StoryViewer from './StoryViewer';
 
 interface Story {
@@ -66,10 +66,9 @@ export default function Stories() {
       if (file && auth.currentUser) {
         setUploading(true);
         try {
-          // Загружаем файл в Firebase Storage
-          const storageRef = ref(storage, `stories/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
-          await uploadBytes(storageRef, file);
-          const mediaUrl = await getDownloadURL(storageRef);
+          // Загружаем файл в Supabase Storage
+          const fileType = file.type.startsWith('video/') ? 'video' : 'image';
+          const uploadResult = await uploadFile(file, auth.currentUser.uid, fileType);
           
           // Получаем данные пользователя
           const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', auth.currentUser.uid)));
@@ -80,8 +79,8 @@ export default function Stories() {
             userId: auth.currentUser.uid,
             userName: userData?.name || 'Пользователь',
             userAvatar: userData?.avatarUrl || null,
-            mediaUrl,
-            mediaType: file.type.startsWith('video/') ? 'video' : 'image',
+            mediaUrl: uploadResult.url,
+            mediaType: fileType,
             timestamp: Date.now(),
             views: 0,
             viewedBy: []
