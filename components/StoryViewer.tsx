@@ -43,6 +43,7 @@ export default function StoryViewer({
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const story = stories[currentIndex];
   const duration = story.mediaType === 'video' ? 15000 : 5000; // 15 сек для видео, 5 сек для фото
@@ -51,6 +52,11 @@ export default function StoryViewer({
   const handleDeleteStory = async () => {
     if (!isOwnStory) return;
     
+    setShowDeleteConfirm(true);
+    setShowMenu(false);
+  };
+
+  const confirmDelete = async () => {
     try {
       // Удаляем из Firestore
       await deleteDoc(doc(db, 'stories', story.id));
@@ -73,6 +79,8 @@ export default function StoryViewer({
     } catch (error) {
       console.error('Error deleting story:', error);
       alert('Ошибка при удалении истории');
+    } finally {
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -310,6 +318,48 @@ export default function StoryViewer({
           <ChevronRight size={24} />
         </button>
       )}
+
+      {/* Подтверждение удаления */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full"
+            >
+              <h3 className="text-[18px] font-semibold text-gray-900 mb-2">
+                Удалить историю?
+              </h3>
+              <p className="text-[14px] text-gray-600 mb-6">
+                Это действие нельзя отменить. История будет удалена навсегда.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 py-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
+                >
+                  Удалить
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

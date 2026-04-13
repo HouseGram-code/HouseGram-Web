@@ -546,9 +546,36 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) { console.error('Audio play error', e); }
   }, []);
 
-  const markAsRead = useCallback((contactId: string) => {
+  const markAsRead = useCallback(async (contactId: string) => {
+    if (!user) return;
+    
+    // Обнуляем счетчик непрочитанных
     setContacts(prev => ({ ...prev, [contactId]: { ...prev[contactId], unread: 0 } }));
-  }, []);
+    
+    // Обновляем статус всех непрочитанных сообщений на 'read'
+    const chatId = [user.uid, contactId].sort().join('_');
+    try {
+      const messagesRef = collection(db, 'chats', chatId, 'messages');
+      const q = query(
+        messagesRef,
+        where('senderId', '==', contactId),
+        where('status', '!=', 'read')
+      );
+      
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      
+      snapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { status: 'read' });
+      });
+      
+      if (snapshot.docs.length > 0) {
+        await batch.commit();
+      }
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  }, [user]);
 
   const clearHistory = useCallback(async (contactId: string) => {
     if (!user) return;

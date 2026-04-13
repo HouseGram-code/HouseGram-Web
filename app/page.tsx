@@ -84,6 +84,9 @@ const PremiumView = dynamic(() => import('@/components/PremiumView'), {
 const BuyStarsView = dynamic(() => import('@/components/BuyStarsView'), {
   loading: () => <LoadingSpinner />
 });
+const MyStoriesView = dynamic(() => import('@/components/MyStoriesView'), {
+  loading: () => <LoadingSpinner />
+});
 
 function LoadingSpinner() {
   return (
@@ -146,6 +149,7 @@ function AppContent() {
         {view === 'my-gifts' && <MyGiftsView key="my-gifts" />}
         {view === 'user-gifts' && <UserGiftsView key="user-gifts" />}
         {view === 'buy-stars' && <BuyStarsView key="buy-stars" />}
+        {view === 'my-stories' && <MyStoriesView key="my-stories" />}
       </AnimatePresence>
       <SideMenu />
     </div>
