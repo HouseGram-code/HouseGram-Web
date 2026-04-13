@@ -2,6 +2,7 @@ import { ArrowLeft, Info, Shield, HelpCircle, FileText, Globe, Github, Heart, Sp
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import StarBackground from './StarBackground';
 
 export default function InfoView() {
   const { setView, themeColor } = useChat();
@@ -13,6 +14,9 @@ export default function InfoView() {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="absolute inset-0 bg-[#f4f4f5] flex flex-col z-20"
     >
+      {/* Animated Star Background */}
+      <StarBackground />
+      
       {/* Header */}
       <div 
         className="text-white px-2.5 h-14 flex items-center gap-4 shrink-0 relative z-30 shadow-sm"

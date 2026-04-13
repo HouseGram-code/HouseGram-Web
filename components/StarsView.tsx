@@ -6,6 +6,7 @@ import { ArrowLeft, Zap, TrendingUp, Gift, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import StarBackground from './StarBackground';
 
 export default function StarsView() {
   const { setView, themeColor } = useChat();
@@ -81,6 +82,9 @@ export default function StarsView() {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="absolute inset-0 bg-tg-bg-light flex flex-col z-10"
     >
+      {/* Animated Star Background */}
+      <StarBackground />
+      
       {/* Header */}
       <div
         className="text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0"
