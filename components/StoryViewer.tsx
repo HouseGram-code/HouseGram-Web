@@ -65,20 +65,52 @@ export default function StoryViewer({
 
   useEffect(() => {
     setProgress(0);
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play();
+    
+    // Безопасное воспроизведение видео
+    if (videoRef.current && story.mediaType === 'video') {
+      const video = videoRef.current;
+      video.currentTime = 0;
+      
+      // Используем промис для безопасного воспроизведения
+      const playPromise = video.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          // Игнорируем ошибки AbortError при быстром переключении
+          if (error.name !== 'AbortError') {
+            console.error('Video play error:', error);
+          }
+        });
+      }
     }
-  }, [currentIndex]);
+    
+    // Cleanup при размонтировании
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    };
+  }, [currentIndex, story.mediaType]);
 
   const handlePause = () => {
     setIsPaused(true);
-    if (videoRef.current) videoRef.current.pause();
+    if (videoRef.current && story.mediaType === 'video') {
+      videoRef.current.pause();
+    }
   };
 
   const handleResume = () => {
     setIsPaused(false);
-    if (videoRef.current) videoRef.current.play();
+    if (videoRef.current && story.mediaType === 'video') {
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          if (error.name !== 'AbortError') {
+            console.error('Video resume error:', error);
+          }
+        });
+      }
+    }
   };
 
   const isOwnStory = story.userId === currentUserId;
