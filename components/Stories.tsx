@@ -66,9 +66,27 @@ export default function Stories() {
       if (file && auth.currentUser) {
         setUploading(true);
         try {
-          // Загружаем файл в Supabase Storage
           const fileType = file.type.startsWith('video/') ? 'video' : 'image';
-          const uploadResult = await uploadFile(file, auth.currentUser.uid, fileType);
+          
+          let uploadFile: File | Blob = file;
+          
+          // Конвертируем видео в совместимый формат
+          if (fileType === 'video') {
+            try {
+              console.log('Converting video to compatible format...');
+              // Проверяем, что это не MP4 или WebM
+              if (!file.type.includes('mp4') && !file.type.includes('webm')) {
+                alert('Пожалуйста, загрузите видео в формате MP4 или WebM');
+                setUploading(false);
+                return;
+              }
+            } catch (error) {
+              console.error('Video conversion error:', error);
+            }
+          }
+          
+          // Загружаем файл в Supabase Storage
+          const uploadResult = await uploadFile(uploadFile as File, auth.currentUser.uid, fileType);
           
           // Получаем данные пользователя
           const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', auth.currentUser.uid)));

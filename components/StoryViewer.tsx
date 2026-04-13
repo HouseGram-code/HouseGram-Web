@@ -44,6 +44,7 @@ export default function StoryViewer({
   const [isPaused, setIsPaused] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const story = stories[currentIndex];
   const duration = story.mediaType === 'video' ? 15000 : 5000; // 15 сек для видео, 5 сек для фото
@@ -106,6 +107,7 @@ export default function StoryViewer({
 
   useEffect(() => {
     setProgress(0);
+    setVideoError(false);
     
     console.log('Story changed:', {
       mediaType: story.mediaType,
@@ -123,6 +125,7 @@ export default function StoryViewer({
       // Добавляем обработчики событий для отладки
       const handleLoadedData = () => {
         console.log('Video loaded successfully');
+        setVideoError(false);
       };
       
       const handleError = (e: Event) => {
@@ -137,6 +140,11 @@ export default function StoryViewer({
             MEDIA_ERR_DECODE: 3,
             MEDIA_ERR_SRC_NOT_SUPPORTED: 4
           });
+          
+          // Показываем ошибку пользователю
+          if (videoElement.error.code === 4) {
+            setVideoError(true);
+          }
         }
       };
       
@@ -284,7 +292,25 @@ export default function StoryViewer({
 
       {/* Media content */}
       <div className="relative w-full h-full flex items-center justify-center bg-black">
-        {story.mediaType === 'image' ? (
+        {videoError ? (
+          <div className="text-center p-8">
+            <div className="text-white text-[18px] font-semibold mb-4">
+              ⚠️ Ошибка воспроизведения
+            </div>
+            <div className="text-white/70 text-[14px] mb-6">
+              Видео в неподдерживаемом формате.<br />
+              Пожалуйста, загрузите видео в формате MP4 или WebM.
+            </div>
+            {isOwnStory && (
+              <button
+                onClick={handleDeleteStory}
+                className="px-6 py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors"
+              >
+                Удалить это видео
+              </button>
+            )}
+          </div>
+        ) : story.mediaType === 'image' ? (
           <img 
             src={story.mediaUrl} 
             alt="Story"
