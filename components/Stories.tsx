@@ -60,33 +60,21 @@ export default function Stories() {
   const handleCreateStory = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*,video/*';
+    input.accept = 'image/*'; // Только фото
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file && auth.currentUser) {
         setUploading(true);
         try {
-          const fileType = file.type.startsWith('video/') ? 'video' : 'image';
-          
-          let fileToUpload: File | Blob = file;
-          
-          // Конвертируем видео в совместимый формат
-          if (fileType === 'video') {
-            try {
-              console.log('Converting video to compatible format...');
-              // Проверяем, что это не MP4 или WebM
-              if (!file.type.includes('mp4') && !file.type.includes('webm')) {
-                alert('Пожалуйста, загрузите видео в формате MP4 или WebM');
-                setUploading(false);
-                return;
-              }
-            } catch (error) {
-              console.error('Video conversion error:', error);
-            }
+          // Проверяем, что это изображение
+          if (!file.type.startsWith('image/')) {
+            alert('Пожалуйста, загрузите изображение');
+            setUploading(false);
+            return;
           }
           
           // Загружаем файл в Supabase Storage
-          const uploadResult = await uploadFile(fileToUpload as File, auth.currentUser.uid, fileType);
+          const uploadResult = await uploadFile(file, auth.currentUser.uid, 'image');
           
           // Получаем данные пользователя
           const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', auth.currentUser.uid)));
@@ -98,7 +86,7 @@ export default function Stories() {
             userName: userData?.name || 'Пользователь',
             userAvatar: userData?.avatarUrl || null,
             mediaUrl: uploadResult.url,
-            mediaType: fileType,
+            mediaType: 'image',
             timestamp: Date.now(),
             views: 0,
             viewedBy: []

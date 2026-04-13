@@ -662,14 +662,14 @@ export default function ChatView() {
               onTouchStart={(e) => handleTouchStart(e, msg.id)}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchMove}
-              className={`message max-w-[75%] px-3 py-1.5 mb-1.5 rounded-[18px] relative break-words flex flex-col cursor-pointer select-none ${
+              className={`message max-w-[75%] px-3 py-2 mb-2 rounded-[20px] relative break-words flex flex-col cursor-pointer select-none transition-all hover:scale-[1.02] ${
                 isSticker || isGif
                   ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
                   : isJumbo
                     ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
                     : isOwn
-                      ? 'bg-tg-sent-bubble self-end rounded-br-[5px] message-tail-sent shadow-sm text-[15px] leading-snug'
-                      : 'bg-tg-received-bubble self-start rounded-bl-[5px] message-tail-received shadow-sm text-[15px] leading-snug'
+                      ? 'bg-tg-sent-bubble self-end rounded-br-[6px] message-tail-sent shadow-md text-[15px] leading-relaxed'
+                      : 'bg-tg-received-bubble self-start rounded-bl-[6px] message-tail-received shadow-md text-[15px] leading-relaxed'
               }`}
             >
               {msg.forwardedFrom && (

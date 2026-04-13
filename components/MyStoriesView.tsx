@@ -130,6 +130,24 @@ export default function MyStoriesView() {
 
       {/* Content */}
       <div className="flex-grow overflow-y-auto bg-gray-50">
+        {/* Информационный блок */}
+        <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+              <span className="text-white text-[20px]">ℹ️</span>
+            </div>
+            <div className="flex-grow">
+              <h3 className="text-[15px] font-semibold text-gray-900 mb-1">
+                Что принимает?
+              </h3>
+              <p className="text-[13px] text-gray-600 leading-relaxed">
+                ✅ <strong>Фото:</strong> JPG, PNG, GIF, WebP<br />
+                ⏳ <strong>Видео:</strong> Скоро добавим! Работаем над поддержкой MP4 и WebM
+              </p>
+            </div>
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>

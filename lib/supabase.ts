@@ -438,7 +438,24 @@ export const detectFileType = (file: File): FileType => {
 export const validateFile = (file: File, fileType: FileType): { valid: boolean; error?: string } => {
   const config = FILE_CONFIG[fileType];
   
-  if (!config.allowedTypes.includes(file.type)) {
+  // Проверяем, что тип файла соответствует категории
+  const fileTypeLower = file.type.toLowerCase();
+  let isValidType = false;
+  
+  // Для видео проверяем, что это видео
+  if (fileType === 'video' && fileTypeLower.startsWith('video/')) {
+    isValidType = true;
+  }
+  // Для изображений проверяем, что это изображение
+  else if (fileType === 'image' && fileTypeLower.startsWith('image/')) {
+    isValidType = true;
+  }
+  // Для остальных типов проверяем точное совпадение
+  else if (config.allowedTypes.includes(file.type)) {
+    isValidType = true;
+  }
+  
+  if (!isValidType) {
     return { valid: false, error: `Неподдерживаемый тип файла. Разрешены: ${config.allowedTypes.join(', ')}` };
   }
   
