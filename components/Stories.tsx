@@ -4,39 +4,137 @@
 
 'use client';
 
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { auth, db, storage } from '@/lib/firebase';
+import { collection, addDoc, query, where, getDocs, orderBy, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import StoryViewer from './StoryViewer';
 
 interface Story {
   id: string;
   userId: string;
   userName: string;
   userAvatar?: string;
-  imageUrl: string;
+  mediaUrl: string;
+  mediaType: 'image' | 'video';
   timestamp: number;
-  viewed: boolean;
+  views: number;
+  viewedBy: string[];
 }
 
 export default function Stories() {
-  const [stories] = useState<Story[]>([
-    // Пока пустой массив - истории будут загружаться из Firebase
-  ]);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [viewingStories, setViewingStories] = useState<Story[] | null>(null);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    loadStories();
+  }, []);
+
+  const loadStories = async () => {
+    try {
+      const storiesRef = collection(db, 'stories');
+      const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+      const q = query(
+        storiesRef,
+        where('timestamp', '>', twentyFourHoursAgo),
+        orderBy('timestamp', 'desc')
+      );
+      
+      const snapshot = await getDocs(q);
+      const loadedStories: Story[] = [];
+      
+      snapshot.forEach((doc) => {
+        loadedStories.push({ id: doc.id, ...doc.data() } as Story);
+      });
+      
+      setStories(loadedStories);
+    } catch (error) {
+      console.error('Error loading stories:', error);
+    }
+  };
 
   const handleCreateStory = () => {
-    // Создаем input для выбора файла
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*,video/*';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        // TODO: Загрузить файл в Firebase Storage и создать историю
-        alert(`Выбран файл: ${file.name}\nТип: ${file.type}\nРазмер: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      if (file && auth.currentUser) {
+        setUploading(true);
+        try {
+          // Загружаем файл в Firebase Storage
+          const storageRef = ref(storage, `stories/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
+          await uploadBytes(storageRef, file);
+          const mediaUrl = await getDownloadURL(storageRef);
+          
+          // Получаем данные пользователя
+          const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', auth.currentUser.uid)));
+          const userData = userDoc.docs[0]?.data();
+          
+          // Создаем историю в Firestore
+          await addDoc(collection(db, 'stories'), {
+            userId: auth.currentUser.uid,
+            userName: userData?.name || 'Пользователь',
+            userAvatar: userData?.avatarUrl || null,
+            mediaUrl,
+            mediaType: file.type.startsWith('video/') ? 'video' : 'image',
+            timestamp: Date.now(),
+            views: 0,
+            viewedBy: []
+          });
+          
+          // Перезагружаем истории
+          await loadStories();
+        } catch (error) {
+          console.error('Error uploading story:', error);
+          alert('Ошибка при загрузке истории');
+        } finally {
+          setUploading(false);
+        }
       }
     };
     input.click();
   };
+
+  const handleViewStory = async (story: Story) => {
+    // Группируем истории по пользователям
+    const userStories = stories.filter(s => s.userId === story.userId);
+    setViewingStories(userStories);
+    setCurrentStoryIndex(userStories.findIndex(s => s.id === story.id));
+    
+    // Отмечаем как просмотренную
+    if (auth.currentUser && !story.viewedBy.includes(auth.currentUser.uid)) {
+      try {
+        const storyRef = doc(db, 'stories', story.id);
+        await updateDoc(storyRef, {
+          views: story.views + 1,
+          viewedBy: arrayUnion(auth.currentUser.uid)
+        });
+      } catch (error) {
+        console.error('Error updating story views:', error);
+      }
+    }
+  };
+
+  const closeViewer = () => {
+    setViewingStories(null);
+    loadStories(); // Обновляем счетчики
+  };
+
+  // Группируем истории по пользователям
+  const groupedStories = stories.reduce((acc, story) => {
+    if (!acc[story.userId]) {
+      acc[story.userId] = [];
+    }
+    acc[story.userId].push(story);
+    return acc;
+  }, {} as Record<string, Story[]>);
+
+  const userStoryGroups = Object.values(groupedStories).map(group => group[0]);
 
   return (
     <div className="px-4 py-3 border-b border-gray-100 bg-white">
@@ -58,49 +156,75 @@ export default function Stories() {
         </motion.div>
 
         {/* Истории пользователей */}
-        {stories.map((story) => (
-          <motion.div
-            key={story.id}
-            whileTap={{ scale: 0.95 }}
-            className="flex flex-col items-center gap-1 shrink-0 cursor-pointer"
-          >
-            <div className="relative">
-              {/* Градиентная рамка для непросмотренных историй */}
-              <div className={`w-16 h-16 rounded-full ${
-                !story.viewed 
-                  ? 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500' 
-                  : 'bg-gray-300'
-              } p-[2px]`}>
-                <div className="w-full h-full rounded-full bg-white p-[2px]">
-                  {story.userAvatar ? (
-                    <img 
-                      src={story.userAvatar} 
-                      alt={story.userName}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-[18px]">
-                      {story.userName[0]}
-                    </div>
-                  )}
+        {userStoryGroups.map((story) => {
+          const isViewed = auth.currentUser && story.viewedBy.includes(auth.currentUser.uid);
+          
+          return (
+            <motion.div
+              key={story.userId}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleViewStory(story)}
+              className="flex flex-col items-center gap-1 shrink-0 cursor-pointer"
+            >
+              <div className="relative">
+                {/* Градиентная рамка для непросмотренных историй */}
+                <div className={`w-16 h-16 rounded-full ${
+                  !isViewed 
+                    ? 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500' 
+                    : 'bg-gray-300'
+                } p-[2px]`}>
+                  <div className="w-full h-full rounded-full bg-white p-[2px]">
+                    {story.userAvatar ? (
+                      <img 
+                        src={story.userAvatar} 
+                        alt={story.userName}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-[18px]">
+                        {story.userName[0]}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <span className="text-[11px] text-gray-600 font-medium max-w-[64px] truncate">
-              {story.userName}
-            </span>
-          </motion.div>
-        ))}
+              <span className="text-[11px] text-gray-600 font-medium max-w-[64px] truncate">
+                {story.userName}
+              </span>
+            </motion.div>
+          );
+        })}
 
         {/* Заглушка если нет историй */}
-        {stories.length === 0 && (
+        {stories.length === 0 && !uploading && (
           <div className="flex items-center justify-center w-full py-2">
             <p className="text-[13px] text-gray-400">
               Пока нет историй. Будьте первым!
             </p>
           </div>
         )}
+
+        {/* Индикатор загрузки */}
+        {uploading && (
+          <div className="flex items-center justify-center w-full py-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+          </div>
+        )}
       </div>
+
+      {/* Story Viewer */}
+      <AnimatePresence>
+        {viewingStories && auth.currentUser && (
+          <StoryViewer
+            stories={viewingStories}
+            currentIndex={currentStoryIndex}
+            onClose={closeViewer}
+            onNext={() => setCurrentStoryIndex(prev => Math.min(prev + 1, viewingStories.length - 1))}
+            onPrev={() => setCurrentStoryIndex(prev => Math.max(prev - 1, 0))}
+            currentUserId={auth.currentUser.uid}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
