@@ -397,6 +397,13 @@ export default function SettingsView() {
               onClick={() => setView('my-gifts')} 
               divider
             />
+            <SettingsItem 
+              icon={<Calendar size={22} className="text-purple-500" />} 
+              text="Мои истории" 
+              subtitle="Просмотр и управление"
+              onClick={() => setView('my-stories')} 
+              divider
+            />
           </div>
 
           {/* Группа: Приватность */}
