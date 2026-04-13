@@ -342,117 +342,48 @@ export default function SettingsView() {
         <div className="h-2 bg-gray-100 w-full my-2"></div>
 
         {/* Settings Section */}
-<div className="px-4 py-2">
+        <div className="px-4 py-2">
           <div className="text-[15px] font-medium mb-3 text-gray-500 uppercase tracking-wide">Настройки</div>
-          
-          {/* HouseGram Premium Card */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 rounded-2xl p-4 mb-3 cursor-pointer relative overflow-hidden shadow-lg"
-            onClick={() => {/* TODO: Add premium view */}}
-          >
-            {/* Animated background stars */}
-            <div className="absolute inset-0 opacity-20">
-              {[...Array(15)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-1 h-1 bg-white rounded-full"
-                  style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                  }}
-                  animate={{
-                    opacity: [0.2, 0.8, 0.2],
-                    scale: [1, 1.5, 1],
-                  }}
-                  transition={{
-                    duration: 2 + Math.random() * 2,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="flex items-center gap-4 relative z-10">
-              {/* Big animated star like Telegram Premium */}
-              <motion.div
-                animate={{
-                  rotate: [0, 360],
-                  scale: [1, 1.1, 1],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-                className="shrink-0"
-              >
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                  <motion.path
-                    d="M24 4L27.876 16.124L40 20L27.876 23.876L24 36L20.124 23.876L8 20L20.124 16.124L24 4Z"
-                    fill="white"
-                    animate={{
-                      opacity: [0.8, 1, 0.8],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                    }}
-                  />
-                  <motion.path
-                    d="M38 10L39.5 14.5L44 16L39.5 17.5L38 22L36.5 17.5L32 16L36.5 14.5L38 10Z"
-                    fill="white"
-                    fillOpacity="0.6"
-                    animate={{
-                      opacity: [0.4, 0.8, 0.4],
-                      scale: [1, 1.2, 1],
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      delay: 0.5,
-                    }}
-                  />
-                  <motion.path
-                    d="M12 8L13 11L16 12L13 13L12 16L11 13L8 12L11 11L12 8Z"
-                    fill="white"
-                    fillOpacity="0.6"
-                    animate={{
-                      opacity: [0.4, 0.8, 0.4],
-                      scale: [1, 1.2, 1],
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      delay: 1,
-                    }}
-                  />
-                </svg>
-              </motion.div>
-
-              <div className="flex-grow">
-                <h3 className="text-white font-bold text-[17px] mb-0.5">
-                  HouseGram Premium
-                </h3>
-                <p className="text-white/80 text-[13px]">
-                  Эксклюзивные возможности
-                </p>
-              </div>
-
-              <motion.div
-                animate={{ x: [0, 5, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="text-white text-[24px]"
-              >
-                →
-              </motion.div>
-            </div>
-          </motion.div>
           
           {/* Группа: Персонализация */}
           <div className="bg-white rounded-2xl overflow-hidden mb-3 shadow-sm">
+            {/* HouseGram Premium */}
+            <div 
+              onClick={() => setView('premium')}
+              className="flex items-center gap-3 px-4 py-3 active:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100"
+            >
+              <div className="relative">
+                <motion.div
+                  animate={{
+                    rotate: [0, 360],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 2L14.09 8.26L20 10L14.09 11.74L12 18L9.91 11.74L4 10L9.91 8.26L12 2Z"
+                      fill="url(#premium-gradient)"
+                    />
+                    <defs>
+                      <linearGradient id="premium-gradient" x1="4" y1="2" x2="20" y2="18">
+                        <stop offset="0%" stopColor="#8B5CF6" />
+                        <stop offset="50%" stopColor="#3B82F6" />
+                        <stop offset="100%" stopColor="#06B6D4" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </motion.div>
+              </div>
+              <div className="flex-grow">
+                <div className="text-[16px] text-black font-normal">HouseGram Premium</div>
+                <div className="text-[13px] text-gray-500">Эксклюзивные возможности</div>
+              </div>
+            </div>
+            
             <SettingsItem 
               icon={<Zap size={22} className="text-yellow-500" fill="currentColor" />} 
               text="Молнии" 

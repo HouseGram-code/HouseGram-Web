@@ -78,6 +78,9 @@ const MyGiftsView = dynamic(() => import('@/components/MyGiftsView'), {
 const UserGiftsView = dynamic(() => import('@/components/UserGiftsView'), {
   loading: () => <LoadingSpinner />
 });
+const PremiumView = dynamic(() => import('@/components/PremiumView'), {
+  loading: () => <LoadingSpinner />
+});
 const BuyStarsView = dynamic(() => import('@/components/BuyStarsView'), {
   loading: () => <LoadingSpinner />
 });
@@ -138,6 +141,7 @@ function AppContent() {
         {view === 'notification-stats' && <NotificationStatsView key="notification-stats" />}
         {view === 'server-status' && <ServerStatusView key="server-status" />}
         {view === 'stars' && <StarsView key="stars" />}
+        {view === 'premium' && <PremiumView key="premium" />}
         {view === 'send-gift' && <SendGiftView key="send-gift" />}
         {view === 'my-gifts' && <MyGiftsView key="my-gifts" />}
         {view === 'user-gifts' && <UserGiftsView key="user-gifts" />}
