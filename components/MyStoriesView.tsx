@@ -9,7 +9,7 @@ import { ArrowLeft, Eye, Trash2, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, orderBy, deleteDoc, doc } from 'firestore/firestore';
+import { collection, query, where, getDocs, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { supabase } from '@/lib/supabase';
 import StoryViewer from './StoryViewer';
 
