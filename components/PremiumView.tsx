@@ -12,17 +12,15 @@ import StarBackground from './StarBackground';
 export default function PremiumView() {
   const { setView, themeColor } = useChat();
 
-  const features = [
-    'Эксклюзивные стикеры и эмодзи',
-    'Увеличенный лимит на загрузку файлов',
-    'Приоритетная поддержка',
-    'Уникальный значок Premium',
-    'Расширенные настройки приватности',
-    'Дополнительные темы оформления',
-    'Без рекламы',
-    'Ранний доступ к новым функциям',
-    'История покупок (скоро)'
-  ];
+  const handleFreeTrial = () => {
+    // TODO: Активировать бесплатный тест на 1 день
+    alert('Бесплатный тест на 1 день активирован! 🎉');
+  };
+
+  const handleSubscribe = () => {
+    // TODO: Открыть страницу оплаты
+    alert('Переход на страницу оплаты...');
+  };
 
   return (
     <motion.div
@@ -123,31 +121,6 @@ export default function PremiumView() {
           </p>
         </div>
 
-        {/* Features List */}
-        <div className="bg-white rounded-2xl p-4 mb-6 shadow-sm">
-          <h3 className="text-[17px] font-semibold text-gray-900 mb-4">
-            Что входит в Premium:
-          </h3>
-          <div className="space-y-3">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-start gap-3"
-              >
-                <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                  <Check size={16} className="text-white" strokeWidth={3} />
-                </div>
-                <span className="text-[15px] text-gray-700 leading-relaxed">
-                  {feature}
-                </span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
         {/* Pricing Card */}
         <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 rounded-2xl p-6 mb-4 text-white shadow-lg">
           <div className="text-center mb-4">
@@ -158,6 +131,7 @@ export default function PremiumView() {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            onClick={handleSubscribe}
             className="w-full bg-white text-purple-600 font-semibold py-3.5 rounded-xl text-[16px] shadow-lg mb-3"
           >
             Оформить подписку
@@ -166,6 +140,7 @@ export default function PremiumView() {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            onClick={handleFreeTrial}
             className="w-full bg-white/20 backdrop-blur-sm text-white font-semibold py-3 rounded-xl text-[15px] border border-white/30"
           >
             🎁 Взять 1 день тест

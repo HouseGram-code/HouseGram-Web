@@ -23,12 +23,28 @@ export default function Stories() {
     // Пока пустой массив - истории будут загружаться из Firebase
   ]);
 
+  const handleCreateStory = () => {
+    // Создаем input для выбора файла
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,video/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // TODO: Загрузить файл в Firebase Storage и создать историю
+        alert(`Выбран файл: ${file.name}\nТип: ${file.type}\nРазмер: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      }
+    };
+    input.click();
+  };
+
   return (
     <div className="px-4 py-3 border-b border-gray-100 bg-white">
       <div className="flex gap-3 overflow-x-auto no-scrollbar">
         {/* Кнопка создания истории */}
         <motion.div
           whileTap={{ scale: 0.95 }}
+          onClick={handleCreateStory}
           className="flex flex-col items-center gap-1 shrink-0 cursor-pointer"
         >
           <div className="relative">
