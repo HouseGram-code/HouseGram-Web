@@ -68,7 +68,7 @@ export default function Stories() {
         try {
           const fileType = file.type.startsWith('video/') ? 'video' : 'image';
           
-          let uploadFile: File | Blob = file;
+          let fileToUpload: File | Blob = file;
           
           // Конвертируем видео в совместимый формат
           if (fileType === 'video') {
@@ -86,7 +86,7 @@ export default function Stories() {
           }
           
           // Загружаем файл в Supabase Storage
-          const uploadResult = await uploadFile(uploadFile as File, auth.currentUser.uid, fileType);
+          const uploadResult = await uploadFile(fileToUpload as File, auth.currentUser.uid, fileType);
           
           // Получаем данные пользователя
           const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', auth.currentUser.uid)));
