@@ -8,18 +8,6 @@ import type { NextRequest } from 'next/server';
 // Простое in-memory хранилище для rate limiting
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
 
-// Очистка старых записей каждые 5 минут
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, value] of requestCounts.entries()) {
-      if (value.resetTime < now) {
-        requestCounts.delete(key);
-      }
-    }
-  }, 5 * 60 * 1000);
-}
-
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const realIp = request.headers.get('x-real-ip');
@@ -32,6 +20,11 @@ function checkRateLimit(ip: string, maxRequests: number, windowMs: number): bool
   const now = Date.now();
   const key = `ratelimit:${ip}`;
   const record = requestCounts.get(key);
+  
+  // Очистка старых записей
+  if (record && record.resetTime < now) {
+    requestCounts.delete(key);
+  }
   
   if (!record || record.resetTime < now) {
     requestCounts.set(key, { count: 1, resetTime: now + windowMs });
