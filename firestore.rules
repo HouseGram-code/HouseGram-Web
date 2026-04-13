@@ -259,5 +259,36 @@ service cloud.firestore {
       // Только админы могут удалять транзакции
       allow delete: if isAdmin();
     }
+    
+    // ===============================================================
+    // Stories Rules (истории как в Telegram)
+    // ===============================================================
+    
+    match /stories/{storyId} {
+      // Все авторизованные пользователи могут читать истории
+      allow read: if isAuthenticated();
+      
+      // Пользователи могут создавать свои истории
+      allow create: if isAuthenticated() && isNotBanned() &&
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.userName is string &&
+                    request.resource.data.mediaUrl is string &&
+                    request.resource.data.mediaType in ['image', 'video'] &&
+                    request.resource.data.timestamp is int &&
+                    request.resource.data.views is int &&
+                    request.resource.data.viewedBy is list;
+      
+      // Пользователи могут обновлять счетчики просмотров
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || // Владелец может обновлять
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'viewedBy']) // Любой может добавить просмотр
+      );
+      
+      // Пользователи могут удалять только свои истории
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+    }
   }
 }
