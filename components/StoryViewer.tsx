@@ -107,10 +107,18 @@ export default function StoryViewer({
   useEffect(() => {
     setProgress(0);
     
+    console.log('Story changed:', {
+      mediaType: story.mediaType,
+      mediaUrl: story.mediaUrl,
+      timestamp: story.timestamp
+    });
+    
     // Безопасное воспроизведение видео
     if (videoRef.current && story.mediaType === 'video') {
       const video = videoRef.current;
       video.currentTime = 0;
+      
+      console.log('Setting video src:', story.mediaUrl);
       
       // Добавляем обработчики событий для отладки
       const handleLoadedData = () => {
@@ -118,11 +126,17 @@ export default function StoryViewer({
       };
       
       const handleError = (e: Event) => {
-        console.error('Video error:', e);
+        console.error('Video error event:', e);
         const videoElement = e.target as HTMLVideoElement;
         if (videoElement.error) {
           console.error('Video error code:', videoElement.error.code);
           console.error('Video error message:', videoElement.error.message);
+          console.error('Video error MEDIA_ERR codes:', {
+            MEDIA_ERR_ABORTED: 1,
+            MEDIA_ERR_NETWORK: 2,
+            MEDIA_ERR_DECODE: 3,
+            MEDIA_ERR_SRC_NOT_SUPPORTED: 4
+          });
         }
       };
       
@@ -134,13 +148,16 @@ export default function StoryViewer({
       
       // Пытаемся воспроизвести после загрузки
       video.addEventListener('canplay', () => {
+        console.log('Video can play, attempting to play...');
         const playPromise = video.play();
         if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            if (error.name !== 'AbortError') {
-              console.error('Video play error:', error);
-            }
-          });
+          playPromise
+            .then(() => console.log('Video playing successfully'))
+            .catch((error) => {
+              if (error.name !== 'AbortError') {
+                console.error('Video play error:', error);
+              }
+            });
         }
       }, { once: true });
       
@@ -276,6 +293,7 @@ export default function StoryViewer({
         ) : (
           <video
             ref={videoRef}
+            src={story.mediaUrl}
             className="max-w-full max-h-full object-contain"
             playsInline
             muted
@@ -288,15 +306,22 @@ export default function StoryViewer({
               console.error('Video element error:', e);
               const video = e.currentTarget;
               console.error('Video src:', video.src);
+              console.error('Video currentSrc:', video.currentSrc);
               console.error('Video error:', video.error);
+              if (video.error) {
+                console.error('Error code:', video.error.code);
+                console.error('Error message:', video.error.message);
+              }
             }}
-            onLoadedMetadata={() => console.log('Video metadata loaded')}
+            onLoadedMetadata={(e) => {
+              console.log('Video metadata loaded');
+              const video = e.currentTarget;
+              console.log('Video duration:', video.duration);
+              console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+            }}
             onLoadedData={() => console.log('Video data loaded')}
-          >
-            <source src={story.mediaUrl} type="video/mp4" />
-            <source src={story.mediaUrl} type="video/webm" />
-            Ваш браузер не поддерживает видео.
-          </video>
+            onCanPlay={() => console.log('Video can play')}
+          />
         )}
       </div>
 
