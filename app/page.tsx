@@ -48,6 +48,9 @@ const InfoView = dynamic(() => import('@/components/InfoView'), {
 const FaqView = dynamic(() => import('@/components/FaqView'), {
   loading: () => <LoadingSpinner />
 });
+const StarBackground = dynamic(() => import('@/components/StarBackground'), {
+  ssr: false
+});
 const TermsView = dynamic(() => import('@/components/TermsView'), {
   loading: () => <LoadingSpinner />
 });
@@ -112,6 +115,9 @@ function AppContent() {
 
   return (
     <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+      {/* Анимированный фон со звездами */}
+      <StarBackground />
+      
       <AnimatePresence initial={false} mode="popLayout">
         {view === 'menu' && <ChatList key="menu" />}
         {view === 'chat' && <ChatView key="chat" />}
