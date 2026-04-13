@@ -5,8 +5,11 @@
 'use client';
 
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Eye, ChevronLeft, ChevronRight, MoreVertical, Trash2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { db } from '@/lib/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 
 interface Story {
   id: string;
@@ -39,9 +42,39 @@ export default function StoryViewer({
 }: StoryViewerProps) {
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const story = stories[currentIndex];
   const duration = story.mediaType === 'video' ? 15000 : 5000; // 15 сек для видео, 5 сек для фото
+  const isOwnStory = story.userId === currentUserId;
+
+  const handleDeleteStory = async () => {
+    if (!isOwnStory) return;
+    
+    try {
+      // Удаляем из Firestore
+      await deleteDoc(doc(db, 'stories', story.id));
+      
+      // Удаляем файл из Supabase Storage (если используется)
+      // Извлекаем путь из URL
+      const urlParts = story.mediaUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const folder = story.mediaType === 'video' ? 'videos' : 'images';
+      const filePath = `${folder}/${story.userId}/${fileName}`;
+      
+      try {
+        await supabase.storage.from('files').remove([filePath]);
+      } catch (e) {
+        console.log('File already deleted or not found');
+      }
+      
+      // Закрываем просмотр
+      onClose();
+    } catch (error) {
+      console.error('Error deleting story:', error);
+      alert('Ошибка при удалении истории');
+    }
+  };
 
   useEffect(() => {
     if (isPaused) return;
@@ -113,8 +146,6 @@ export default function StoryViewer({
     }
   };
 
-  const isOwnStory = story.userId === currentUserId;
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -164,16 +195,50 @@ export default function StoryViewer({
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-colors"
-        >
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Кнопка меню (три точки) для владельца */}
+          {isOwnStory && (
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-colors"
+              >
+                <MoreVertical size={20} />
+              </button>
+              
+              {/* Меню удаления */}
+              <AnimatePresence>
+                {showMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                    className="absolute right-0 top-10 bg-white rounded-lg shadow-xl overflow-hidden min-w-[150px]"
+                  >
+                    <button
+                      onClick={handleDeleteStory}
+                      className="w-full px-4 py-3 flex items-center gap-2 text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={18} />
+                      <span className="font-medium">Удалить</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+          
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Media content */}
-      <div className="relative w-full h-full flex items-center justify-center">
+      <div className="relative w-full h-full flex items-center justify-center bg-black">
         {story.mediaType === 'image' ? (
           <img 
             src={story.mediaUrl} 
@@ -188,6 +253,8 @@ export default function StoryViewer({
             playsInline
             muted
             loop
+            preload="auto"
+            style={{ backgroundColor: 'black' }}
           />
         )}
       </div>
