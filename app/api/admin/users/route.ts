@@ -136,11 +136,10 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json({
-      success: true,
+      ...result,
       message: 'Действие выполнено успешно',
       action,
-      userId,
-      ...result
+      userId
     });
     
   } catch (error) {
