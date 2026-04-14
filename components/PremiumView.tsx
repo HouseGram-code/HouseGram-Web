@@ -12,11 +12,6 @@ import StarBackground from './StarBackground';
 export default function PremiumView() {
   const { setView, themeColor } = useChat();
 
-  const handleFreeTrial = () => {
-    // TODO: Активировать бесплатный тест на 1 день
-    alert('Бесплатный тест на 1 день активирован! 🎉');
-  };
-
   const handleSubscribe = () => {
     // TODO: Открыть страницу оплаты
     alert('Переход на страницу оплаты...');
@@ -132,18 +127,9 @@ export default function PremiumView() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleSubscribe}
-            className="w-full bg-white text-purple-600 font-semibold py-3.5 rounded-xl text-[16px] shadow-lg mb-3"
+            className="w-full bg-white text-purple-600 font-semibold py-3.5 rounded-xl text-[16px] shadow-lg"
           >
             Оформить подписку
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleFreeTrial}
-            className="w-full bg-white/20 backdrop-blur-sm text-white font-semibold py-3 rounded-xl text-[15px] border border-white/30"
-          >
-            🎁 Взять 1 день тест
           </motion.button>
         </div>
 
