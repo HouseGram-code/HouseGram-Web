@@ -1,1 +1,9 @@
-Nothing should be ignored based on the provided file changes. The modification of 'components/ChatView.tsx' is a source code file that should be tracked in version control.
+```
+# Editor/IDE files
+.vscode/
+
+# Environment files
+.env
+.env.local
+*.env.*
+```
