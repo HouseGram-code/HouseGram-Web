@@ -48,8 +48,8 @@ export default function StarsView() {
         setStats({
           giftsReceived: data.giftsReceived || 0,
           giftsSent: data.giftsSent || 0,
-          starsReceived: (data.giftsReceived || 0) * 15, // Примерно, каждый подарок = 15 молний
-          starsSent: (data.giftsSent || 0) * 15
+          starsReceived: data.starsReceived || 0,
+          starsSent: data.starsSent || 0
         });
       }
     } catch (e) {
