@@ -386,10 +386,11 @@ export default function SendGiftView() {
         .single();
 
       // Обновляем баланс отправителя
+      const newBalance = userStars - selectedGift.cost;
       const { error: senderError } = await supabase
         .from('users')
         .update({
-          stars: userStars - selectedGift.cost,
+          stars: newBalance,
           gifts_sent: (senderData?.gifts_sent || 0) + 1
         })
         .eq('id', currentUser.id);
@@ -398,6 +399,9 @@ export default function SendGiftView() {
         console.error('Sender update error:', senderError);
         throw senderError;
       }
+
+      // Обновляем локальное состояние баланса
+      setUserStars(newBalance);
 
       // Получаем текущие значения получателя
       const { data: receiverData } = await supabase
@@ -496,8 +500,9 @@ export default function SendGiftView() {
           
           if (userDoc.exists()) {
             const userData = userDoc.data();
+            const firebaseNewBalance = (userData.stars || 100) - selectedGift.cost;
             await updateDoc(userRef, {
-              stars: (userData.stars || 100) - selectedGift.cost,
+              stars: firebaseNewBalance,
               giftsSent: (userData.giftsSent || 0) + 1
             });
           }
