@@ -1,0 +1,67 @@
+========================================
+СКОПИРУЙТЕ ЭТИ ПЕРЕМЕННЫЕ В VERCEL
+========================================
+
+Откройте: https://vercel.com/dashboard
+Выберите проект: HouseGram-Web
+Перейдите: Settings → Environment Variables
+
+Добавьте каждую переменную (нажимайте Add для каждой):
+
+---
+
+Name: NEXT_PUBLIC_FIREBASE_API_KEY
+Value: AIzaSyDo2yWS2PFYCceBoiGnDXiI_-kAC_ZX3pc
+
+---
+
+Name: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+Value: housegram-d070d.firebaseapp.com
+
+---
+
+Name: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+Value: housegram-d070d
+
+---
+
+Name: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+Value: housegram-d070d.firebasestorage.app
+
+---
+
+Name: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+Value: 812659108162
+
+---
+
+Name: NEXT_PUBLIC_FIREBASE_APP_ID
+Value: 1:812659108162:web:3282da59b84348eb7900db
+
+---
+
+Name: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+Value: G-1GLFYH9CG6
+
+---
+
+Name: NEXT_PUBLIC_SUPABASE_URL
+Value: https://advrigpttccbigwzfcci.supabase.co
+
+---
+
+Name: NEXT_PUBLIC_SUPABASE_ANON_KEY
+Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdnJpZ3B0dGNjYmlnd3pmY2NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ4OTk3NzAsImV4cCI6MjA1MDQ3NTc3MH0.sb_publishable_Y7gXsSIbeuQaWumd--CR1w_FUO1c6hNPublishable
+
+---
+
+После добавления всех переменных:
+1. Перейдите в Deployments
+2. Нажмите на последний деплой
+3. Нажмите ⋯ → Redeploy
+4. Выберите "Use existing Build Cache"
+5. Нажмите Redeploy
+
+========================================
+ГОТОВО! Сайт заработает через 2-3 минуты
+========================================
