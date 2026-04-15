@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, addDoc, query, where, getDocs, orderBy, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, orderBy, updateDoc, doc, arrayUnion, getDoc, onSnapshot } from 'firebase/firestore';
 import { supabase, uploadFile } from '@/lib/supabase';
 import StoryViewer from './StoryViewer';
 
@@ -32,6 +32,36 @@ export default function Stories() {
 
   useEffect(() => {
     loadStories();
+
+    // Подписка на обновления историй в реальном времени
+    const storiesRef = collection(db, 'stories');
+    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+    const q = query(
+      storiesRef,
+      where('timestamp', '>', twentyFourHoursAgo),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const updatedStories: Story[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        updatedStories.push({ id: doc.id, ...data } as Story);
+      });
+
+      // Обновляем только если изменилось
+      setStories(prev => {
+        if (prev.length !== updatedStories.length) return updatedStories;
+        // Простая проверка
+        const prevIds = new Set(prev.map(s => s.id));
+        const hasChanges = updatedStories.some(s => !prevIds.has(s.id));
+        return hasChanges ? updatedStories : prev;
+      });
+    }, (error) => {
+      console.error('Stories real-time subscription error:', error);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadStories = async () => {
@@ -47,17 +77,48 @@ export default function Stories() {
       const snapshot = await getDocs(q);
       const loadedStories: Story[] = [];
       
+      // Собираем уникальных userId для загрузки их данных
+      const userIds = new Set<string>();
       snapshot.forEach((doc) => {
-        loadedStories.push({ id: doc.id, ...doc.data() } as Story);
+        const data = doc.data();
+        loadedStories.push({ id: doc.id, ...data } as Story);
+        if (data.userId) {
+          userIds.add(data.userId);
+        }
       });
       
-      setStories(loadedStories);
+      // Загружаем актуальные данные пользователей
+      const userAvatars: Record<string, string | undefined> = {};
+      const userNames: Record<string, string> = {};
+      
+      for (const userId of userIds) {
+        try {
+          const userDocRef = doc(db, 'users', userId);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            userAvatars[userId] = userData.avatarUrl;
+            userNames[userId] = userData.name || 'Пользователь';
+          }
+        } catch (err) {
+          console.error(`Error loading user ${userId}:`, err);
+        }
+      }
+      
+      // Обновляем истории актуальными данными
+      const updatedStories = loadedStories.map(story => ({
+        ...story,
+        userAvatar: userAvatars[story.userId] || story.userAvatar,
+        userName: userNames[story.userId] || story.userName
+      }));
+      
+      setStories(updatedStories);
     } catch (error) {
       console.error('Error loading stories:', error);
     }
   };
 
-  const handleCreateStory = () => {
+  const handleCreateStory = async () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*'; // Только фото
@@ -73,18 +134,62 @@ export default function Stories() {
             return;
           }
           
+          // Проверяем размер файла (макс 10MB)
+          if (file.size > 10 * 1024 * 1024) {
+            alert('Размер файла не должен превышать 10MB');
+            setUploading(false);
+            return;
+          }
+          
+          console.log('Uploading story file:', file.name, file.type, file.size);
+          
           // Загружаем файл в Supabase Storage
           const uploadResult = await uploadFile(file, auth.currentUser.uid, 'image');
           
-          // Получаем данные пользователя
-          const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', auth.currentUser.uid)));
-          const userData = userDoc.docs[0]?.data();
+          console.log('Upload result:', uploadResult);
+          
+          // Проверяем доступность URL перед созданием истории
+          try {
+            const response = await fetch(uploadResult.url, { method: 'HEAD', mode: 'cors' });
+            if (!response.ok) {
+              console.warn('File URL may not be accessible:', response.status);
+            }
+          } catch (fetchError) {
+            console.warn('Could not verify file URL:', fetchError);
+          }
+          
+          // Получаем данные пользователя из документа пользователя
+          const userDocRef = doc(db, 'users', auth.currentUser.uid);
+          const userDocSnap = await getDocs(query(collection(db, 'users'), where('__name__', '==', auth.currentUser.uid)));
+          
+          let avatarUrl = null;
+          let userName = 'Пользователь';
+          
+          if (!userDocSnap.empty) {
+            const userData = userDocSnap.docs[0].data();
+            avatarUrl = userData.avatarUrl || null;
+            userName = userData.name || 'Пользователь';
+          } else {
+            // Если не нашли по __name__, пробуем получить напрямую по ID
+            try {
+              const directUserDoc = await getDoc(userDocRef);
+              if (directUserDoc.exists()) {
+                const userData = directUserDoc.data();
+                avatarUrl = userData.avatarUrl || null;
+                userName = userData.name || 'Пользователь';
+              }
+            } catch (err) {
+              console.log('Could not fetch user data directly');
+            }
+          }
+          
+          console.log('Creating story with mediaUrl:', uploadResult.url);
           
           // Создаем историю в Firestore
           await addDoc(collection(db, 'stories'), {
             userId: auth.currentUser.uid,
-            userName: userData?.name || 'Пользователь',
-            userAvatar: userData?.avatarUrl || null,
+            userName: userName,
+            userAvatar: avatarUrl,
             mediaUrl: uploadResult.url,
             mediaType: 'image',
             timestamp: Date.now(),
@@ -92,11 +197,13 @@ export default function Stories() {
             viewedBy: []
           });
           
+          console.log('Story created successfully');
+          
           // Перезагружаем истории
           await loadStories();
         } catch (error) {
           console.error('Error uploading story:', error);
-          alert('Ошибка при загрузке истории');
+          alert('Ошибка при загрузке истории: ' + (error as Error).message);
         } finally {
           setUploading(false);
         }

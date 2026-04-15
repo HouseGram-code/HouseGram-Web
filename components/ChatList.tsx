@@ -31,16 +31,25 @@ export default function ChatList() {
   const { contacts, setView, setActiveChatId, setSideMenuOpen, markAsRead, themeColor, isGlassEnabled, addContact } = useChat();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+
+  // Debounce поиска (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     let isMounted = true;
-    if (searchQuery.trim().length > 0) {
+    if (debouncedQuery.trim().length > 0) {
       const searchUsers = async () => {
-        const queryText = searchQuery.trim().toLowerCase();
+        const queryText = debouncedQuery.trim().toLowerCase();
         // Try searching by username (with or without @)
         const usernameQuery = queryText.startsWith('@') ? queryText : `@${queryText}`;
-        
+
         const q = query(collection(db, 'users'), where('username', '>=', usernameQuery), where('username', '<=', usernameQuery + '\uf8ff'));
         const snapshot = await getDocs(q);
         if (!isMounted) return;
@@ -56,7 +65,7 @@ export default function ChatList() {
       });
     }
     return () => { isMounted = false; };
-  }, [searchQuery]);
+  }, [debouncedQuery]);
 
   const handleSearchResultClick = (user: any) => {
     let statusText = 'был(а) недавно';
@@ -98,7 +107,7 @@ export default function ChatList() {
       isTyping: false,
       unread: 0,
       isChannel: false,
-      isOfficial: user.role === 'admin' || user.email === 'veraloktushina1958@gmail.com',
+      isOfficial: user.role === 'admin' || user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL,
     });
     setActiveChatId(user.id);
     setView('chat');
@@ -241,7 +250,7 @@ export default function ChatList() {
               <div className="flex-grow overflow-hidden flex flex-col justify-center">
                 <div className="font-semibold text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1.5">
                   {user.name}
-                  {(user.role === 'admin' || user.email === 'veraloktushina1958@gmail.com') && (
+                  {(user.role === 'admin' || user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) && (
                     <BadgeCheck size={17} className="text-blue-500 fill-blue-500 text-white" />
                   )}
                 </div>

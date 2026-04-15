@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { getDeviceInfo } from '@/utils/deviceInfo';
+import { AlertCircle, Clock, Shield } from 'lucide-react';
 
 export default function AuthView() {
   const { themeColor } = useChat();
@@ -16,6 +18,18 @@ export default function AuthView() {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isMaintenance, setIsMaintenance] = useState(false);
+
+  // Подписка на режим технических работ
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        setIsMaintenance(docSnap.data().maintenanceMode || false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const checkUsernameTaken = async (username: string) => {
     const q = query(collection(db, 'users'), where('username', '==', username));
@@ -26,11 +40,27 @@ export default function AuthView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    // Блокируем вход во время технических работ
+    if (isMaintenance) {
+      setError('В настоящее время проводятся технические работы. Пожалуйста, попробуйте позже.');
+      return;
+    }
+    
     setLoading(true);
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        // Проверяем, не заблокирован ли пользователь
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        
+        if (userDoc.exists() && userDoc.data().isBanned) {
+          await auth.signOut();
+          setError('Ваш аккаунт был заблокирован администрацией.');
+          setLoading(false);
+          return;
+        }
       } else {
         if (await checkUsernameTaken(username)) {
           setError('Имя пользователя уже занято.');
@@ -40,6 +70,11 @@ export default function AuthView() {
 
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        
+        // Создаем сессию для нового устройства
+        const deviceInfo = getDeviceInfo();
+        const sessionId = crypto.randomUUID();
+        localStorage.setItem('sessionId', sessionId);
         
         await setDoc(doc(db, 'users', user.uid), {
           uid: user.uid,
@@ -52,6 +87,18 @@ export default function AuthView() {
           createdAt: serverTimestamp(),
           status: 'online',
           lastSeen: serverTimestamp()
+        });
+        
+        // Сохраняем информацию о сессии
+        await setDoc(doc(db, 'sessions', sessionId), {
+          userId: user.uid,
+          deviceId: sessionId,
+          device: deviceInfo.device,
+          platform: deviceInfo.platform,
+          browser: deviceInfo.browser,
+          location: deviceInfo.location,
+          createdAt: serverTimestamp(),
+          lastActive: serverTimestamp()
         });
       }
     } catch (err: any) {
@@ -76,11 +123,23 @@ export default function AuthView() {
 
   const handleGoogleSignIn = async () => {
     setError('');
+    
+    // Блокируем вход во время технических работ
+    if (isMaintenance) {
+      setError('В настоящее время проводятся технические работы. Пожалуйста, попробуйте позже.');
+      return;
+    }
+    
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+      
+      // Создаем сессию для нового устройства
+      const deviceInfo = getDeviceInfo();
+      const sessionId = crypto.randomUUID();
+      localStorage.setItem('sessionId', sessionId);
       
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (!userDoc.exists()) {
@@ -100,6 +159,18 @@ export default function AuthView() {
           lastSeen: serverTimestamp()
         });
       }
+      
+      // Сохраняем или обновляем информацию о сессии
+      await setDoc(doc(db, 'sessions', sessionId), {
+        userId: user.uid,
+        deviceId: sessionId,
+        device: deviceInfo.device,
+        platform: deviceInfo.platform,
+        browser: deviceInfo.browser,
+        location: deviceInfo.location,
+        createdAt: serverTimestamp(),
+        lastActive: serverTimestamp()
+      });
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/popup-closed-by-user') {
@@ -123,6 +194,42 @@ export default function AuthView() {
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="absolute inset-0 bg-white flex flex-col items-center justify-center p-6 z-50"
     >
+      {/* Модальное окно технических работ */}
+      {isMaintenance && (
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg">
+              <Clock size={40} className="text-white" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              Технические работы
+            </h2>
+            
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              Мы проводим плановое обновление системы для улучшения работы HouseGram.
+              <br />
+              <span className="text-sm text-gray-500">Пожалуйста, зайдите немного позже.</span>
+            </p>
+            
+            <div className="bg-blue-50 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-center gap-2 text-blue-700">
+                <Shield size={20} />
+                <span className="font-medium">Это займет несколько минут</span>
+              </div>
+            </div>
+            
+            <div className="text-sm text-gray-400">
+              Приносим извинения за неудобства
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-lg" style={{ backgroundColor: themeColor }}>

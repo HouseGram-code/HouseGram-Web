@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Eye, EyeOff, Clock, MessageCircle, Phone, User } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Clock, MessageCircle, User } from 'lucide-react';
 
 type PrivacyOption = 'everyone' | 'contacts' | 'nobody';
 
@@ -12,7 +12,6 @@ export default function PrivacySettingsView() {
   const [lastSeenPrivacy, setLastSeenPrivacy] = useState<PrivacyOption>('everyone');
   const [profilePhotoPrivacy, setProfilePhotoPrivacy] = useState<PrivacyOption>('everyone');
   const [aboutPrivacy, setAboutPrivacy] = useState<PrivacyOption>('everyone');
-  const [phonePrivacy, setPhonePrivacy] = useState<PrivacyOption>('contacts');
 
   return (
     <motion.div 
@@ -53,13 +52,6 @@ export default function PrivacySettingsView() {
             title="О себе"
             value={aboutPrivacy}
             onChange={setAboutPrivacy}
-          />
-          
-          <PrivacyItem 
-            icon={<Phone size={24} />}
-            title="Номер телефона"
-            value={phonePrivacy}
-            onChange={setPhonePrivacy}
           />
         </div>
 

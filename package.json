@@ -1,5 +1,5 @@
 {
-  "name": "ai-studio-applet",
+  "name": "housegram-web",
   "version": "2.0.1-beta",
   "private": true,
   "scripts": {
@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "type-check": "tsc --noEmit",
     "clean": "next clean",
     "socket": "node server/socket-server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run socket\""
@@ -22,6 +23,7 @@
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.18.0",
     "firebase": "^12.10.0",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
     "next": "^15.5.14",
@@ -36,7 +38,7 @@
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^20",
-    "@types/react": "19.2.14",
+    "@types/react": "^19.2.4",
     "@types/react-dom": "^19",
     "concurrently": "^9.2.1",
     "eslint": "9.39.1",

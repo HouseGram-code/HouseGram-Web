@@ -45,9 +45,10 @@ export default function StoryViewer({
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [videoDuration, setVideoDuration] = useState<number>(15000); // fallback 15 сек
   const videoRef = useRef<HTMLVideoElement>(null);
   const story = stories[currentIndex];
-  const duration = story.mediaType === 'video' ? 15000 : 5000; // 15 сек для видео, 5 сек для фото
+  const duration = story.mediaType === 'video' ? videoDuration : 5000; // реальная длительность видео, 5 сек для фото
   const isOwnStory = story.userId === currentUserId;
 
   const handleDeleteStory = async () => {
@@ -127,7 +128,12 @@ export default function StoryViewer({
         console.log('Video loaded successfully');
         setVideoError(false);
       };
-      
+
+      const handleLoadedMetadata = () => {
+        // Получаем реальную длительность видео в миллисекундах
+        setVideoDuration(Math.round(video.duration * 1000));
+      };
+
       const handleError = (e: Event) => {
         console.error('Video error event:', e);
         const videoElement = e.target as HTMLVideoElement;
@@ -149,6 +155,7 @@ export default function StoryViewer({
       };
       
       video.addEventListener('loadeddata', handleLoadedData);
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
       video.addEventListener('error', handleError);
       
       // Загружаем видео

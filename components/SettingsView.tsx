@@ -117,35 +117,27 @@ export default function SettingsView() {
       setIsUploading(true);
       try {
         const options = {
-          maxSizeMB: 0.05, // 50 KB max for base64
-          maxWidthOrHeight: 400,
+          maxSizeMB: 1,
+          maxWidthOrHeight: 800,
           useWebWorker: false
         };
         const compressedFile = await imageCompression(file, options);
-        
-        // Convert to base64 to bypass Firebase Storage CORS issues
-        const reader = new FileReader();
-        reader.readAsDataURL(compressedFile);
-        reader.onloadend = async () => {
-          const base64data = reader.result as string;
-          
-          try {
-            await updateDoc(doc(db, 'users', auth.currentUser!.uid), {
-              avatarUrl: base64data
-            });
-            setEditProfile({ ...editProfile, avatarUrl: base64data });
-            setUserProfile({ ...editProfile, avatarUrl: base64data });
-          } catch (error) {
-            console.error('Error saving avatar to Firestore:', error);
-            alert('Ошибка при сохранении аватара');
-          } finally {
-            setIsUploading(false);
-          }
-        };
+
+        // Загружаем в Firebase Storage вместо base64 в Firestore
+        const storageRef = ref(storage, `avatars/${auth.currentUser.uid}/${Date.now()}_avatar.jpg`);
+        const snapshot = await uploadBytes(storageRef, compressedFile);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          avatarUrl: downloadURL
+        });
+        setEditProfile({ ...editProfile, avatarUrl: downloadURL });
+        setUserProfile({ ...editProfile, avatarUrl: downloadURL });
       } catch (error) {
-        console.error("Error uploading avatar:", error);
-        setIsUploading(false);
+        console.error('Error uploading avatar:', error);
         alert('Ошибка при загрузке аватара');
+      } finally {
+        setIsUploading(false);
       }
     }
   };

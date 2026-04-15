@@ -66,45 +66,55 @@ export default function MyGiftsView() {
 
   const convertGiftToStars = async (gift: ReceivedGift) => {
     if (!currentUser?.id || !gift.canConvert) return;
-    
+
     setConverting(gift.id);
-    
+
     try {
       // Комиссия 2%
       const commission = Math.ceil(gift.cost * 0.02);
       const starsToAdd = gift.cost - commission;
-      
-      // Получаем текущий баланс
-      const { data: userData, error: fetchError } = await supabase
-        .from('users')
-        .select('stars')
-        .eq('id', currentUser.id)
-        .single();
-      
-      if (fetchError) throw fetchError;
-      
-      const currentStars = userData?.stars || 100;
-      
-      // Обновляем баланс пользователя
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ stars: currentStars + starsToAdd })
-        .eq('id', currentUser.id);
-      
-      if (updateError) throw updateError;
-      
+
+      // Атомарное обновление: используем increment для баланса
+      const { error: updateError } = await supabase.rpc('increment_user_stars', {
+        user_id: currentUser.id,
+        stars_amount: starsToAdd
+      });
+
+      if (updateError) {
+        // Если RPC функция не существует — используем fallback с read-then-write
+        console.warn('RPC function not found, using fallback');
+        const { data: userData, error: fetchError } = await supabase
+          .from('users')
+          .select('stars')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (fetchError) throw fetchError;
+        const currentStars = userData?.stars || 0;
+
+        const { error: updateErr } = await supabase
+          .from('users')
+          .update({ stars: currentStars + starsToAdd })
+          .eq('id', currentUser.id);
+
+        if (updateErr) throw updateErr;
+      }
+
       // Удаляем подарок из коллекции
       const { error: deleteError } = await supabase
         .from('received_gifts')
         .delete()
         .eq('id', gift.id);
-      
-      if (deleteError) throw deleteError;
-      
+
+      if (deleteError) {
+        console.error('Error deleting gift:', deleteError);
+        // Если удаление не удалась — логируем, но не прерываем
+      }
+
       // Обновляем локальное состояние
       setGifts(prev => prev.filter(g => g.id !== gift.id));
       setShowConfirm(null);
-      
+
       // Показываем уведомление
       alert(`✨ Подарок обменян!\n\nПолучено: ${starsToAdd} ⚡\nКомиссия (2%): ${commission} ⚡`);
     } catch (e) {

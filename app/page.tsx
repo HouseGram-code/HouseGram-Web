@@ -3,7 +3,7 @@
 import { ChatProvider, useChat } from '@/context/ChatContext';
 import { AnimatePresence } from 'motion/react';
 import dynamic from 'next/dynamic';
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
 
 // Динамический импорт компонентов для быстрой загрузки
 const ChatList = dynamic(() => import('@/components/ChatList'), {
@@ -96,63 +96,78 @@ function LoadingSpinner() {
   );
 }
 
+// Маппинг view к компонентам
+const viewComponents: Record<string, React.ComponentType> = {
+  menu: ChatList,
+  chat: ChatView,
+  profile: ProfileView,
+  settings: SettingsView,
+  'chat-settings': ChatSettingsView,
+  features: FeaturesView,
+  privacy: PrivacyView,
+  'privacy-settings': PrivacySettingsView,
+  notifications: NotificationsView,
+  security: SecurityView,
+  admin: AdminView,
+  info: InfoView,
+  faq: FaqView,
+  terms: TermsView,
+  'create-channel': CreateChannelView,
+  'channel-info': ChannelInfoView,
+  'notification-stats': NotificationStatsView,
+  'server-status': ServerStatusView,
+  stars: StarsView,
+  premium: PremiumView,
+  'send-gift': SendGiftView,
+  'my-gifts': MyGiftsView,
+  'user-gifts': UserGiftsView,
+  'buy-stars': BuyStarsView,
+  'my-stories': MyStoriesView,
+};
+
 function AppContent() {
   const { view, isLocked, user } = useChat();
 
+  // Контейнер-обёртка
+  const AppShell = ({ children }: { children: React.ReactNode }) => (
+    <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+      {children}
+    </div>
+  );
+
   if (view === 'auth' || !user) {
     return (
-      <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+      <AppShell>
         <Suspense fallback={<LoadingSpinner />}>
           <AuthView />
         </Suspense>
-      </div>
+      </AppShell>
     );
   }
 
   if (isLocked) {
     return (
-      <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+      <AppShell>
         <Suspense fallback={<LoadingSpinner />}>
           <PasscodeScreen />
         </Suspense>
-      </div>
+      </AppShell>
     );
   }
 
+  // Рендерим активный view через маппинг
+  const ActiveView = viewComponents[view];
+
   return (
-    <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+    <AppShell>
       {/* Анимированный фон со звездами */}
       <StarBackground />
-      
+
       <AnimatePresence initial={false} mode="popLayout">
-        {view === 'menu' && <ChatList key="menu" />}
-        {view === 'chat' && <ChatView key="chat" />}
-        {view === 'profile' && <ProfileView key="profile" />}
-        {view === 'settings' && <SettingsView key="settings" />}
-        {view === 'chat-settings' && <ChatSettingsView key="chat-settings" />}
-        {view === 'features' && <FeaturesView key="features" />}
-        {view === 'privacy' && <PrivacyView key="privacy" />}
-        {view === 'privacy-settings' && <PrivacySettingsView key="privacy-settings" />}
-        {view === 'notifications' && <NotificationsView key="notifications" />}
-        {view === 'security' && <SecurityView key="security" />}
-        {view === 'admin' && <AdminView key="admin" />}
-        {view === 'info' && <InfoView key="info" />}
-        {view === 'faq' && <FaqView key="faq" />}
-        {view === 'terms' && <TermsView key="terms" />}
-        {view === 'create-channel' && <CreateChannelView key="create-channel" />}
-        {view === 'channel-info' && <ChannelInfoView key="channel-info" />}
-        {view === 'notification-stats' && <NotificationStatsView key="notification-stats" />}
-        {view === 'server-status' && <ServerStatusView key="server-status" />}
-        {view === 'stars' && <StarsView key="stars" />}
-        {view === 'premium' && <PremiumView key="premium" />}
-        {view === 'send-gift' && <SendGiftView key="send-gift" />}
-        {view === 'my-gifts' && <MyGiftsView key="my-gifts" />}
-        {view === 'user-gifts' && <UserGiftsView key="user-gifts" />}
-        {view === 'buy-stars' && <BuyStarsView key="buy-stars" />}
-        {view === 'my-stories' && <MyStoriesView key="my-stories" />}
+        {ActiveView && <ActiveView key={view} />}
       </AnimatePresence>
       <SideMenu />
-    </div>
+    </AppShell>
   );
 }
 

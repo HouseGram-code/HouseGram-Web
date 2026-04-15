@@ -1,10 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase конфигурация (бесплатная альтернатива Firebase)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
+// Supabase конфигурация
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error(
+    'Supabase configuration is missing. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.'
+  );
+}
+
+// Создаём клиент только если конфигурация доступна
+const safeUrl = supabaseUrl || 'https://placeholder.supabase.co';
+const safeKey = supabaseAnonKey || 'placeholder-key';
+
+export const supabase = createClient(safeUrl, safeKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -156,7 +166,7 @@ export const formatLastSeen = (lastSeenStr: string): string => {
 // Менеджер онлайн статуса
 export class OnlineStatusManager {
   private userId: string;
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private visibilityHandler: (() => void) | null = null;
   private beforeUnloadHandler: (() => void) | null = null;
   private pageHideHandler: (() => void) | null = null;
@@ -165,8 +175,11 @@ export class OnlineStatusManager {
     this.userId = userId;
   }
 
-  // Запуск отслеживания статуса
+  // Запуск отслеживания статуса (только на клиенте)
   async start() {
+    // SSR guard
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
     // Устанавливаем статус "онлайн"
     await userService.updateStatus(this.userId, 'online');
 
@@ -192,11 +205,11 @@ export class OnlineStatusManager {
         status: 'offline',
         lastSeen: new Date().toISOString()
       });
-      
+
       if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/update-status', data);
+        navigator.sendBeacon('/api/update-status', new Blob([data], { type: 'application/json' }));
       }
-      
+
       // Синхронная попытка обновления
       userService.updateStatus(this.userId, 'offline');
     };

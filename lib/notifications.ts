@@ -1,6 +1,7 @@
-import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
-import { doc, setDoc, updateDoc, getDoc, increment } from 'firebase/firestore';
-import { db } from './firebase';
+import { getToken, onMessage, Messaging } from 'firebase/messaging';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { db, auth } from './firebase';
+import { getMessaging } from 'firebase/messaging';
 
 let messaging: Messaging | null = null;
 
@@ -77,45 +78,20 @@ export const initializeNotifications = async (userId: string): Promise<string | 
       return null;
     }
 
-    // Динамический импорт для избежания ошибок на сервере
-    const { getMessaging, getToken } = await import('firebase/messaging');
-    const { default: firebaseApp } = await import('./firebase');
-    
-    messaging = getMessaging(firebaseApp);
+    // Ждём пока пользователь войдёт в систему
+    if (!auth.currentUser) {
+      console.log('User not authenticated, cannot initialize notifications');
+      return null;
+    }
+
+    messaging = getMessaging();
 
     // Регистрируем Service Worker
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('Service Worker registered:', registration);
 
-    // Ждем активации Service Worker
-    if (registration.installing) {
-      await new Promise<void>((resolve) => {
-        registration.installing!.addEventListener('statechange', (e) => {
-          if ((e.target as ServiceWorker).state === 'activated') {
-            resolve();
-          }
-        });
-      });
-    } else if (registration.waiting) {
-      await new Promise<void>((resolve) => {
-        registration.waiting!.addEventListener('statechange', (e) => {
-          if ((e.target as ServiceWorker).state === 'activated') {
-            resolve();
-          }
-        });
-      });
-    } else if (!registration.active) {
-      // Ждем пока Service Worker станет активным
-      await new Promise<void>((resolve) => {
-        const checkActive = setInterval(() => {
-          if (registration.active) {
-            clearInterval(checkActive);
-            resolve();
-          }
-        }, 100);
-      });
-    }
-
+    // Ждём активации Service Worker через готовый Promise
+    await navigator.serviceWorker.ready;
     console.log('Service Worker is active');
     
     // Проверяем VAPID ключ

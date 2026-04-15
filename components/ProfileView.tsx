@@ -20,7 +20,7 @@ export default function ProfileView() {
   );
 
   const handleShare = () => {
-    if (contact.id === 'test_bot') {
+    if (contact.isBot) {
       sendMessage(`Юзернейм бота: ${contact.username}`);
     } else {
       sendMessage(`Контакт: ${contact.name} (${contact.username})`);
@@ -104,7 +104,7 @@ export default function ProfileView() {
           )}
           
           {/* Security Warning for Bots */}
-          {contact.id === 'test_bot' && (
+          {contact.isBot && (
             <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-100">
               <div className="flex items-start gap-3">
                 <div className="text-yellow-600 shrink-0 mt-0.5">⚠️</div>
@@ -126,7 +126,7 @@ export default function ProfileView() {
 
         <div className="bg-tg-bg-light border-y border-tg-divider mb-2.5">
           {!contact.isChannel && <ActionButton text="Отправить сообщение" onClick={() => setView('chat')} color={themeColor} />}
-          {!contact.isChannel && contact.id !== 'saved_messages' && contact.id !== 'test_bot' && (
+          {!contact.isChannel && contact.id !== 'saved_messages' && !contact.isBot && (
             <ActionButton 
               text="Подарки" 
               icon={<Gift size={20} />}
@@ -158,8 +158,8 @@ export default function ProfileView() {
               <div className="p-5">
                 <h3 className="text-[18px] font-medium text-black mb-2">Поделиться контактом</h3>
                 <p className="text-[15px] text-gray-600">
-                  {contact.id === 'test_bot' 
-                    ? `Отправить бота ${contact.name}? Будет отправлен его юзернейм.` 
+                  {contact.isBot
+                    ? `Отправить бота ${contact.name}? Будет отправлен его юзернейм.`
                     : `Отправить контакт ${contact.name} в текущий чат?`}
                 </p>
               </div>

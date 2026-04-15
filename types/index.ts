@@ -1,5 +1,8 @@
 export type MessageType = 'sent' | 'received';
 
+// Тип для Firebase Timestamp
+export type FirestoreTimestamp = Date | { toDate: () => Date; seconds?: number; nanoseconds?: number };
+
 export interface Sticker {
   id: string;
   packId: string;
@@ -34,9 +37,9 @@ export interface Message {
   fileUrl?: string;
   fileName?: string;
   senderId?: string;
-  createdAt?: Date | { toDate: () => Date } | any | null;
+  createdAt?: FirestoreTimestamp | null;
   chatId?: string;
-  editedAt?: Date | { toDate: () => Date } | any | null;
+  editedAt?: FirestoreTimestamp | null;
   replyTo?: { messageId: string; senderName: string; text: string };
   forwardedFrom?: { chatName: string; senderName: string };
   stickerUrl?: string;
@@ -70,6 +73,7 @@ export interface Contact {
   isTyping: boolean;
   unread: number;
   isBlocked?: boolean;
+  isBot?: boolean;
   isChannel?: boolean;
   isOfficial?: boolean;
 }
@@ -80,7 +84,7 @@ export interface Channel {
   description?: string;
   avatarUrl?: string;
   createdBy: string;
-  createdAt: Date | { toDate: () => Date };
+  createdAt: FirestoreTimestamp;
   subscribersCount: number;
   link: string;
   inviteCode: string;
@@ -94,7 +98,7 @@ export interface UserProfile {
   phone: string;
   avatarUrl?: string;
   status?: 'online' | 'offline';
-  lastSeen?: Date | { toDate: () => Date } | null;
+  lastSeen?: FirestoreTimestamp | null;
   isOfficial?: boolean;
   savedStickers?: string[];
   giftsSent?: number;

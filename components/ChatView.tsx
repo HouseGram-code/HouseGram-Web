@@ -384,25 +384,54 @@ export default function ChatView() {
     let stream: MediaStream | null = null;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      
+      // Проверяем поддерживаемые форматы
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : 'audio/ogg';
+      
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      
+      mediaRecorder.ondataavailable = (e) => { 
+        if (e.data.size > 0) audioChunksRef.current.push(e.data); 
+      };
+      
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         if (stream) stream.getTracks().forEach(track => track.stop());
+        
+        // Проверяем размер записи
+        if (audioBlob.size === 0) {
+          alert('Запись пуста. Попробуйте еще раз.');
+          return;
+        }
+        
         try {
           // Загружаем через Supabase Storage
-          const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+          const extension = mimeType.includes('webm') ? 'webm' : mimeType.includes('mp4') ? 'm4a' : 'ogg';
+          const audioFile = new File([audioBlob], `audio_${Date.now()}.${extension}`, { type: mimeType });
           const result = await uploadFile(audioFile, auth.currentUser?.uid || '', 'audio');
           sendMessage('Голосовое сообщение', { audioUrl: result.url });
-        } catch (error) { console.error('Error uploading audio:', error); alert('Ошибка при загрузке голосового сообщения'); }
+        } catch (error) { 
+          console.error('Error uploading audio:', error); 
+          alert('Ошибка при загрузке голосового сообщения. Проверьте подключение к интернету.'); 
+        }
       };
-      mediaRecorder.onerror = () => {
+      
+      mediaRecorder.onerror = (e) => {
+        console.error('MediaRecorder error:', e);
         if (stream) stream.getTracks().forEach(track => track.stop());
         setIsRecording(false);
         if (timerRef.current) clearInterval(timerRef.current);
+        alert('Ошибка записи. Попробуйте еще раз.');
       };
+      
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
@@ -410,7 +439,7 @@ export default function ChatView() {
     } catch (err) {
       if (stream) stream.getTracks().forEach(track => track.stop());
       console.error('Error accessing microphone', err);
-      alert('Нет доступа к микрофону');
+      alert('Нет доступа к микрофону. Разрешите доступ в настройках браузера.');
     }
   };
 
@@ -473,47 +502,47 @@ export default function ChatView() {
     setContextMenu({ msgId, x: e.clientX, y: e.clientY });
   };
 
-  // Поддержка долгого нажатия для мобильных устройств
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  // Поддержка долгого нажатия для мобильных устройств (useRef для избежания лишних ре-рендеров)
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent, msgId: string) => {
     const touch = e.touches[0];
     setTouchStart({ x: touch.clientX, y: touch.clientY });
-    
+
     const timer = setTimeout(() => {
       // Вибрация при долгом нажатии (если поддерживается)
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-      setContextMenu({ 
-        msgId, 
-        x: touch.clientX, 
-        y: touch.clientY 
+      setContextMenu({
+        msgId,
+        x: touch.clientX,
+        y: touch.clientY
       });
     }, 500); // 500ms для долгого нажатия
-    
-    setLongPressTimer(timer);
+
+    longPressTimer.current = timer;
   };
 
   const handleTouchEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
     setTouchStart(null);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStart && longPressTimer) {
+    if (touchStart && longPressTimer.current) {
       const touch = e.touches[0];
       const deltaX = Math.abs(touch.clientX - touchStart.x);
       const deltaY = Math.abs(touch.clientY - touchStart.y);
-      
+
       // Если палец сдвинулся больше чем на 10px, отменяем долгое нажатие
       if (deltaX > 10 || deltaY > 10) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
       }
     }
   };
@@ -554,8 +583,12 @@ export default function ChatView() {
   );
 
   const filteredGifs = useMemo(() => {
-    if (!gifSearch.trim()) return gifCollection;
-    return gifCollection;
+    if (!gifSearch.trim()) return gifCollection.slice(0, 20); // Показываем первые 20 GIF без поиска
+    const search = gifSearch.toLowerCase();
+    return gifCollection.filter(gif =>
+      gif.url.toLowerCase().includes(search) ||
+      gif.previewUrl.toLowerCase().includes(search)
+    ).slice(0, 30); // Ограничиваем результаты поиска
   }, [gifSearch]);
 
   const currentPack = selectedStickerPack ? stickerPacks.find(p => p.id === selectedStickerPack) : null;
@@ -684,7 +717,23 @@ export default function ChatView() {
                 </div>
               )}
               {msg.audioUrl ? (
-                <div className="mb-1"><audio controls src={msg.audioUrl} className="h-8 w-48" /></div>
+                <div className="mb-1">
+                  <audio 
+                    controls 
+                    src={msg.audioUrl} 
+                    className="h-10 w-full max-w-[280px]"
+                    preload="metadata"
+                    onError={(e) => {
+                      console.error('Audio load error:', e);
+                      const target = e.target as HTMLAudioElement;
+                      target.style.display = 'none';
+                      const errorDiv = document.createElement('div');
+                      errorDiv.textContent = 'Ошибка загрузки аудио';
+                      errorDiv.className = 'text-red-500 text-sm';
+                      target.parentElement?.appendChild(errorDiv);
+                    }}
+                  />
+                </div>
               ) : msg.fileUrl ? (
                 <div className="flex items-center gap-2 mb-1 bg-black/5 p-2 rounded-lg">
                   <div className="p-2 bg-blue-500 text-white rounded-full"><FileIcon size={16} /></div>

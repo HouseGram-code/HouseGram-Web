@@ -26,11 +26,12 @@ export const initialContacts: Record<string, Contact> = {
     bio: 'Официальный ИИ-ассистент HouseGram Web на базе Google Gemini. Помогу ответить на вопросы и пообщаться!',
     username: '@housegram_ai',
     messages: [
-      { id: '1', type: 'received', text: 'Привет! 👋 Я HouseGram AI — официальный бот-помощник. Чем могу помочь?', time: '12:00' }
+      { id: '1', type: 'received', text: 'Привет! 👋 Я HouseGram AI — официальный бот-помощник. Чем могу помочь?', time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }
     ],
     isTyping: false,
     unread: 1,
     isOfficial: true,
+    isBot: true,
   },
   housegram_announcements: {
     id: 'housegram_announcements',

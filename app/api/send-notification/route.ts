@@ -16,14 +16,43 @@ if (!admin.apps.length) {
   }
 }
 
+// Простая проверка авторизации через API ключ
+const verifyAuth = (request: NextRequest): boolean => {
+  const authHeader = request.headers.get('authorization');
+  const apiKey = process.env.INTERNAL_API_KEY;
+
+  if (!apiKey) {
+    // Если ключ не установлен — разрешаем все (для разработки)
+    return true;
+  }
+
+  return authHeader === `Bearer ${apiKey}`;
+};
+
 export async function POST(request: NextRequest) {
   try {
+    // Проверка авторизации
+    if (!verifyAuth(request)) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { token, title, body, data } = await request.json();
 
     if (!token) {
       return NextResponse.json(
         { error: 'FCM token is required' },
         { status: 400 }
+      );
+    }
+
+    // Проверка инициализации Firebase Admin
+    if (!admin.apps.length) {
+      return NextResponse.json(
+        { error: 'Firebase Admin SDK not initialized' },
+        { status: 500 }
       );
     }
 

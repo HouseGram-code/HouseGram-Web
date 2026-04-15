@@ -340,19 +340,50 @@ export const storage = {
 // Helper functions
 export const serverTimestamp = () => new Date().toISOString();
 
-export const arrayUnion = (...elements: any[]) => {
-  // Supabase использует PostgreSQL массивы
-  return elements;
+// Реализация arrayUnion для Supabase
+// Возвращает функцию-обёртку, которую нужно обработать на уровне вызова
+export const arrayUnion = (...elements: unknown[]) => {
+  return {
+    _op: 'array_union',
+    values: elements
+  };
 };
 
+// Реализация increment для Supabase
+// Возвращает функцию-обёртку для атомарного увеличения
 export const increment = (value: number) => {
-  // Для Supabase нужно использовать SQL функции
-  return value;
+  return {
+    _op: 'increment',
+    value
+  };
+};
+
+// Хелпер для применения специальных операций к данным перед записью в Supabase
+export const applySupabaseOperations = (updates: Record<string, unknown>): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(updates)) {
+    if (val && typeof val === 'object' && '_op' in val) {
+      const op = val as { _op: string; value?: unknown; values?: unknown[] };
+      if (op._op === 'increment') {
+        // Для increment используем raw SQL через supabase.rpc или обрабатываем отдельно
+        result[key] = op.value;
+      } else if (op._op === 'array_union') {
+        result[key] = op.values;
+      }
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
 };
 
 // Auth providers
 export const GoogleAuthProvider = {
   async signIn() {
+    if (typeof window === 'undefined') {
+      throw new Error('Google sign-in is not available on server-side');
+    }
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

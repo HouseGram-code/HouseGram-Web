@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Upload, X, File, Image, Video, Music, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { formatFileSize, detectFileType } from '@/lib/supabase';
@@ -25,6 +25,15 @@ export default function FileUploader({
   const [preview, setPreview] = useState<string | null>(null);
   const { uploading, progress, error, result, upload, reset } = useFileUpload(userId);
 
+  // Очистка object URL при размонтировании
+  useEffect(() => {
+    return () => {
+      if (preview && preview.startsWith('blob:')) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -36,13 +45,10 @@ export default function FileUploader({
 
     setSelectedFile(file);
 
-    // Создаём превью для изображений
+    // Создаём превью для изображений через URL.createObjectURL (эффективнее по памяти)
     if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      const objectUrl = URL.createObjectURL(file);
+      setPreview(objectUrl);
     } else {
       setPreview(null);
     }

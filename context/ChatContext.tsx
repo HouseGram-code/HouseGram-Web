@@ -25,6 +25,13 @@ const getAvatarColor = (userId: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+// Email администратора (вынесен в константу для удобства)
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || '';
+
+const isAdminEmail = (email: string | null | undefined): boolean => {
+  return email === ADMIN_EMAIL;
+};
+
 let aiInstance: GoogleGenAI | null = null;
 const getAi = () => {
   if (!aiInstance && process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
@@ -153,12 +160,12 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           if (userDoc.exists()) {
             const data = userDoc.data();
             if (data.isBanned === true) { setView('auth'); setAuthReady(true); return; }
-            setIsAdmin(currentUser.email === 'veraloktushina1958@gmail.com' || data.role === 'admin');
+            setIsAdmin(isAdminEmail(currentUser.email) || data.role === 'admin');
             setUserProfile({
               name: data.name || 'Ваше Имя', username: data.username || '', bio: data.bio || '',
               phone: data.phone || '+7 9XX XXX XX XX', avatarUrl: data.avatarUrl || '',
               status: 'online', lastSeen: data.lastSeen,
-              isOfficial: data.isOfficial === true || currentUser.email === 'veraloktushina1958@gmail.com' || data.role === 'admin'
+              isOfficial: data.isOfficial === true || isAdminEmail(currentUser.email) || data.role === 'admin'
             });
             
             // Обновляем статус пользователя на "в сети"
@@ -201,16 +208,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
                 uid: currentUser.uid, email: currentUser.email,
                 name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
                 username: finalUsername.substring(0, 15), bio: '',
-                role: currentUser.email === 'veraloktushina1958@gmail.com' ? 'admin' : 'user',
+                role: isAdminEmail(currentUser.email) ? 'admin' : 'user',
                 isBanned: false, createdAt: serverTimestamp(), status: 'online', lastSeen: serverTimestamp(),
                 stars: 0, giftsSent: 0, giftsReceived: 0
               });
-              setIsAdmin(currentUser.email === 'veraloktushina1958@gmail.com');
+              setIsAdmin(isAdminEmail(currentUser.email));
               setUserProfile({
                 name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
                 username: finalUsername.substring(0, 15), bio: '', phone: '+7 9XX XXX XX XX',
                 avatarUrl: '', status: 'online', lastSeen: new Date(),
-                isOfficial: currentUser.email === 'veraloktushina1958@gmail.com'
+                isOfficial: isAdminEmail(currentUser.email)
               });
             } catch (e) { console.error('Failed to create user document', e); }
           }
@@ -556,24 +563,28 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     const chatId = [user.uid, contactId].sort().join('_');
     try {
       const messagesRef = collection(db, 'chats', chatId, 'messages');
-      const q = query(
-        messagesRef,
-        where('senderId', '==', contactId),
-        where('status', '!=', 'read')
-      );
       
-      const snapshot = await getDocs(q);
+      // Получаем все сообщения без фильтрации (чтобы избежать необходимости в индексе)
+      const snapshot = await getDocs(messagesRef);
       const batch = writeBatch(db);
+      let hasUpdates = false;
       
       snapshot.docs.forEach(doc => {
-        batch.update(doc.ref, { status: 'read' });
+        const data = doc.data();
+        // Обновляем только сообщения от собеседника, которые еще не прочитаны
+        if (data.senderId === contactId && data.status !== 'read') {
+          batch.update(doc.ref, { status: 'read' });
+          hasUpdates = true;
+        }
       });
       
-      if (snapshot.docs.length > 0) {
+      if (hasUpdates) {
         await batch.commit();
       }
     } catch (error) {
-      console.error('Error marking messages as read:', error);
+      // Тихо игнорируем ошибки прав доступа для непрочитанных сообщений
+      // Это может происходить при первом запуске или изменении правил безопасности
+      console.log('Mark messages as read:', error instanceof Error ? error.message : 'permission update pending');
     }
   }, [user]);
 
@@ -910,7 +921,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
               avatarColor: getAvatarColor(otherUserId), avatarUrl: userData.avatarUrl || '', statusOnline, statusOffline,
               phone: userData.phone || '', bio: userData.bio || '', username: userData.username || '',
               messages: dummyMessages, isTyping: false, unread: 0, isChannel: false,
-              isOfficial: userData.isOfficial === true || userData.role === 'admin' || userData.email === 'veraloktushina1958@gmail.com'
+              isOfficial: userData.isOfficial === true || userData.role === 'admin' || isAdminEmail(userData.email)
             };
           }
         } catch (e) { console.error('Error fetching user doc for chat:', otherUserId, e); }

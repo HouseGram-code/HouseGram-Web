@@ -212,6 +212,7 @@ export default function SendGiftView() {
           .single();
         
         if (data && !error) {
+          // Всегда обновляем баланс из базы данных
           setUserStars(data.stars || 100);
         }
       } catch (e) {
@@ -219,6 +220,29 @@ export default function SendGiftView() {
       }
     };
     loadBalance();
+    
+    // Подписываемся на изменения баланса в реальном времени
+    const channel = supabase
+      .channel('user-stars-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${currentUser.id}`
+        },
+        (payload) => {
+          if (payload.new && 'stars' in payload.new) {
+            setUserStars(payload.new.stars || 100);
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentUser]);
 
   // Загружаем количество оставшихся пасхальных подарков
@@ -398,6 +422,8 @@ export default function SendGiftView() {
         console.error('Sender update error:', senderError);
         throw senderError;
       }
+
+      // Баланс обновится автоматически через подписку на изменения
 
       // Получаем текущие значения получателя
       const { data: receiverData } = await supabase
