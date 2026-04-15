@@ -319,54 +319,6 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Подписка на сообщения активного чата
-  useEffect(() => {
-    if (!user || !activeChatId) return;
-    
-    // Для saved_messages не нужна подписка на Firebase
-    if (activeChatId === 'saved_messages') return;
-    
-    const chatId = [user.uid, activeChatId].sort().join('_');
-    const messagesRef = collection(db, 'chats', chatId, 'messages');
-    const q = query(messagesRef, orderBy('createdAt', 'asc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messages: Message[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        messages.push({
-          id: doc.id,
-          type: data.senderId === user.uid ? 'sent' : 'received',
-          text: data.text || '',
-          time: data.time || '',
-          status: data.status || 'sent',
-          senderId: data.senderId,
-          chatId: data.chatId,
-          audioUrl: data.audioUrl,
-          fileUrl: data.fileUrl,
-          fileName: data.fileName,
-          stickerUrl: data.stickerUrl,
-          gifUrl: data.gifUrl,
-          replyTo: data.replyTo,
-          forwardedFrom: data.forwardedFrom,
-          editedAt: data.editedAt
-        });
-      });
-      
-      setContacts(prev => ({
-        ...prev,
-        [activeChatId]: {
-          ...prev[activeChatId],
-          messages
-        }
-      }));
-    }, (error) => {
-      console.error('Messages listener error:', error);
-    });
-    
-    return () => unsubscribe();
-  }, [user, activeChatId]);
-
   // Подписка на статусы пользователей в реальном времени
   useEffect(() => {
     if (!user) return;
