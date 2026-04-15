@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, persistentLocalCache, persistentMultipleTabManager, initializeFirestore } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Демо конфигурация для работы без настройки
@@ -41,16 +41,8 @@ try {
   app = null as any;
 }
 
-// Инициализируем Firestore
-// В продакшене не используем persistentLocalCache чтобы избежать оффлайн ошибок
-export const db = app && typeof window !== 'undefined' && !isDemoMode
-  ? initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager()
-      })
-    })
-  : app ? getFirestore(app) : null as any;
-
+// Инициализируем Firestore БЕЗ оффлайн кэша
+export const db = app ? getFirestore(app) : null as any;
 export const auth = app ? getAuth(app) : null as any;
 export const storage = app ? getStorage(app) : null as any;
 export default app;
