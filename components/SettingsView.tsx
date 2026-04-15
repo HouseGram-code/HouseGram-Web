@@ -96,8 +96,11 @@ export default function SettingsView() {
           date = userProfile.lastSeen.toDate();
         } else if (userProfile.lastSeen instanceof Date) {
           date = userProfile.lastSeen;
-        } else {
+        } else if (typeof userProfile.lastSeen === 'number' || typeof userProfile.lastSeen === 'string') {
           date = new Date(userProfile.lastSeen);
+        } else {
+          // FieldValue или неизвестный тип - показываем "недавно"
+          return 'был(а) недавно';
         }
         const distance = formatDistanceToNow(date, { addSuffix: true, locale: ru });
         if (distance === 'меньше минуты назад') {
