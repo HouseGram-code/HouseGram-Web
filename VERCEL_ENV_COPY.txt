@@ -40,18 +40,18 @@ Value: 1:812659108162:web:3282da59b84348eb7900db
 
 ---
 
-Name: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+Name: N
 Value: G-1GLFYH9CG6
 
 ---
 
 Name: NEXT_PUBLIC_SUPABASE_URL
-Value: https://advrigpttccbigwzfcci.supabase.co
+Value: https://ddboijlsxltjpoptgmft.supabase.co
 
 ---
 
 Name: NEXT_PUBLIC_SUPABASE_ANON_KEY
-Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkdnJpZ3B0dGNjYmlnd3pmY2NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ4OTk3NzAsImV4cCI6MjA1MDQ3NTc3MH0.sb_publishable_Y7gXsSIbeuQaWumd--CR1w_FUO1c6hNPublishable
+Value: [REMOVED - Use your own Supabase key]
 
 ---
 

@@ -293,5 +293,60 @@ service cloud.firestore {
         isAdmin()
       );
     }
+    
+    // ===============================================================
+    // Gifts Rules (подарки)
+    // ===============================================================
+    
+    // Полученные подарки пользователя
+    match /users/{userId}/received_gifts/{giftId} {
+      // Пользователь может читать только свои подарки
+      allow read: if isAuthenticated() && (
+        isOwner(userId) ||
+        isAdmin()
+      );
+      
+      // Любой авторизованный пользователь может отправить подарок
+      allow create: if isAuthenticated() && isNotBanned() &&
+                    request.resource.data.user_id == userId &&
+                    request.resource.data.gift_id is string &&
+                    request.resource.data.name is string &&
+                    request.resource.data.emoji is string &&
+                    request.resource.data.cost is int &&
+                    request.resource.data.from_user_id is string &&
+                    request.resource.data.from_name is string &&
+                    request.resource.data.can_convert is bool &&
+                    request.resource.data.received_at is timestamp;
+      
+      // Владелец может обновить подарок (конвертация)
+      allow update: if isAuthenticated() && isOwner(userId) &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['can_convert', 'converted_at']);
+      
+      // Только владелец или админ могут удалить подарок
+      allow delete: if isAuthenticated() && (
+        isOwner(userId) ||
+        isAdmin()
+      );
+    }
+    
+    // Глобальная статистика отправленных подарков
+    match /gifts_sent/{giftId} {
+      // Все могут читать для подсчета
+      allow read: if true;
+      
+      // Любой авторизованный пользователь может добавить запись
+      allow create: if isAuthenticated() && isNotBanned() &&
+                    request.resource.data.gift_id is string &&
+                    request.resource.data.from_user_id is string &&
+                    request.resource.data.to_user_id is string &&
+                    request.resource.data.cost is int &&
+                    request.resource.data.sent_at is timestamp;
+      
+      // Никто не может обновлять (immutable)
+      allow update: if false;
+      
+      // Только админы могут удалять
+      allow delete: if isAdmin();
+    }
   }
 }
