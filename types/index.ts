@@ -1,7 +1,8 @@
 export type MessageType = 'sent' | 'received';
 
-// Тип для Firebase Timestamp
-export type FirestoreTimestamp = Date | { toDate: () => Date; seconds?: number; nanoseconds?: number };
+// Тип для Firebase Timestamp - включаем FieldValue для serverTimestamp()
+import type { FieldValue } from 'firebase/firestore';
+export type FirestoreTimestamp = Date | { toDate: () => Date; seconds?: number; nanoseconds?: number } | FieldValue;
 
 export interface Sticker {
   id: string;

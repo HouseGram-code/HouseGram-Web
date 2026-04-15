@@ -695,7 +695,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
     const newMessage: Omit<Message, 'id'> = {
       type: 'sent', text, time: timeString, status: 'sent', senderId: auth.currentUser.uid,
-      chatId, createdAt: serverNow as any, ...options,
+      chatId, createdAt: serverNow, ...options,
     };
 
     try {
