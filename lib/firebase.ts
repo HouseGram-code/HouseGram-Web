@@ -38,12 +38,12 @@ try {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 } catch (error) {
   console.error('Firebase initialization error:', error);
-  // В случае ошибки создаем заглушку
   app = null as any;
 }
 
-// Инициализируем Firestore с оффлайн поддержкой (только на клиенте)
-export const db = app && typeof window !== 'undefined'
+// Инициализируем Firestore
+// В продакшене не используем persistentLocalCache чтобы избежать оффлайн ошибок
+export const db = app && typeof window !== 'undefined' && !isDemoMode
   ? initializeFirestore(app, {
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager()
