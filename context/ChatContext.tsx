@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Contact, ViewState, Message, UserProfile } from '@/types';
 import { initialContacts } from '@/lib/mockData';
 import { auth, db } from '@/lib/firebase';
@@ -320,14 +320,15 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   // Подписка на статусы пользователей в реальном времени
-  useEffect(() => {
-    if (!user) return;
-    
-    const contactIds = Object.keys(contacts).filter(id => 
+  // Используем useMemo для стабильного списка ID контактов
+  const contactIds = useMemo(() => {
+    return Object.keys(contacts).filter(id => 
       id !== 'saved_messages' && id !== 'test_bot'
     );
-    
-    if (contactIds.length === 0) return;
+  }, [Object.keys(contacts).sort().join(',')]);
+
+  useEffect(() => {
+    if (!user || contactIds.length === 0) return;
     
     const unsubscribes: (() => void)[] = [];
     
@@ -401,7 +402,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       unsubscribes.forEach(unsub => unsub());
     };
-  }, [user, Object.keys(contacts).join(',')]);
+  }, [user, contactIds]);
 
   // Подписка на статус печати в активном чате
   useEffect(() => {
@@ -1035,7 +1036,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }, (error) => { console.error('Messages listener error:', error); });
 
     return () => unsubscribe();
-  }, [activeChatId, user, contacts]);
+  }, [activeChatId, user]);
 
   const updateUserProfile = useCallback(async (profile: UserProfile) => {
     setUserProfile(profile);
