@@ -222,6 +222,8 @@ export default function SendGiftView() {
     loadBalance();
     
     // Подписываемся на изменения баланса в реальном времени
+    if (!currentUser?.id) return;
+    
     const channel = supabase
       .channel('user-stars-changes')
       .on(
