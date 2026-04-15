@@ -110,7 +110,7 @@ const GIFTS = [
 ];
 
 export default function SendGiftView() {
-  const { setView, themeColor, contacts, currentUser } = useChat();
+  const { setView, themeColor, contacts, currentUser, setActiveChatId } = useChat();
   const [step, setStep] = useState<'select-user' | 'select-gift' | 'confirm'>('select-user');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedGift, setSelectedGift] = useState<typeof GIFTS[0] | null>(null);
@@ -301,10 +301,13 @@ export default function SendGiftView() {
       }
       
       // Добавляем сообщение с подарком
+      const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
+      
       await addDoc(collection(db, 'chats', chatId, 'messages'), {
         chatId,
         senderId: currentUser.id,
-        text: '',
+        text: `Подарок: ${selectedGift.emoji} ${selectedGift.name}`,
+        time: timeString,
         createdAt: serverTimestamp(),
         status: 'sent',
         type: 'sent',
@@ -319,8 +322,10 @@ export default function SendGiftView() {
 
       setShowSuccess(true);
       setTimeout(() => {
-        setView('menu');
-      }, 2000);
+        // Открываем чат с получателем
+        setActiveChatId(selectedUserId);
+        setView('chat');
+      }, 1500);
     } catch (e) {
       console.error('Failed to send gift:', e);
       alert(`Ошибка при отправке подарка: ${e instanceof Error ? e.message : 'Неизвестная ошибка'}`);
