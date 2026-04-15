@@ -255,6 +255,9 @@ export default function SendGiftView() {
 
   const handleSendGift = async () => {
     if (!selectedUserId || !selectedGift || !currentUser?.id) return;
+    
+    // Защита от двойного клика
+    if (sending) return;
 
     if (userStars < selectedGift.cost) {
       alert(`Недостаточно молний! У вас ${userStars}, а нужно ${selectedGift.cost}`);
@@ -302,8 +305,9 @@ export default function SendGiftView() {
       
       // Добавляем сообщение с подарком
       const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
+      const messageId = `gift_${currentUser.id}_${selectedUserId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+      await setDoc(doc(db, 'chats', chatId, 'messages', messageId), {
         chatId,
         senderId: currentUser.id,
         text: `Подарок: ${selectedGift.emoji} ${selectedGift.name}`,
