@@ -272,7 +272,7 @@ export default function SendGiftView() {
 
       // Отправляем сообщение с подарком в чат
       const chatId = [currentUser.id, selectedUserId].sort().join('_');
-      const now = new Date();
+      const timestamp = new Date();
       
       // Создаем/обновляем чат
       const chatRef = doc(db, 'chats', chatId);
@@ -281,13 +281,13 @@ export default function SendGiftView() {
       if (!chatDoc.exists()) {
         await setDoc(chatRef, {
           participants: [currentUser.id, selectedUserId],
-          updatedAt: now,
+          updatedAt: timestamp,
           lastMessage: `Подарок: ${selectedGift.name}`,
           lastMessageSenderId: currentUser.id
         });
       } else {
         await updateDoc(chatRef, {
-          updatedAt: now,
+          updatedAt: timestamp,
           lastMessage: `Подарок: ${selectedGift.name}`,
           lastMessageSenderId: currentUser.id
         });
@@ -296,14 +296,13 @@ export default function SendGiftView() {
       // Добавляем сообщение с подарком
       const timeString = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
       const messageId = `gift_${currentUser.id}_${selectedUserId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const now = new Date();
       
       await setDoc(doc(db, 'chats', chatId, 'messages', messageId), {
         chatId,
         senderId: currentUser.id,
         text: `Подарок: ${selectedGift.emoji} ${selectedGift.name}`,
         time: timeString,
-        createdAt: now, // ← Используем клиентский timestamp вместо serverTimestamp()
+        createdAt: timestamp, // ← Используем клиентский timestamp вместо serverTimestamp()
         status: 'sent',
         type: 'sent',
         gift: {
