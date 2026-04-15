@@ -3,33 +3,44 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, persistentLocalCache, persistentMultipleTabManager, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Конфигурация через переменные окружения (с фоллбэком для разработки)
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || ''
+// Демо конфигурация для работы без настройки
+const demoConfig = {
+  apiKey: "AIzaSyDemo_Key_For_Testing_Only",
+  authDomain: "demo-housegram.firebaseapp.com",
+  projectId: "demo-housegram",
+  storageBucket: "demo-housegram.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:demo",
+  measurementId: "G-DEMO"
 };
 
-// Валидация конфигурации
-const requiredVars = ['NEXT_PUBLIC_FIREBASE_API_KEY', 'NEXT_PUBLIC_FIREBASE_PROJECT_ID'];
-const missingVars = requiredVars.filter(v => !process.env[v]);
-if (missingVars.length > 0) {
-  if (typeof window !== 'undefined') {
-    console.warn(`Missing Firebase config variables: ${missingVars.join(', ')}`);
-  }
-  // На сервере во время сборки не инициализируем Firebase если нет ключей
-  if (typeof window === 'undefined') {
-    console.log('Firebase not initialized on server (missing config)');
-  }
+// Конфигурация через переменные окружения (с фоллбэком на демо)
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || demoConfig.apiKey,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || demoConfig.authDomain,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || demoConfig.projectId,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || demoConfig.storageBucket,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || demoConfig.messagingSenderId,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || demoConfig.appId,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || demoConfig.measurementId
+};
+
+// Проверяем используется ли демо режим
+export const isDemoMode = !process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+
+if (isDemoMode && typeof window !== 'undefined') {
+  console.log('🎭 Работа в ДЕМО режиме. Для полной функциональности настройте Firebase.');
 }
 
-// Инициализируем только если есть необходимые переменные или на клиенте
-const shouldInitialize = missingVars.length === 0 || typeof window !== 'undefined';
-const app = shouldInitialize && getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Инициализируем Firebase
+let app;
+try {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+  // В случае ошибки создаем заглушку
+  app = null as any;
+}
 
 // Инициализируем Firestore с оффлайн поддержкой (только на клиенте)
 export const db = app && typeof window !== 'undefined'

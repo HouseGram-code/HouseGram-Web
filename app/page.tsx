@@ -3,59 +3,17 @@
 import { ChatProvider, useChat } from '@/context/ChatContext';
 import { AnimatePresence } from 'motion/react';
 import dynamic from 'next/dynamic';
-import { Suspense, useMemo, useEffect, useState } from 'react';
+import { Suspense, useMemo } from 'react';
+import { isDemoMode } from '@/lib/firebase';
+import { isSupabaseDemoMode } from '@/lib/supabase';
 
-// Проверка переменных окружения
-const checkEnvVars = () => {
-  const required = [
-    'NEXT_PUBLIC_FIREBASE_API_KEY',
-    'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY'
-  ];
+// Компонент для отображения демо-режима
+function DemoBanner() {
+  if (!isDemoMode && !isSupabaseDemoMode) return null;
   
-  const missing = required.filter(key => !process.env[key]);
-  return { isValid: missing.length === 0, missing };
-};
-
-// Компонент для отображения ошибки конфигурации
-function ConfigError({ missing }: { missing: string[] }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-2xl w-full">
-        <div className="text-center mb-6">
-          <div className="text-6xl mb-4">⚙️</div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Требуется настройка</h1>
-          <p className="text-gray-600">Приложение не настроено. Добавьте переменные окружения.</p>
-        </div>
-        
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-          <h2 className="font-semibold text-red-900 mb-2">Отсутствуют переменные:</h2>
-          <ul className="list-disc list-inside text-red-700 text-sm space-y-1">
-            {missing.map(key => (
-              <li key={key}><code className="bg-red-100 px-2 py-1 rounded">{key}</code></li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-          <h2 className="font-semibold text-blue-900 mb-2">📋 Инструкция для Vercel:</h2>
-          <ol className="list-decimal list-inside text-blue-800 text-sm space-y-2">
-            <li>Откройте <a href="https://vercel.com/dashboard" target="_blank" className="underline">Vercel Dashboard</a></li>
-            <li>Выберите проект <strong>HouseGram-Web</strong></li>
-            <li>Перейдите в <strong>Settings → Environment Variables</strong></li>
-            <li>Добавьте все необходимые переменные из Firebase и Supabase</li>
-            <li>Нажмите <strong>Redeploy</strong> для пересборки</li>
-          </ol>
-        </div>
-
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-          <h2 className="font-semibold text-gray-900 mb-2">📖 Подробная инструкция:</h2>
-          <p className="text-gray-700 text-sm">
-            Смотрите файл <code className="bg-gray-200 px-2 py-1 rounded">VERCEL_SETUP.md</code> в репозитории
-          </p>
-        </div>
-      </div>
+    <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 text-center text-sm font-medium z-50 shadow-lg">
+      🎭 ДЕМО РЕЖИМ: Приложение работает с тестовыми данными. Для полной функциональности настройте Firebase и Supabase.
     </div>
   );
 }
@@ -227,17 +185,12 @@ function AppContent() {
 }
 
 export default function Page() {
-  // Проверяем переменные окружения
-  const envCheck = checkEnvVars();
-  
-  // Если переменные не настроены, показываем экран настройки
-  if (!envCheck.isValid) {
-    return <ConfigError missing={envCheck.missing} />;
-  }
-  
   return (
-    <ChatProvider>
-      <AppContent />
-    </ChatProvider>
+    <>
+      <DemoBanner />
+      <ChatProvider>
+        <AppContent />
+      </ChatProvider>
+    </>
   );
 }

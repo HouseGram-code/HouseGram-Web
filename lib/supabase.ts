@@ -1,20 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase конфигурация
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Демо конфигурация для работы без настройки
+const demoSupabaseUrl = 'https://demo-housegram.supabase.co';
+const demoSupabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlbW8iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwMDAwMDAwMCwiZXhwIjoxOTAwMDAwMDAwfQ.demo';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    'Supabase configuration is missing. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.'
-  );
+// Supabase конфигурация
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || demoSupabaseUrl;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || demoSupabaseKey;
+
+// Проверяем используется ли демо режим
+export const isSupabaseDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+if (isSupabaseDemoMode && typeof window !== 'undefined') {
+  console.log('🎭 Supabase в ДЕМО режиме. Данные хранятся локально.');
 }
 
-// Создаём клиент только если конфигурация доступна
-const safeUrl = supabaseUrl || 'https://placeholder.supabase.co';
-const safeKey = supabaseAnonKey || 'placeholder-key';
-
-export const supabase = createClient(safeUrl, safeKey, {
+// Создаём клиент
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
