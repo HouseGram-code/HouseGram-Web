@@ -67,6 +67,7 @@ interface ChatContextType {
   userProfile: UserProfile;
   setUserProfile: (profile: UserProfile) => void;
   blockContact: (contactId: string) => void;
+  unblockContact: (contactId: string) => void;
   notificationsEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
   soundEnabled: boolean;
@@ -590,6 +591,17 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     setContacts(prev => ({ ...prev, [contactId]: { ...prev[contactId], isBlocked: true } }));
   }, [user]);
 
+  const unblockContact = useCallback(async (contactId: string) => {
+    if (!user) return;
+    const chatId = [user.uid, contactId].sort().join('_');
+    try { 
+      const updateData: Record<string, any> = {};
+      updateData[`blockedBy.${user.uid}`] = null;
+      await updateDoc(doc(db, 'chats', chatId), updateData); 
+    } catch (e) {}
+    setContacts(prev => ({ ...prev, [contactId]: { ...prev[contactId], isBlocked: false } }));
+  }, [user]);
+
   const lastMessageTimeRef = useRef<number>(0);
 
   const saveSticker = useCallback((stickerUrl: string) => {
@@ -1066,7 +1078,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       themeColor, setThemeColor: (c: string) => { setThemeColor(c); localStorage.setItem('housegram_theme', c); },
       wallpaper, setWallpaper: (u: string) => { setWallpaper(u); localStorage.setItem('housegram_wallpaper', u); },
       isGlassEnabled, setIsGlassEnabled: (v: boolean) => { setIsGlassEnabled(v); localStorage.setItem('housegram_glass', String(v)); },
-      clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, addContact,
+      clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, unblockContact, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
       isDarkMode, setIsDarkMode: (val: boolean) => { setIsDarkMode(val); localStorage.setItem('housegram_dark_mode', String(val)); },

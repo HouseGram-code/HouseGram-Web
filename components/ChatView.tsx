@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info } from 'lucide-react';
+import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, ShieldOff } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import NextImage from 'next/image';
 import { auth, db } from '@/lib/firebase';
@@ -19,7 +19,7 @@ const isOnlyEmojis = (str: string) => {
 type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 
 export default function ChatView() {
-  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus } = useChat();
+  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus, blockContact, unblockContact } = useChat();
   const [inputText, setInputText] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
@@ -568,6 +568,17 @@ export default function ChatView() {
     setContextMenu(null);
   };
 
+  const handleBlockUser = () => {
+    if (activeChatId && contacts[activeChatId]) {
+      if (contacts[activeChatId].isBlocked) {
+        unblockContact(activeChatId);
+      } else {
+        blockContact(activeChatId);
+      }
+    }
+    setContextMenu(null);
+  };
+
   const handleForwardTo = (targetChatId: string) => {
     const msg = contact.messages.find(m => m.id === contextMenu?.msgId);
     if (msg) forwardMessage(msg, targetChatId);
@@ -968,6 +979,15 @@ export default function ChatView() {
                     <button onClick={() => { saveSticker(msg.stickerUrl!); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-50/80 text-left text-[15px] text-gray-700 transition-colors">
                       <Download size={18} className="text-orange-500" /> 
                       <span>Сохранить стикер</span>
+                    </button>
+                  </>
+                )}
+                {!isOwn && (
+                  <>
+                    <div className="h-px bg-gray-100/50 mx-4 my-1" />
+                    <button onClick={handleBlockUser} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 text-left text-[15px] text-red-500 font-medium transition-colors">
+                      <ShieldOff size={18} /> 
+                      <span>{contact.isBlocked ? 'Разблокировать' : 'Заблокировать'}</span>
                     </button>
                   </>
                 )}
