@@ -1220,30 +1220,32 @@ export default function ChatView() {
             <Paperclip size={24} />
           </button>
 
-          <div className="flex-grow flex items-end gap-2 bg-[#807e7e1a] dark:bg-[#ffffff1a] rounded-[28px] px-4 py-2.5 shadow-sm transition-all duration-200 focus-within:shadow-md focus-within:bg-white dark:focus-within:bg-[#ffffff26] border border-transparent focus-within:border-[#807e7e40] dark:focus-within:border-[#ffffff30]">
+          <div className="flex-grow flex flex-col bg-transparent relative">
             {replyingTo && (
-              <div className="absolute -top-12 left-0 right-0 flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#2c2c2c] rounded-t-[20px] border-b border-gray-100 dark:border-gray-700 mx-4 shadow-sm z-10">
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-t-lg border-l-2" style={{ borderColor: themeColor }}>
                 <div className="flex-grow min-w-0">
-                  <div className="text-[13px] font-medium truncate" style={{ color: themeColor }}>{replyingTo.senderName}</div>
-                  <div className="text-[12px] text-gray-500 dark:text-gray-400 truncate">{replyingTo.text}</div>
+                  <div className="text-[13px] font-medium" style={{ color: themeColor }}>{replyingTo.senderName}</div>
+                  <div className="text-[13px] text-gray-500 truncate">{replyingTo.text}</div>
                 </div>
-                <button onClick={cancelReply} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 shrink-0"><X size={16} /></button>
+                <button onClick={cancelReply} className="text-gray-400 hover:text-gray-600 shrink-0"><X size={16} /></button>
               </div>
             )}
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать сообщение..." : "Сообщение"}
-              disabled={isRecording}
-              className="flex-grow bg-transparent border-none outline-none py-1.5 px-1 text-[16px] text-tg-text-primary dark:text-white placeholder-tg-placeholder-text dark:placeholder-gray-400 resize-none max-h-[100px] leading-snug m-0 disabled:opacity-50"
-            />
-            {!isRecording && inputText.trim().length > 0 && (
-              <button onClick={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }} className="p-1.5 text-tg-secondary-text dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0">
-                <Smile size={24} />
-              </button>
-            )}
+            <div className="flex items-center">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
+                disabled={isRecording}
+                className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50"
+              />
+              {!isRecording && (
+                <button onClick={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
+                  <Smile size={24} />
+                </button>
+              )}
+            </div>
           </div>
 
           {isRecording ? (
