@@ -652,6 +652,21 @@ export default function ChatView() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
                 <div className="absolute right-2 top-full mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-50 text-black">
+                  {!contact.isChannel && contact.id !== 'saved_messages' && (
+                    <button 
+                      onClick={() => { 
+                        if (contact.isBlocked) {
+                          unblockContact(contact.id);
+                        } else {
+                          blockContact(contact.id);
+                        }
+                        setIsMenuOpen(false); 
+                      }} 
+                      className={`w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px] flex items-center gap-2 ${contact.isBlocked ? 'text-green-600' : 'text-red-500'}`}
+                    >
+                      {contact.isBlocked ? <><ShieldOff size={18} /> Разблокировать</> : <><ShieldOff size={18} /> Заблокировать</>}
+                    </button>
+                  )}
                   <button onClick={() => { setShowClearModal(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px]">Очистить историю</button>
                   <button onClick={() => { setShowDeleteModal(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px] text-red-500">Удалить чат</button>
                 </div>
