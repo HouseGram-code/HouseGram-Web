@@ -1220,17 +1220,17 @@ export default function ChatView() {
             <Paperclip size={24} />
           </button>
 
-          <div className="flex-grow flex flex-col bg-transparent relative">
+          <div className="flex-grow flex flex-col relative">
             {replyingTo && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-t-lg border-l-2" style={{ borderColor: themeColor }}>
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/80 backdrop-blur-sm rounded-t-xl border-l-2 mb-1" style={{ borderColor: themeColor }}>
                 <div className="flex-grow min-w-0">
                   <div className="text-[13px] font-medium" style={{ color: themeColor }}>{replyingTo.senderName}</div>
                   <div className="text-[13px] text-gray-500 truncate">{replyingTo.text}</div>
                 </div>
-                <button onClick={cancelReply} className="text-gray-400 hover:text-gray-600 shrink-0"><X size={16} /></button>
+                <button onClick={cancelReply} className="text-gray-400 hover:text-gray-600 shrink-0 transition-colors"><X size={16} /></button>
               </div>
             )}
-            <div className="flex items-center">
+            <div className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border transition-all duration-200 bg-white/90 backdrop-blur-md shadow-sm ${showPicker ? 'ring-2 ring-blue-400/50 border-transparent' : 'border-gray-200 hover:border-gray-300 focus-within:ring-2 focus-within:ring-blue-400/50 focus-within:border-transparent'}`}>
               <input
                 type="text"
                 value={inputText}
@@ -1238,11 +1238,11 @@ export default function ChatView() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
                 disabled={isRecording}
-                className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50"
+                className="flex-grow border-none outline-none py-1 px-1 text-[15px] bg-transparent resize-none max-h-[80px] leading-snug m-0 placeholder-gray-400 text-gray-900 disabled:opacity-50 font-normal"
               />
               {!isRecording && (
-                <button onClick={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
-                  <Smile size={24} />
+                <button onClick={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all active:scale-90">
+                  <Smile size={22} />
                 </button>
               )}
             </div>
@@ -1250,20 +1250,20 @@ export default function ChatView() {
 
           {isRecording ? (
             <div className="flex items-center gap-2 mb-0.5">
-              <div className="flex items-center gap-1.5 px-2 text-red-500 font-medium">
+              <div className="flex items-center gap-1.5 px-3 py-2.5 text-red-500 font-medium bg-red-50 rounded-2xl">
                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />{formatTime(recordingTime)}
               </div>
-              <button onClick={stopRecording} className="w-10 h-10 p-2 rounded-full flex items-center justify-center text-white bg-red-500 hover:brightness-110 active:scale-90 transition-all">
-                <Square size={16} fill="currentColor" />
+              <button onClick={stopRecording} className="w-11 h-11 p-2.5 rounded-full flex items-center justify-center text-white bg-red-500 hover:bg-red-600 active:scale-90 transition-all shadow-lg shadow-red-500/30">
+                <Square size={18} fill="currentColor" />
               </button>
             </div>
-          ) : inputText.trim() ? (
-            <button onClick={handleSend} className="w-10 h-10 p-2 rounded-full mb-0.5 flex items-center justify-center text-white hover:brightness-110 active:scale-90 transition-all" style={{ backgroundColor: themeColor }}>
-              {editingMsg ? <Check size={20} /> : <Send size={20} className="ml-0.5" />}
+          ) : inputText.trim() || editingMsg ? (
+            <button onClick={handleSend} className="w-11 h-11 p-2.5 rounded-full mb-0.5 flex items-center justify-center text-white hover:brightness-110 active:scale-90 transition-all shadow-lg" style={{ backgroundColor: themeColor, boxShadow: `0 4px 12px ${themeColor}40` }}>
+              {editingMsg ? <Check size={22} strokeWidth={2.5} /> : <Send size={20} className="ml-0.5" />}
             </button>
           ) : (
-            <button onClick={startRecording} className="p-1.5 mb-0.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
-              <Mic size={24} />
+            <button onClick={startRecording} className="p-2.5 mb-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all active:scale-90">
+              <Mic size={22} />
             </button>
           )}
         </div>
