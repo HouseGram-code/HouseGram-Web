@@ -934,39 +934,54 @@ export default function ChatView() {
           const canEdit = isOwn && !msg.audioUrl && !msg.fileUrl && !msg.stickerUrl && !msg.gifUrl;
 
           return (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed z-[60] bg-white rounded-xl shadow-2xl border border-gray-100 py-1 min-w-[180px]"
-              style={{
-                left: Math.min(contextMenu.x, window.innerWidth - 200),
-                top: Math.min(contextMenu.y, window.innerHeight - 300),
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {canEdit && (
-                <button onClick={() => handleEdit(msg.id, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
-                  <Edit3 size={18} className="text-gray-500" /> Редактировать
+            <>
+              <div className="fixed inset-0 z-[55]" onClick={() => setContextMenu(null)} />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="fixed z-[60] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 py-1.5 min-w-[200px] overflow-hidden"
+                style={{
+                  left: Math.min(contextMenu.x, window.innerWidth - 210),
+                  top: Math.min(contextMenu.y, window.innerHeight - 300),
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {canEdit && (
+                  <button onClick={() => handleEdit(msg.id, msg.text)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50/80 text-left text-[15px] text-gray-700 transition-colors">
+                    <Edit3 size={18} className="text-blue-500" /> 
+                    <span>Редактировать</span>
+                  </button>
+                )}
+                <button onClick={() => handleReply(msg.id, isOwn ? 'Вы' : contact.name, msg.text)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-green-50/80 text-left text-[15px] text-gray-700 transition-colors">
+                  <Reply size={18} className="text-green-500" /> 
+                  <span>Ответить</span>
                 </button>
-              )}
-              <button onClick={() => handleReply(msg.id, isOwn ? 'Вы' : contact.name, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
-                <Reply size={18} className="text-gray-500" /> Ответить
-              </button>
-              <button onClick={() => handleForward(msg.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
-                <Repeat2 size={18} className="text-gray-500" /> Переслать
-              </button>
-              {msg.stickerUrl && !savedStickers.includes(msg.stickerUrl) && (
-                <button onClick={() => { saveSticker(msg.stickerUrl!); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
-                  <Download size={18} className="text-gray-500" /> Сохранить стикер
+                <button onClick={() => handleForward(msg.id)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-purple-50/80 text-left text-[15px] text-gray-700 transition-colors">
+                  <Repeat2 size={18} className="text-purple-500" /> 
+                  <span>Переслать</span>
                 </button>
-              )}
-              {isOwn && (
-                <button onClick={() => handleDelete(msg.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-left text-[15px] text-red-500">
-                  <Trash2 size={18} /> Удалить
-                </button>
-              )}
-            </motion.div>
+                {msg.stickerUrl && !savedStickers.includes(msg.stickerUrl) && (
+                  <>
+                    <div className="h-px bg-gray-100/50 mx-4 my-1" />
+                    <button onClick={() => { saveSticker(msg.stickerUrl!); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-50/80 text-left text-[15px] text-gray-700 transition-colors">
+                      <Download size={18} className="text-orange-500" /> 
+                      <span>Сохранить стикер</span>
+                    </button>
+                  </>
+                )}
+                {isOwn && (
+                  <>
+                    <div className="h-px bg-red-100/50 mx-4 my-1" />
+                    <button onClick={() => handleDelete(msg.id)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 text-left text-[15px] text-red-500 font-medium transition-colors">
+                      <Trash2 size={18} /> 
+                      <span>Удалить</span>
+                    </button>
+                  </>
+                )}
+              </motion.div>
+            </>
           );
         })()}
       </AnimatePresence>
