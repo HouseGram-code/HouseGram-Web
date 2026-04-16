@@ -1,8 +1,8 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { motion } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare, Moon, Sun, Palette } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { storage, auth, db } from '@/lib/firebase';
@@ -12,12 +12,24 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import imageCompression from 'browser-image-compression';
 
+const colorThemes = [
+  { id: 'blue', name: 'Синий', color: '#3B82F6', bg: 'bg-blue-500' },
+  { id: 'green', name: 'Зеленый', color: '#22C55E', bg: 'bg-green-500' },
+  { id: 'red', name: 'Красный', color: '#EF4444', bg: 'bg-red-500' },
+  { id: 'purple', name: 'Фиолетовый', color: '#A855F7', bg: 'bg-purple-500' },
+  { id: 'orange', name: 'Оранжевый', color: '#F97316', bg: 'bg-orange-500' },
+  { id: 'cyan', name: 'Голубой', color: '#06B6D4', bg: 'bg-cyan-500' },
+  { id: 'pink', name: 'Розовый', color: '#EC4899', bg: 'bg-pink-500' },
+  { id: 'amber', name: 'Желтый', color: '#F59E0B', bg: 'bg-amber-500' },
+];
+
 export default function SettingsView() {
-  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile, user } = useChat();
+  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile, user, isDarkMode, setIsDarkMode, setThemeColor } = useChat();
   const [isEditing, setIsEditing] = useState(false);
   const [editProfile, setEditProfile] = useState(userProfile);
   const [isUploading, setIsUploading] = useState(false);
   const [accountStats, setAccountStats] = useState({ messages: 0, chats: 0, days: 0 });
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
