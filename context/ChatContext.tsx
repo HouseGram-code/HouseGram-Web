@@ -71,6 +71,8 @@ interface ChatContextType {
   setNotificationsEnabled: (enabled: boolean) => void;
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
+  isDarkMode: boolean;
+  setIsDarkMode: (enabled: boolean) => void;
   passcode: string | null;
   isLocked: boolean;
   setIsLocked: (locked: boolean) => void;
@@ -115,6 +117,13 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   });
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('housegram_dark_mode');
+      return saved === 'true';
+    }
+    return false;
+  });
   const [passcode, setPasscode] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [savedStickers, setSavedStickers] = useState<string[]>(() => {
@@ -1060,6 +1069,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
+      isDarkMode, setIsDarkMode: (val: boolean) => { setIsDarkMode(val); localStorage.setItem('housegram_dark_mode', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode, user, 
       currentUser: user ? { id: user.uid, email: user.email } : null,
       isAdmin, isMaintenance, logout, setTypingStatus
