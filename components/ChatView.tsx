@@ -879,12 +879,8 @@ export default function ChatView() {
           </div>
         )}
 
-        {contact.messages.map((msg, index) => renderMessage(msg, index))}
-                <div className="flex items-center gap-2 mb-1 bg-black/5 p-2 rounded-lg">
-                  <div className="p-2 bg-blue-500 text-white rounded-full"><FileIcon size={16} /></div>
-                  <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline truncate max-w-[150px]">{msg.fileName}</a>
-                </div>
-              ) : msg.gift ? (
+        {!contact.isBlocked && contact.messages.map((msg, index) => renderMessage(msg, index))}
+      </div>
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
