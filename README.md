@@ -34,6 +34,7 @@
 
 ```diff
 + 💬 Real-time Messaging        - Instant message delivery with Firebase
++ 🛡️ Privacy Update              - Fixed: Messages now properly hide when users are blocked
 + 📢 Channels & Broadcasting    - Create and manage public channels
 + 🎁 Gift System                - Send gifts using Lightning currency
 + 📁 File Sharing               - Images, videos, audio, documents
@@ -228,6 +229,7 @@ If you like HouseGram, please give it a ⭐!
 
 ```diff
 + 💬 Обмен Сообщениями          - Мгновенная доставка через Firebase
++ 🛡️ Обновление Приватности     - Исправлено: Сообщения теперь скрываются при блокировке пользователя
 + 📢 Каналы и Трансляции         - Создание и управление публичными каналами
 + 🎁 Система Подарков            - Отправка подарков за валюту "Молнии"
 + 📁 Обмен Файлами               - Изображения, видео, аудио, документы
