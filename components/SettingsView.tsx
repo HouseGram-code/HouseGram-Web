@@ -519,8 +519,6 @@ export default function SettingsView() {
     </motion.div>
   );
 }
-  );
-}
 
 function SettingsItem({ icon, text, subtitle, onClick, soon, divider, isDarkMode }: { icon: React.ReactNode; text: string; subtitle?: string; onClick?: () => void; soon?: boolean; divider?: boolean; isDarkMode?: boolean }) {
   const dark = isDarkMode || false;
