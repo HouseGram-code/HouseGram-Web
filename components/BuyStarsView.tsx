@@ -9,7 +9,7 @@ import { doc, updateDoc, increment, addDoc, collection, serverTimestamp } from '
 
 // Пакеты молний как в Telegram
 const STAR_PACKAGES = [
-  { stars: 50, price: 99, priceUSD: 0.99, popular: false },
+  { stars: 50, price: 99, priceUSD: 0.99, popular: false, discount: true },
   { stars: 100, price: 199, priceUSD: 1.99, popular: false },
   { stars: 250, price: 449, priceUSD: 4.49, popular: true },
   { stars: 500, price: 899, priceUSD: 8.99, popular: false },
@@ -98,8 +98,16 @@ export default function BuyStarsView() {
                   : 'hover:shadow-md'
               }`}
             >
+              {/* Discount Badge */}
+              {pkg.discount && (
+                <div className="absolute top-0 left-0 bg-gradient-to-r from-red-500 via-pink-500 to-orange-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-br-xl rounded-tl-2xl shadow-lg flex items-center gap-1">
+                  <Zap size={12} fill="white" />
+                  СКИДКА 99₽
+                </div>
+              )}
+
               {/* Popular Badge */}
-              {pkg.popular && (
+              {pkg.popular && !pkg.discount && (
                 <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[11px] font-medium px-3 py-1 rounded-bl-xl rounded-tr-2xl">
                   ПОПУЛЯРНО
                 </div>
