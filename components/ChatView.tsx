@@ -1154,13 +1154,13 @@ export default function ChatView() {
                 <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
                 
-                <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px] transition-colors">
                   <div className="text-blue-500"><ImageIcon size={20} /></div><span>Фото / Видео</span>
                 </button>
-                <button onClick={() => audioInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                <button onClick={() => audioInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px] transition-colors">
                   <div className="text-orange-500"><Music size={20} /></div><span>Музыка</span>
                 </button>
-                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px] transition-colors">
                   <div className="text-green-500"><FileIcon size={20} /></div><span>Файл</span>
                 </button>
               </motion.div>
