@@ -706,7 +706,8 @@ export default function ChatView() {
           </div>
         )}
 
-        {contact.messages.map((msg) => {
+        {/* Показываем сообщения только если контакт не заблокирован */}
+        {!contact.isBlocked && contact.messages.map((msg) => {
           const onlyEmojis = isOnlyEmojis(msg.text);
           const emojiCount = Array.from(msg.text.replace(/\s/g, '')).length;
           const isJumbo = onlyEmojis && emojiCount <= 5 && !msg.audioUrl && !msg.fileUrl && !msg.stickerUrl && !msg.gifUrl;
