@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -62,7 +62,7 @@ export default function ChatView() {
     }
   }, []);
 
-  // ╨Ю╤В╤Б╨╗╨╡╨╢╨╕╨▓╨░╨╡╨╝ ╨┐╨╛╨╖╨╕╤Ж╨╕╤О ╤Б╨║╤А╨╛╨╗╨╗╨░
+  // Отслеживаем позицию скролла
   const handleScroll = useCallback(() => {
     if (!messagesContainerRef.current) return;
     
@@ -71,38 +71,38 @@ export default function ChatView() {
     wasAtBottomRef.current = isAtBottom;
   }, []);
 
-  // ╨б╨║╤А╨╛╨╗╨╗╨╕╨╝ ╤В╨╛╨╗╤М╨║╨╛ ╨┐╤А╨╕ ╨╜╨╛╨▓╤Л╤Е ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╤П╤Е
+  // Скроллим только при новых сообщениях
   const prevMessagesLengthRef = useRef(0);
   useEffect(() => { 
     const currentLength = contact?.messages?.length || 0;
     if (currentLength > prevMessagesLengthRef.current) {
-      // ╨Э╨╛╨▓╨╛╨╡ ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╨╡ - ╤Б╨║╤А╨╛╨╗╨╗╨╕╨╝
+      // Новое сообщение - скроллим
       scrollToBottom(true);
     }
     prevMessagesLengthRef.current = currentLength;
   }, [contact?.messages?.length, scrollToBottom]);
 
-  // ╨Ю╨▒╤А╨░╨▒╨╛╤В╨║╨░ ╤Б╤В╨░╤В╤Г╤Б╨░ ╨┐╨╡╤З╨░╤В╨╕
+  // Обработка статуса печати
   const handleInputChange = useCallback((text: string) => {
     setInputText(text);
     
     if (!activeChatId || !setTypingStatus) return;
     
-    // ╨Х╤Б╨╗╨╕ ╤В╨╡╨║╤Б╤В ╨╜╨╡ ╨┐╤Г╤Б╤В╨╛╨╣, ╨╛╤В╨┐╤А╨░╨▓╨╗╤П╨╡╨╝ ╤Б╤В╨░╤В╤Г╤Б "╨┐╨╡╤З╨░╤В╨░╨╡╤В"
+    // Если текст не пустой, отправляем статус "печатает"
     if (text.trim()) {
       setTypingStatus(activeChatId, true);
       
-      // ╨б╨▒╤А╨░╤Б╤Л╨▓╨░╨╡╨╝ ╨┐╤А╨╡╨┤╤Л╨┤╤Г╤Й╨╕╨╣ ╤В╨░╨╣╨╝╨╡╤А
+      // Сбрасываем предыдущий таймер
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
       }
       
-      // ╨з╨╡╤А╨╡╨╖ 2 ╤Б╨╡╨║╤Г╨╜╨┤╤Л ╨┐╨╛╤Б╨╗╨╡ ╨╛╤Б╤В╨░╨╜╨╛╨▓╨║╨╕ ╨┐╨╡╤З╨░╤В╨╕ ╤Г╨▒╨╕╤А╨░╨╡╨╝ ╤Б╤В╨░╤В╤Г╤Б
+      // Через 2 секунды после остановки печати убираем статус
       typingTimerRef.current = setTimeout(() => {
         setTypingStatus(activeChatId, false);
       }, 2000);
     } else {
-      // ╨Х╤Б╨╗╨╕ ╤В╨╡╨║╤Б╤В ╨┐╤Г╤Б╤В╨╛╨╣, ╤Б╤А╨░╨╖╤Г ╤Г╨▒╨╕╤А╨░╨╡╨╝ ╤Б╤В╨░╤В╤Г╤Б
+      // Если текст пустой, сразу убираем статус
       setTypingStatus(activeChatId, false);
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
@@ -110,20 +110,20 @@ export default function ChatView() {
     }
   }, [activeChatId, setTypingStatus]);
 
-  // ╨Ю╤З╨╕╤Б╤В╨║╨░ ╤В╨░╨╣╨╝╨╡╤А╨░ ╨┐╤А╨╕ ╤А╨░╨╖╨╝╨╛╨╜╤В╨╕╤А╨╛╨▓╨░╨╜╨╕╨╕
+  // Очистка таймера при размонтировании
   useEffect(() => {
     return () => {
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
       }
-      // ╨г╨▒╨╕╤А╨░╨╡╨╝ ╤Б╤В╨░╤В╤Г╤Б ╨┐╨╡╤З╨░╤В╨╕ ╨┐╤А╨╕ ╨▓╤Л╤Е╨╛╨┤╨╡ ╨╕╨╖ ╤З╨░╤В╨░
+      // Убираем статус печати при выходе из чата
       if (activeChatId && setTypingStatus) {
         setTypingStatus(activeChatId, false);
       }
     };
   }, [activeChatId, setTypingStatus]);
 
-  // ╨Ч╨░╨│╤А╤Г╨╖╨║╨░ ╨╕╨╜╤Д╨╛╤А╨╝╨░╤Ж╨╕╨╕ ╨╛ ╨▓╨╗╨░╨┤╨╡╨╗╤М╤Ж╨╡ ╨║╨░╨╜╨░╨╗╨░
+  // Загрузка информации о владельце канала
   useEffect(() => {
     const loadChannelOwner = async () => {
       if (!activeChatId || !contact?.isChannel) {
@@ -175,7 +175,7 @@ export default function ChatView() {
       setShowPicker(false);
       setReplyingTo(null);
       
-      // ╨г╨▒╨╕╤А╨░╨╡╨╝ ╤Б╤В╨░╤В╤Г╤Б ╨┐╨╡╤З╨░╤В╨╕ ╨┐╨╛╤Б╨╗╨╡ ╨╛╤В╨┐╤А╨░╨▓╨║╨╕
+      // Убираем статус печати после отправки
       if (activeChatId && setTypingStatus) {
         setTypingStatus(activeChatId, false);
         if (typingTimerRef.current) {
@@ -199,7 +199,7 @@ export default function ChatView() {
     setShowPicker(false);
   };
 
-  // ╨С╤Л╤Б╤В╤А╨╛╨╡ ╤Б╨╢╨░╤В╨╕╨╡ ╨╕╨╖╨╛╨▒╤А╨░╨╢╨╡╨╜╨╕╤П ╤Б ╨┐╨╛╨╝╨╛╤Й╤М╤О Canvas API
+  // Быстрое сжатие изображения с помощью Canvas API
   const resizeImageFast = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -213,12 +213,12 @@ export default function ChatView() {
 
       img.onload = () => {
         try {
-          // ╨ж╨╡╨╗╨╡╨▓╨╛╨╣ ╤А╨░╨╖╨╝╨╡╤А ╨┤╨╗╤П ╤Б╤В╨╕╨║╨╡╤А╨░
+          // Целевой размер для стикера
           const MAX_SIZE = 512;
           let width = img.width;
           let height = img.height;
 
-          // ╨Т╤Л╤З╨╕╤Б╨╗╤П╨╡╨╝ ╨╜╨╛╨▓╤Л╨╡ ╤А╨░╨╖╨╝╨╡╤А╤Л ╤Б ╤Б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡╨╝ ╨┐╤А╨╛╨┐╨╛╤А╤Ж╨╕╨╣
+          // Вычисляем новые размеры с сохранением пропорций
           if (width > height) {
             if (width > MAX_SIZE) {
               height = Math.round((height * MAX_SIZE) / width);
@@ -234,22 +234,22 @@ export default function ChatView() {
           canvas.width = width;
           canvas.height = height;
 
-          // ╨Ш╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╨╝ ╨▓╤Л╤Б╨╛╨║╨╛╨║╨░╤З╨╡╤Б╤В╨▓╨╡╨╜╨╜╤Л╨╣ ╨░╨╗╨│╨╛╤А╨╕╤В╨╝ ╨╝╨░╤Б╤И╤В╨░╨▒╨╕╤А╨╛╨▓╨░╨╜╨╕╤П
+          // Используем высококачественный алгоритм масштабирования
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           
-          // ╨а╨╕╤Б╤Г╨╡╨╝ ╨╕╨╖╨╛╨▒╤А╨░╨╢╨╡╨╜╨╕╨╡
+          // Рисуем изображение
           ctx.drawImage(img, 0, 0, width, height);
 
-          // ╨Я╤А╨╛╨▒╤Г╨╡╨╝ WebP, ╨╡╤Б╨╗╨╕ ╨╜╨╡ ╨┐╨╛╨┤╨┤╨╡╤А╨╢╨╕╨▓╨░╨╡╤В╤Б╤П - ╨╕╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╨╝ PNG
+          // Пробуем WebP, если не поддерживается - используем PNG
           canvas.toBlob(
             (blob) => {
               if (blob) {
-                // ╨Ю╤Б╨▓╨╛╨▒╨╛╨╢╨┤╨░╨╡╨╝ ╨┐╨░╨╝╤П╤В╤М
+                // Освобождаем память
                 URL.revokeObjectURL(img.src);
                 resolve(blob);
               } else {
-                // Fallback ╨╜╨░ PNG ╨╡╤Б╨╗╨╕ WebP ╨╜╨╡ ╤Б╤А╨░╨▒╨╛╤В╨░╨╗
+                // Fallback на PNG если WebP не сработал
                 canvas.toBlob(
                   (pngBlob) => {
                     URL.revokeObjectURL(img.src);
@@ -278,7 +278,7 @@ export default function ChatView() {
         reject(new Error('Failed to load image'));
       };
       
-      // ╨г╤Б╤В╨░╨╜╨░╨▓╨╗╨╕╨▓╨░╨╡╨╝ crossOrigin ╨┤╨╗╤П ╨╕╨╖╨▒╨╡╨╢╨░╨╜╨╕╤П CORS ╨┐╤А╨╛╨▒╨╗╨╡╨╝
+      // Устанавливаем crossOrigin для избежания CORS проблем
       img.crossOrigin = 'anonymous';
       img.src = URL.createObjectURL(file);
     });
@@ -288,25 +288,25 @@ export default function ChatView() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝ ╤В╨╕╨┐ ╤Д╨░╨╣╨╗╨░
+    // Проверяем тип файла
     if (!file.type.startsWith('image/')) {
-      alert('╨Я╨╛╨╢╨░╨╗╤Г╨╣╤Б╤В╨░, ╨▓╤Л╨▒╨╡╤А╨╕╤В╨╡ ╨╕╨╖╨╛╨▒╤А╨░╨╢╨╡╨╜╨╕╨╡');
+      alert('Пожалуйста, выберите изображение');
       e.target.value = '';
       return;
     }
     
-    // ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝ ╤А╨░╨╖╨╝╨╡╤А ╤Д╨░╨╣╨╗╨░ (╨╝╨░╨║╤Б╨╕╨╝╤Г╨╝ 10MB)
+    // Проверяем размер файла (максимум 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('╨д╨░╨╣╨╗ ╤Б╨╗╨╕╤И╨║╨╛╨╝ ╨▒╨╛╨╗╤М╤И╨╛╨╣. ╨Ь╨░╨║╤Б╨╕╨╝╨░╨╗╤М╨╜╤Л╨╣ ╤А╨░╨╖╨╝╨╡╤А: 10MB');
+      alert('Файл слишком большой. Максимальный размер: 10MB');
       e.target.value = '';
       return;
     }
     
     try {
-      // ╨С╤Л╤Б╤В╤А╨╛╨╡ ╤Б╨╢╨░╤В╨╕╨╡ ╨╕╨╖╨╛╨▒╤А╨░╨╢╨╡╨╜╨╕╤П
+      // Быстрое сжатие изображения
       const compressedBlob = await resizeImageFast(file);
       
-      // ╨Ю╨┐╤А╨╡╨┤╨╡╨╗╤П╨╡╨╝ ╤В╨╕╨┐ ╤Д╨░╨╣╨╗╨░ ╨╕╨╖ blob
+      // Определяем тип файла из blob
       const fileType = compressedBlob.type || 'image/png';
       const extension = fileType.split('/')[1] || 'png';
       const fileName = file.name.replace(/\.[^/.]+$/, '') + '.' + extension;
@@ -326,12 +326,12 @@ export default function ChatView() {
       };
       reader.onerror = (err) => {
         console.error('FileReader error:', err);
-        alert('╨Ю╤И╨╕╨▒╨║╨░ ╨┐╤А╨╕ ╤З╤В╨╡╨╜╨╕╨╕ ╤Д╨░╨╣╨╗╨░');
+        alert('Ошибка при чтении файла');
       };
       reader.readAsDataURL(compressedFile);
     } catch (error: any) {
       console.error('Error compressing image:', error);
-      alert(`╨Ю╤И╨╕╨▒╨║╨░ ╨┐╤А╨╕ ╨╛╨▒╤А╨░╨▒╨╛╤В╨║╨╡ ╨╕╨╖╨╛╨▒╤А╨░╨╢╨╡╨╜╨╕╤П: ${error.message || '╨Э╨╡╨╕╨╖╨▓╨╡╤Б╤В╨╜╨░╤П ╨╛╤И╨╕╨▒╨║╨░'}`);
+      alert(`Ошибка при обработке изображения: ${error.message || 'Неизвестная ошибка'}`);
     }
     
     e.target.value = '';
@@ -339,35 +339,35 @@ export default function ChatView() {
 
   const handleStickerCreate = async () => {
     if (!stickerFile || !stickerPreview) {
-      alert('╨Я╨╛╨╢╨░╨╗╤Г╨╣╤Б╤В╨░, ╨▓╤Л╨▒╨╡╤А╨╕╤В╨╡ ╨╕╨╖╨╛╨▒╤А╨░╨╢╨╡╨╜╨╕╨╡ ╨┤╨╗╤П ╤Б╤В╨╕╨║╨╡╤А╨░');
+      alert('Пожалуйста, выберите изображение для стикера');
       return;
     }
     if (!stickerName.trim()) {
-      alert('╨Я╨╛╨╢╨░╨╗╤Г╨╣╤Б╤В╨░, ╨▓╨▓╨╡╨┤╨╕╤В╨╡ ╨╜╨░╨╖╨▓╨░╨╜╨╕╨╡ ╤Б╤В╨╕╨║╨╡╤А╨░');
+      alert('Пожалуйста, введите название стикера');
       return;
     }
     if (!auth.currentUser) {
-      alert('╨Я╨╛╨╢╨░╨╗╤Г╨╣╤Б╤В╨░, ╨▓╨╛╨╣╨┤╨╕╤В╨╡ ╨▓ ╤Б╨╕╤Б╤В╨╡╨╝╤Г');
+      alert('Пожалуйста, войдите в систему');
       return;
     }
     
     setIsUploadingSticker(true);
     try {
-      // ╨Ч╨░╨│╤А╤Г╨╢╨░╨╡╨╝ ╤З╨╡╤А╨╡╨╖ Supabase Storage
+      // Загружаем через Supabase Storage
       const result = await uploadFile(stickerFile, auth.currentUser.uid, 'sticker');
       
-      // ╨б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╤Б╤В╨╕╨║╨╡╤А ╨╕ ╨╛╤В╨┐╤А╨░╨▓╨╗╤П╨╡╨╝
+      // Сохраняем стикер и отправляем
       saveSticker(result.url);
       sendSticker(result.url, 256, 256);
       
-      // ╨Ю╤З╨╕╤Й╨░╨╡╨╝ ╤Д╨╛╤А╨╝╤Г
+      // Очищаем форму
       setShowStickerCreator(false);
       setStickerPreview(null);
       setStickerName('');
       setStickerFile(null);
     } catch (error: any) {
       console.error('Error creating sticker:', error);
-      alert(error.message || '╨Ю╤И╨╕╨▒╨║╨░ ╨┐╤А╨╕ ╤Б╨╛╨╖╨┤╨░╨╜╨╕╨╕ ╤Б╤В╨╕╨║╨╡╤А╨░');
+      alert(error.message || 'Ошибка при создании стикера');
     } finally {
       setIsUploadingSticker(false);
     }
@@ -384,54 +384,25 @@ export default function ChatView() {
     let stream: MediaStream | null = null;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝ ╨┐╨╛╨┤╨┤╨╡╤А╨╢╨╕╨▓╨░╨╡╨╝╤Л╨╡ ╤Д╨╛╤А╨╝╨░╤В╤Л
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : MediaRecorder.isTypeSupported('audio/mp4')
-        ? 'audio/mp4'
-        : 'audio/ogg';
-      
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (e) => { 
-        if (e.data.size > 0) audioChunksRef.current.push(e.data); 
-      };
-      
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         if (stream) stream.getTracks().forEach(track => track.stop());
-        
-        // ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝ ╤А╨░╨╖╨╝╨╡╤А ╨╖╨░╨┐╨╕╤Б╨╕
-        if (audioBlob.size === 0) {
-          alert('╨Ч╨░╨┐╨╕╤Б╤М ╨┐╤Г╤Б╤В╨░. ╨Я╨╛╨┐╤А╨╛╨▒╤Г╨╣╤В╨╡ ╨╡╤Й╨╡ ╤А╨░╨╖.');
-          return;
-        }
-        
         try {
-          // ╨Ч╨░╨│╤А╤Г╨╢╨░╨╡╨╝ ╤З╨╡╤А╨╡╨╖ Supabase Storage
-          const extension = mimeType.includes('webm') ? 'webm' : mimeType.includes('mp4') ? 'm4a' : 'ogg';
-          const audioFile = new File([audioBlob], `audio_${Date.now()}.${extension}`, { type: mimeType });
+          // Загружаем через Supabase Storage
+          const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
           const result = await uploadFile(audioFile, auth.currentUser?.uid || '', 'audio');
-          sendMessage('╨У╨╛╨╗╨╛╤Б╨╛╨▓╨╛╨╡ ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╨╡', { audioUrl: result.url });
-        } catch (error) { 
-          console.error('Error uploading audio:', error); 
-          alert('╨Ю╤И╨╕╨▒╨║╨░ ╨┐╤А╨╕ ╨╖╨░╨│╤А╤Г╨╖╨║╨╡ ╨│╨╛╨╗╨╛╤Б╨╛╨▓╨╛╨│╨╛ ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╤П. ╨Я╤А╨╛╨▓╨╡╤А╤М╤В╨╡ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╨╡ ╨║ ╨╕╨╜╤В╨╡╤А╨╜╨╡╤В╤Г.'); 
-        }
+          sendMessage('Голосовое сообщение', { audioUrl: result.url });
+        } catch (error) { console.error('Error uploading audio:', error); alert('Ошибка при загрузке голосового сообщения'); }
       };
-      
-      mediaRecorder.onerror = (e) => {
-        console.error('MediaRecorder error:', e);
+      mediaRecorder.onerror = () => {
         if (stream) stream.getTracks().forEach(track => track.stop());
         setIsRecording(false);
         if (timerRef.current) clearInterval(timerRef.current);
-        alert('╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨┐╨╕╤Б╨╕. ╨Я╨╛╨┐╤А╨╛╨▒╤Г╨╣╤В╨╡ ╨╡╤Й╨╡ ╤А╨░╨╖.');
       };
-      
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
@@ -439,7 +410,7 @@ export default function ChatView() {
     } catch (err) {
       if (stream) stream.getTracks().forEach(track => track.stop());
       console.error('Error accessing microphone', err);
-      alert('╨Э╨╡╤В ╨┤╨╛╤Б╤В╤Г╨┐╨░ ╨║ ╨╝╨╕╨║╤А╨╛╤Д╨╛╨╜╤Г. ╨а╨░╨╖╤А╨╡╤И╨╕╤В╨╡ ╨┤╨╛╤Б╤В╤Г╨┐ ╨▓ ╨╜╨░╤Б╤В╤А╨╛╨╣╨║╨░╤Е ╨▒╤А╨░╤Г╨╖╨╡╤А╨░.');
+      alert('Нет доступа к микрофону');
     }
   };
 
@@ -463,11 +434,11 @@ export default function ChatView() {
     
     try {
       if (!auth.currentUser) {
-        alert('╨Я╨╛╨╢╨░╨╗╤Г╨╣╤Б╤В╨░, ╨▓╨╛╨╣╨┤╨╕╤В╨╡ ╨▓ ╤Б╨╕╤Б╤В╨╡╨╝╤Г');
+        alert('Пожалуйста, войдите в систему');
         return;
       }
 
-      // ╨Ч╨░╨│╤А╤Г╨╢╨░╨╡╨╝ ╤З╨╡╤А╨╡╨╖ Supabase Storage (╨░╨▓╤В╨╛╨╝╨░╤В╨╕╤З╨╡╤Б╨║╨╕ ╨╛╨┐╤А╨╡╨┤╨╡╨╗╨╕╤В ╤В╨╕╨┐ ╨╕ ╤Б╨╛╨╢╨╝╤С╤В ╨╡╤Б╨╗╨╕ ╨╜╤Г╨╢╨╜╨╛)
+      // Загружаем через Supabase Storage (автоматически определит тип и сожмёт если нужно)
       const result = await uploadFile(file, auth.currentUser.uid);
       
       const fileType = file.type;
@@ -475,7 +446,7 @@ export default function ChatView() {
       const isVideo = fileType.startsWith('video/');
       const isAudio = fileType.startsWith('audio/');
       
-      // ╨Ю╤В╨┐╤А╨░╨▓╨╗╤П╨╡╨╝ ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╨╡ ╤Б ╨┐╤А╨░╨▓╨╕╨╗╤М╨╜╤Л╨╝ ╤В╨╕╨┐╨╛╨╝
+      // Отправляем сообщение с правильным типом
       if (isImage) {
         sendMessage('', { fileUrl: result.url, fileName: file.name });
       } else if (isVideo) {
@@ -483,14 +454,14 @@ export default function ChatView() {
       } else if (isAudio) {
         sendMessage('', { audioUrl: result.url });
       } else {
-        sendMessage(`╨д╨░╨╣╨╗: ${file.name}`, { fileUrl: result.url, fileName: file.name });
+        sendMessage(`Файл: ${file.name}`, { fileUrl: result.url, fileName: file.name });
       }
     } catch (error: any) {
       console.error('Error uploading file:', error);
-      alert(error.message || '╨Ю╤И╨╕╨▒╨║╨░ ╨┐╤А╨╕ ╨╖╨░╨│╤А╤Г╨╖╨║╨╡ ╤Д╨░╨╣╨╗╨░');
+      alert(error.message || 'Ошибка при загрузке файла');
     }
     
-    // ╨Ю╤З╨╕╤Й╨░╨╡╨╝ input ╨┤╨╗╤П ╨▓╨╛╨╖╨╝╨╛╨╢╨╜╨╛╤Б╤В╨╕ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ ╤В╨╛╨│╨╛ ╨╢╨╡ ╤Д╨░╨╣╨╗╨░ ╤Б╨╜╨╛╨▓╨░
+    // Очищаем input для возможности загрузки того же файла снова
     if (e.target) {
       e.target.value = '';
     }
@@ -502,47 +473,47 @@ export default function ChatView() {
     setContextMenu({ msgId, x: e.clientX, y: e.clientY });
   };
 
-  // ╨Я╨╛╨┤╨┤╨╡╤А╨╢╨║╨░ ╨┤╨╛╨╗╨│╨╛╨│╨╛ ╨╜╨░╨╢╨░╤В╨╕╤П ╨┤╨╗╤П ╨╝╨╛╨▒╨╕╨╗╤М╨╜╤Л╤Е ╤Г╤Б╤В╤А╨╛╨╣╤Б╤В╨▓ (useRef ╨┤╨╗╤П ╨╕╨╖╨▒╨╡╨╢╨░╨╜╨╕╤П ╨╗╨╕╤И╨╜╨╕╤Е ╤А╨╡-╤А╨╡╨╜╨┤╨╡╤А╨╛╨▓)
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  // Поддержка долгого нажатия для мобильных устройств
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent, msgId: string) => {
     const touch = e.touches[0];
     setTouchStart({ x: touch.clientX, y: touch.clientY });
-
+    
     const timer = setTimeout(() => {
-      // ╨Т╨╕╨▒╤А╨░╤Ж╨╕╤П ╨┐╤А╨╕ ╨┤╨╛╨╗╨│╨╛╨╝ ╨╜╨░╨╢╨░╤В╨╕╨╕ (╨╡╤Б╨╗╨╕ ╨┐╨╛╨┤╨┤╨╡╤А╨╢╨╕╨▓╨░╨╡╤В╤Б╤П)
+      // Вибрация при долгом нажатии (если поддерживается)
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-      setContextMenu({
-        msgId,
-        x: touch.clientX,
-        y: touch.clientY
+      setContextMenu({ 
+        msgId, 
+        x: touch.clientX, 
+        y: touch.clientY 
       });
-    }, 500); // 500ms ╨┤╨╗╤П ╨┤╨╛╨╗╨│╨╛╨│╨╛ ╨╜╨░╨╢╨░╤В╨╕╤П
-
-    longPressTimer.current = timer;
+    }, 500); // 500ms для долгого нажатия
+    
+    setLongPressTimer(timer);
   };
 
   const handleTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
     }
     setTouchStart(null);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStart && longPressTimer.current) {
+    if (touchStart && longPressTimer) {
       const touch = e.touches[0];
       const deltaX = Math.abs(touch.clientX - touchStart.x);
       const deltaY = Math.abs(touch.clientY - touchStart.y);
-
-      // ╨Х╤Б╨╗╨╕ ╨┐╨░╨╗╨╡╤Ж ╤Б╨┤╨▓╨╕╨╜╤Г╨╗╤Б╤П ╨▒╨╛╨╗╤М╤И╨╡ ╤З╨╡╨╝ ╨╜╨░ 10px, ╨╛╤В╨╝╨╡╨╜╤П╨╡╨╝ ╨┤╨╛╨╗╨│╨╛╨╡ ╨╜╨░╨╢╨░╤В╨╕╨╡
+      
+      // Если палец сдвинулся больше чем на 10px, отменяем долгое нажатие
       if (deltaX > 10 || deltaY > 10) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
       }
     }
   };
@@ -583,12 +554,8 @@ export default function ChatView() {
   );
 
   const filteredGifs = useMemo(() => {
-    if (!gifSearch.trim()) return gifCollection.slice(0, 20); // ╨Я╨╛╨║╨░╨╖╤Л╨▓╨░╨╡╨╝ ╨┐╨╡╤А╨▓╤Л╨╡ 20 GIF ╨▒╨╡╨╖ ╨┐╨╛╨╕╤Б╨║╨░
-    const search = gifSearch.toLowerCase();
-    return gifCollection.filter(gif =>
-      gif.url.toLowerCase().includes(search) ||
-      gif.previewUrl.toLowerCase().includes(search)
-    ).slice(0, 30); // ╨Ю╨│╤А╨░╨╜╨╕╤З╨╕╨▓╨░╨╡╨╝ ╤А╨╡╨╖╤Г╨╗╤М╤В╨░╤В╤Л ╨┐╨╛╨╕╤Б╨║╨░
+    if (!gifSearch.trim()) return gifCollection;
+    return gifCollection;
   }, [gifSearch]);
 
   const currentPack = selectedStickerPack ? stickerPacks.find(p => p.id === selectedStickerPack) : null;
@@ -621,7 +588,7 @@ export default function ChatView() {
           )}
           <div className="flex-grow leading-tight pointer-events-none">
             <div className="font-medium text-[16px] flex items-center gap-1">{contact.name}{contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}</div>
-            <div className="text-[13px] text-[#d1e0ec]">{contact.isChannel ? contact.statusOnline : (contact.isTyping ? '╨┐╨╡╤З╨░╤В╨░╨╡╤В...' : contact.statusOffline)}</div>
+            <div className="text-[13px] text-[#d1e0ec]">{contact.isChannel ? contact.statusOnline : (contact.isTyping ? 'печатает...' : contact.statusOffline)}</div>
           </div>
         </div>
         <div className="flex-grow"></div>
@@ -641,8 +608,8 @@ export default function ChatView() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
                 <div className="absolute right-2 top-full mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-50 text-black">
-                  <button onClick={() => { setShowClearModal(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px]">╨Ю╤З╨╕╤Б╤В╨╕╤В╤М ╨╕╤Б╤В╨╛╤А╨╕╤О</button>
-                  <button onClick={() => { setShowDeleteModal(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px] text-red-500">╨г╨┤╨░╨╗╨╕╤В╤М ╤З╨░╤В</button>
+                  <button onClick={() => { setShowClearModal(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px]">Очистить историю</button>
+                  <button onClick={() => { setShowDeleteModal(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px] text-red-500">Удалить чат</button>
                 </div>
               </>
             )}
@@ -667,15 +634,15 @@ export default function ChatView() {
           <div className="flex-grow flex items-center justify-center p-4">
             <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 max-w-sm text-center shadow-sm">
               <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-500 mx-auto flex items-center justify-center mb-4"><Bookmark size={32} fill="currentColor" /></div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">╨Ш╨╖╨▒╤А╨░╨╜╨╜╨╛╨╡</h3>
-              <p className="text-[15px] text-gray-600 leading-relaxed">╨Ч╨┤╨╡╤Б╤М ╨╝╨╛╨╢╨╜╨╛ ╤Б╨╛╤Е╤А╨░╨╜╤П╤В╤М ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╤П, ╨╝╨╡╨┤╨╕╨░ ╨╕ ╨┤╤А╤Г╨│╨╕╨╡ ╤Д╨░╨╣╨╗╤Л.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Избранное</h3>
+              <p className="text-[15px] text-gray-600 leading-relaxed">Здесь можно сохранять сообщения, медиа и другие файлы.</p>
             </div>
           </div>
         )}
         {contact.isChannel && contact.messages.length === 0 && (
           <div className="flex-grow flex items-center justify-center p-4">
             <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 max-w-sm text-center shadow-sm">
-              <p className="text-[15px] text-gray-600 leading-relaxed">╨Я╨╛╤Б╤В╨╛╨▓ ╨┐╨╛╨║╨░ ╨╜╨╡╤В.</p>
+              <p className="text-[15px] text-gray-600 leading-relaxed">Постов пока нет.</p>
             </div>
           </div>
         )}
@@ -695,19 +662,19 @@ export default function ChatView() {
               onTouchStart={(e) => handleTouchStart(e, msg.id)}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchMove}
-              className={`message max-w-[75%] px-3 py-2 mb-2 rounded-[20px] relative break-words flex flex-col cursor-pointer select-none transition-all hover:scale-[1.02] ${
+              className={`message max-w-[75%] px-3 py-1.5 mb-1.5 rounded-[18px] relative break-words flex flex-col cursor-pointer select-none ${
                 isSticker || isGif
                   ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
                   : isJumbo
                     ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
                     : isOwn
-                      ? 'bg-tg-sent-bubble self-end rounded-br-[6px] message-tail-sent shadow-md text-[15px] leading-relaxed'
-                      : 'bg-tg-received-bubble self-start rounded-bl-[6px] message-tail-received shadow-md text-[15px] leading-relaxed'
+                      ? 'bg-tg-sent-bubble self-end rounded-br-[5px] message-tail-sent shadow-sm text-[15px] leading-snug'
+                      : 'bg-tg-received-bubble self-start rounded-bl-[5px] message-tail-received shadow-sm text-[15px] leading-snug'
               }`}
             >
               {msg.forwardedFrom && (
                 <div className="text-[13px] font-medium mb-1 italic" style={{ color: themeColor }}>
-                  ╨Я╨╡╤А╨╡╤Б╨╗╨░╨╜╨╛ ╨╛╤В {msg.forwardedFrom.senderName}
+                  Переслано от {msg.forwardedFrom.senderName}
                 </div>
               )}
               {msg.replyTo && (
@@ -717,23 +684,7 @@ export default function ChatView() {
                 </div>
               )}
               {msg.audioUrl ? (
-                <div className="mb-1">
-                  <audio 
-                    controls 
-                    src={msg.audioUrl} 
-                    className="h-10 w-full max-w-[280px]"
-                    preload="metadata"
-                    onError={(e) => {
-                      console.error('Audio load error:', e);
-                      const target = e.target as HTMLAudioElement;
-                      target.style.display = 'none';
-                      const errorDiv = document.createElement('div');
-                      errorDiv.textContent = '╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ ╨░╤Г╨┤╨╕╨╛';
-                      errorDiv.className = 'text-red-500 text-sm';
-                      target.parentElement?.appendChild(errorDiv);
-                    }}
-                  />
-                </div>
+                <div className="mb-1"><audio controls src={msg.audioUrl} className="h-8 w-48" /></div>
               ) : msg.fileUrl ? (
                 <div className="flex items-center gap-2 mb-1 bg-black/5 p-2 rounded-lg">
                   <div className="p-2 bg-blue-500 text-white rounded-full"><FileIcon size={16} /></div>
@@ -752,7 +703,7 @@ export default function ChatView() {
                       : 'bg-gradient-to-br from-purple-500 to-pink-500'
                   }`}
                 >
-                  {/* ╨Ъ╨╛╤Б╨╝╨╕╤З╨╡╤Б╨║╨╕╨╣ ╤Д╨╛╨╜ ╨┤╨╗╤П ╨║╨╛╤Б╨╝╨╛╨╜╨░╨▓╤В╨░ */}
+                  {/* Космический фон для космонавта */}
                   {msg.gift.id === 'cosmonaut' && (
                     <div className="absolute inset-0">
                       {[...Array(20)].map((_, i) => (
@@ -774,7 +725,7 @@ export default function ChatView() {
                             delay: i * 0.1
                           }}
                         >
-                          тнР
+                          ⭐
                         </motion.div>
                       ))}
                       <motion.div 
@@ -782,19 +733,19 @@ export default function ChatView() {
                         animate={{ rotate: 360 }}
                         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                       >
-                        ЁЯкР
+                        🪐
                       </motion.div>
                       <motion.div 
                         className="absolute bottom-2 left-2 text-[20px]"
                         animate={{ y: [-5, 5, -5] }}
                         transition={{ duration: 3, repeat: Infinity }}
                       >
-                        ЁЯМН
+                        🌍
                       </motion.div>
                     </div>
                   )}
                   
-                  {/* ╨Я╨░╤Б╤Е╨░╨╗╤М╨╜╤Л╨╣ ╤Д╨╛╨╜ ╨┤╨╗╤П ╨╖╨░╨╣╤Ж╨░ */}
+                  {/* Пасхальный фон для зайца */}
                   {msg.gift.id === 'easter_bunny' && (
                     <div className="absolute inset-0 opacity-20">
                       <motion.div 
@@ -802,28 +753,28 @@ export default function ChatView() {
                         animate={{ rotate: [0, 10, -10, 0], y: [0, -5, 0] }}
                         transition={{ duration: 2, repeat: Infinity }}
                       >
-                        ЁЯМ╕
+                        🌸
                       </motion.div>
                       <motion.div 
                         className="absolute top-2 right-2 text-[25px]"
                         animate={{ rotate: [0, -10, 10, 0], y: [0, -5, 0] }}
                         transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                       >
-                        ЁЯМ╖
+                        🌷
                       </motion.div>
                       <motion.div 
                         className="absolute bottom-2 left-2 text-[25px]"
                         animate={{ rotate: [0, 10, -10, 0], y: [0, 5, 0] }}
                         transition={{ duration: 2, repeat: Infinity, delay: 1 }}
                       >
-                        ЁЯМ╝
+                        🌼
                       </motion.div>
                       <motion.div 
                         className="absolute bottom-2 right-2 text-[25px]"
                         animate={{ rotate: [0, -10, 10, 0], y: [0, 5, 0] }}
                         transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
                       >
-                        ЁЯМ║
+                        🌺
                       </motion.div>
                     </div>
                   )}
@@ -859,16 +810,16 @@ export default function ChatView() {
                   </motion.div>
                   <div className="text-[16px] font-bold mb-1 relative z-10">{msg.gift.name}</div>
                   <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10">
-                    ╨Я╨╛╨┤╨░╤А╨╛╨║ ╨╛╤В {isOwn ? '╨▓╨░╤Б' : contact.name}
+                    Подарок от {isOwn ? 'вас' : contact.name}
                   </div>
                   {msg.gift.id === 'cosmonaut' && (
                     <div className="text-[11px] text-cyan-300 mt-1 relative z-10">
-                      ЁЯЪА ╨Ф╨╡╨╜╤М ╨║╨╛╤Б╨╝╨╛╨╜╨░╨▓╤В╨╕╨║╨╕! ЁЯЪА
+                      🚀 День космонавтики! 🚀
                     </div>
                   )}
                   {msg.gift.id === 'easter_bunny' && (
                     <div className="text-[11px] text-white/80 mt-1 relative z-10">
-                      тЬи ╨н╨║╤Б╨║╨╗╤О╨╖╨╕╨▓╨╜╤Л╨╣ ╨┐╨░╤Б╤Е╨░╨╗╤М╨╜╤Л╨╣ ╨┐╨╛╨┤╨░╤А╨╛╨║ тЬи
+                      ✨ Эксклюзивный пасхальный подарок ✨
                     </div>
                   )}
                 </motion.div>
@@ -895,7 +846,7 @@ export default function ChatView() {
                 isSticker || isGif || isJumbo ? 'bg-black/20 text-white px-1.5 py-0.5 rounded-full backdrop-blur-sm mt-1' :
                 isOwn ? 'text-[#70a050]' : 'text-tg-secondary-text'
               }`}>
-                {msg.editedAt && <span className="italic mr-0.5">╤А╨╡╨┤.</span>}
+                {msg.editedAt && <span className="italic mr-0.5">ред.</span>}
                 <span>{msg.time}</span>
                 {contact.isChannel && msg.views !== undefined && (
                   <>
@@ -912,7 +863,7 @@ export default function ChatView() {
           );
         })}
 
-        {/* ╨Ш╨╜╨┤╨╕╨║╨░╤В╨╛╤А ╨┐╨╡╤З╨░╤В╨╕ - ╨▓╤Б╨╡╨│╨┤╨░ ╨▓ DOM, ╨╜╨╛ ╤Б╨║╤А╤Л╤В ╤З╨╡╤А╨╡╨╖ opacity */}
+        {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
         <div 
           className={`flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-sm transition-all duration-200 ${
             contact.isTyping && !contact.isBlocked 
@@ -947,23 +898,23 @@ export default function ChatView() {
             >
               {canEdit && (
                 <button onClick={() => handleEdit(msg.id, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
-                  <Edit3 size={18} className="text-gray-500" /> ╨а╨╡╨┤╨░╨║╤В╨╕╤А╨╛╨▓╨░╤В╤М
+                  <Edit3 size={18} className="text-gray-500" /> Редактировать
                 </button>
               )}
-              <button onClick={() => handleReply(msg.id, isOwn ? '╨Т╤Л' : contact.name, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
-                <Reply size={18} className="text-gray-500" /> ╨Ю╤В╨▓╨╡╤В╨╕╤В╤М
+              <button onClick={() => handleReply(msg.id, isOwn ? 'Вы' : contact.name, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
+                <Reply size={18} className="text-gray-500" /> Ответить
               </button>
               <button onClick={() => handleForward(msg.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
-                <Repeat2 size={18} className="text-gray-500" /> ╨Я╨╡╤А╨╡╤Б╨╗╨░╤В╤М
+                <Repeat2 size={18} className="text-gray-500" /> Переслать
               </button>
               {msg.stickerUrl && !savedStickers.includes(msg.stickerUrl) && (
                 <button onClick={() => { saveSticker(msg.stickerUrl!); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
-                  <Download size={18} className="text-gray-500" /> ╨б╨╛╤Е╤А╨░╨╜╨╕╤В╤М ╤Б╤В╨╕╨║╨╡╤А
+                  <Download size={18} className="text-gray-500" /> Сохранить стикер
                 </button>
               )}
               {isOwn && (
                 <button onClick={() => handleDelete(msg.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-left text-[15px] text-red-500">
-                  <Trash2 size={18} /> ╨г╨┤╨░╨╗╨╕╤В╤М
+                  <Trash2 size={18} /> Удалить
                 </button>
               )}
             </motion.div>
@@ -978,7 +929,7 @@ export default function ChatView() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50" onClick={() => setShowForwardPicker(false)} />
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[70vh] overflow-hidden z-10">
               <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-[18px] font-medium text-black">╨Я╨╡╤А╨╡╤Б╨╗╨░╤В╤М ╨▓</h3>
+                <h3 className="text-[18px] font-medium text-black">Переслать в</h3>
                 <button onClick={() => setShowForwardPicker(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
               </div>
               <div className="overflow-y-auto max-h-[50vh]">
@@ -992,7 +943,7 @@ export default function ChatView() {
                     <div className="flex-grow"><div className="font-medium text-[16px] text-gray-900">{c.name}</div></div>
                   </div>
                 ))}
-                {forwardableContacts.length === 0 && <div className="p-6 text-center text-gray-400">╨Э╨╡╤В ╨┤╨╛╤Б╤В╤Г╨┐╨╜╤Л╤Е ╤З╨░╤В╨╛╨▓</div>}
+                {forwardableContacts.length === 0 && <div className="p-6 text-center text-gray-400">Нет доступных чатов</div>}
               </div>
             </motion.div>
           </div>
@@ -1014,13 +965,13 @@ export default function ChatView() {
                 onClick={() => { setPickerTab('emoji'); setSelectedStickerPack(null); }}
                 className={`flex-1 py-2.5 text-[13px] font-medium text-center transition-colors ${pickerTab === 'emoji' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-700'}`}
               >
-                ЁЯШК ╨г╨╗╤Л╨▒╨║╨╕
+                😊 Улыбки
               </button>
               <button
                 onClick={() => { setPickerTab('stickers'); setSelectedStickerPack(null); }}
                 className={`flex-1 py-2.5 text-[13px] font-medium text-center transition-colors ${pickerTab === 'stickers' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-700'}`}
               >
-                <Sticker size={16} className="inline mr-1" />╨б╤В╨╕╨║╨╡╤А╤Л
+                <Sticker size={16} className="inline mr-1" />Стикеры
               </button>
               <button
                 onClick={() => { setPickerTab('gifs'); setSelectedStickerPack(null); }}
@@ -1032,7 +983,7 @@ export default function ChatView() {
                 onClick={() => { setPickerTab('my-stickers'); setSelectedStickerPack(null); }}
                 className={`flex-1 py-2.5 text-[13px] font-medium text-center transition-colors ${pickerTab === 'my-stickers' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-700'}`}
               >
-                <Download size={16} className="inline mr-1" />╨Ь╨╛╨╕
+                <Download size={16} className="inline mr-1" />Мои
               </button>
             </div>
 
@@ -1041,17 +992,17 @@ export default function ChatView() {
               {pickerTab === 'emoji' && (
                 <div className="p-3">
                   <div className="mb-3">
-                    <div className="text-[12px] font-medium text-gray-500 uppercase mb-2">╨з╨░╤Б╤В╨╛ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╨╝╤Л╨╡</div>
+                    <div className="text-[12px] font-medium text-gray-500 uppercase mb-2">Часто используемые</div>
                     <div className="flex flex-wrap gap-1">
-                      {['ЁЯША','ЁЯШВ','ЁЯе░','','ЁЯдФ','','тЭдя╕П','','ЁЯОЙ','','ЁЯдг','','ЁЯЩП','ЁЯТк','ЁЯСП','ЁЯдЭ','тЬи','ЁЯТп','','ЁЯе│','ЁЯШЗ','ЁЯдЧ','ЁЯШП','ЁЯдй','ЁЯШЛ','ЁЯдк','ЁЯШЬ','ЁЯдС','ЁЯШИ','','ЁЯТА','ЁЯдЦ','ЁЯС╜','','ЁЯМИ','тнР','ЁЯМЩ','я╕П','ЁЯНХ','','','ЁЯНй','','тШХ','ЁЯО╡','ЁЯО╕','тЪ╜','','ЁЯОо','',''].filter(Boolean).map(e => (
+                      {['😀','😂','🥰','','🤔','','❤️','','🎉','','🤣','','🙏','💪','👏','🤝','✨','💯','','🥳','😇','🤗','😏','🤩','😋','🤪','😜','🤑','😈','','💀','🤖','👽','','🌈','⭐','🌙','️','🍕','','','🍩','','☕','🎵','🎸','⚽','','🎮','',''].filter(Boolean).map(e => (
                         <button key={e} onClick={() => handleEmojiClick(e)} className="text-2xl hover:scale-125 transition-transform p-1">{e}</button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[12px] font-medium text-gray-500 uppercase mb-2">╨б╨╝╨░╨╣╨╗╤Л</div>
+                    <div className="text-[12px] font-medium text-gray-500 uppercase mb-2">Смайлы</div>
                     <div className="flex flex-wrap gap-1">
-                      {['ЁЯША','ЁЯШГ','ЁЯШД','ЁЯШБ','ЁЯШЖ','ЁЯШЕ','','ЁЯШВ','ЁЯЩВ','ЁЯЩГ','ЁЯШЙ','ЁЯШК','ЁЯШЗ','','ЁЯШН','','ЁЯШШ','ЁЯШЧ','ЁЯШЪ','ЁЯШЩ','ЁЯе▓','ЁЯШЛ','ЁЯШЫ','ЁЯШЬ','ЁЯдк','ЁЯШЭ','ЁЯдС','ЁЯдЧ','ЁЯдн','','ЁЯдФ','','ЁЯдР','','ЁЯШР','ЁЯШС','ЁЯШ╢','ЁЯле','ЁЯШП','ЁЯШТ','ЁЯЩД','','ЁЯде','','ЁЯШФ','ЁЯШк','ЁЯдд','','ЁЯШ╖','','ЁЯдХ','','ЁЯдо','','ЁЯе╢','','ЁЯШ╡','ЁЯдп','','ЁЯе│','','ЁЯШО','','ЁЯзР'].filter(Boolean).map(e => (
+                      {['😀','😃','😄','😁','😆','😅','','😂','🙂','🙃','😉','😊','😇','','😍','','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','','🤔','','🤐','','😐','😑','😶','🫥','😏','😒','🙄','','🤥','','😔','😪','🤤','','😷','','🤕','','🤮','','🥶','','😵','🤯','','🥳','','😎','','🧐'].filter(Boolean).map(e => (
                         <button key={e} onClick={() => handleEmojiClick(e)} className="text-2xl hover:scale-125 transition-transform p-1">{e}</button>
                       ))}
                     </div>
@@ -1062,12 +1013,12 @@ export default function ChatView() {
               {pickerTab === 'stickers' && !selectedStickerPack && (
                 <div className="p-3">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[14px] font-medium text-gray-700">╨Э╨░╨▒╨╛╤А╤Л ╤Б╤В╨╕╨║╨╡╤А╨╛╨▓</div>
+                    <div className="text-[14px] font-medium text-gray-700">Наборы стикеров</div>
                     <button
                       onClick={() => stickerFileInputRef.current?.click()}
                       className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-full text-[13px] hover:bg-blue-600 transition-colors"
                     >
-                      <Plus size={14} /> ╨б╨╛╨╖╨┤╨░╤В╤М
+                      <Plus size={14} /> Создать
                     </button>
                     <input type="file" ref={stickerFileInputRef} className="hidden" accept="image/*" onChange={handleCustomStickerUpload} />
                   </div>
@@ -1115,7 +1066,7 @@ export default function ChatView() {
                         type="text"
                         value={gifSearch}
                         onChange={(e) => setGifSearch(e.target.value)}
-                        placeholder="╨Я╨╛╨╕╤Б╨║ GIF..."
+                        placeholder="Поиск GIF..."
                         className="flex-grow bg-transparent outline-none text-[14px] text-gray-700 placeholder-gray-400"
                       />
                       {gifSearch && (
@@ -1140,20 +1091,20 @@ export default function ChatView() {
               {pickerTab === 'my-stickers' && (
                 <div className="p-3">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[14px] font-medium text-gray-700">╨Ь╨╛╨╕ ╤Б╤В╨╕╨║╨╡╤А╤Л ({savedStickers.length})</div>
+                    <div className="text-[14px] font-medium text-gray-700">Мои стикеры ({savedStickers.length})</div>
                     <button
                       onClick={() => stickerFileInputRef.current?.click()}
                       className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-full text-[13px] hover:bg-blue-600 transition-colors"
                     >
-                      <Plus size={14} /> ╨Ч╨░╨│╤А╤Г╨╖╨╕╤В╤М
+                      <Plus size={14} /> Загрузить
                     </button>
                     <input type="file" ref={stickerFileInputRef} className="hidden" accept="image/*" onChange={handleCustomStickerUpload} />
                   </div>
                   {savedStickers.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                       <Sticker size={48} className="mb-3 opacity-30" />
-                      <p className="text-[14px]">╨г ╨▓╨░╤Б ╨┐╨╛╨║╨░ ╨╜╨╡╤В ╤Б╨╛╤Е╤А╨░╨╜╤С╨╜╨╜╤Л╤Е ╤Б╤В╨╕╨║╨╡╤А╨╛╨▓</p>
-                      <p className="text-[12px] mt-1">╨Э╨░╨╢╨╝╨╕╤В╨╡ ╨╜╨░ ╤Б╤В╨╕╨║╨╡╤А ╨▓ ╤З╨░╤В╨╡ ╤З╤В╨╛╨▒╤Л ╤Б╨╛╤Е╤А╨░╨╜╨╕╤В╤М</p>
+                      <p className="text-[14px]">У вас пока нет сохранённых стикеров</p>
+                      <p className="text-[12px] mt-1">Нажмите на стикер в чате чтобы сохранить</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-4 gap-1">
@@ -1169,7 +1120,7 @@ export default function ChatView() {
                             onClick={() => removeSavedSticker(url)}
                             className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px]"
                           >
-                            тЬХ
+                            ✕
                           </button>
                         </div>
                       ))}
@@ -1185,11 +1136,11 @@ export default function ChatView() {
       {/* Input Area */}
       {contact.isBlocked ? (
         <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
-          <span className="text-tg-secondary-text text-[15px]">╨Т╤Л ╨╖╨░╨▒╨╗╨╛╨║╨╕╤А╨╛╨▓╨░╨╗╨╕ ╤Н╤В╨╛╨│╨╛ ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╤П</span>
+          <span className="text-tg-secondary-text text-[15px]">Вы заблокировали этого пользователя</span>
         </div>
       ) : contact.isChannel && channelOwnerId && user?.uid !== channelOwnerId ? (
         <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
-          <span className="text-tg-secondary-text text-[15px]">╨в╨╛╨╗╤М╨║╨╛ ╨▓╨╗╨░╨┤╨╡╨╗╨╡╤Ж ╨║╨░╨╜╨░╨╗╨░ ╨╝╨╛╨╢╨╡╤В ╨╛╤В╨┐╤А╨░╨▓╨╗╤П╤В╤М ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╤П</span>
+          <span className="text-tg-secondary-text text-[15px]">Только владелец канала может отправлять сообщения</span>
         </div>
       ) : (
         <div className={`flex items-end px-2.5 py-2 border-t border-tg-divider shrink-0 gap-1.5 z-30 transition-colors relative ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
@@ -1204,13 +1155,13 @@ export default function ChatView() {
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
                 
                 <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
-                  <div className="text-blue-500"><ImageIcon size={20} /></div><span>╨д╨╛╤В╨╛ / ╨Т╨╕╨┤╨╡╨╛</span>
+                  <div className="text-blue-500"><ImageIcon size={20} /></div><span>Фото / Видео</span>
                 </button>
                 <button onClick={() => audioInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
-                  <div className="text-orange-500"><Music size={20} /></div><span>╨Ь╤Г╨╖╤Л╨║╨░</span>
+                  <div className="text-orange-500"><Music size={20} /></div><span>Музыка</span>
                 </button>
                 <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
-                  <div className="text-green-500"><FileIcon size={20} /></div><span>╨д╨░╨╣╨╗</span>
+                  <div className="text-green-500"><FileIcon size={20} /></div><span>Файл</span>
                 </button>
               </motion.div>
             )}
@@ -1236,7 +1187,7 @@ export default function ChatView() {
                 value={inputText}
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={isRecording ? "╨Ч╨░╨┐╨╕╤Б╤М..." : editingMsg ? "╨а╨╡╨┤╨░╨║╤В╨╕╤А╨╛╨▓╨░╤В╤М..." : "╨б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╨╡"}
+                placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
                 disabled={isRecording}
                 className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50"
               />
@@ -1276,19 +1227,19 @@ export default function ChatView() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50" onClick={handleStickerCancel} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10 relative">
               <div className="p-5">
-                <h3 className="text-[18px] font-medium text-black mb-4">╨б╨╛╨╖╨┤╨░╤В╤М ╤Б╤В╨╕╨║╨╡╤А</h3>
+                <h3 className="text-[18px] font-medium text-black mb-4">Создать стикер</h3>
                 {stickerPreview && (
                   <div className="mb-4 flex justify-center">
                     <img src={stickerPreview} alt="Sticker preview" className="w-32 h-32 object-contain rounded-lg border border-gray-200" />
                   </div>
                 )}
                 <div className="mb-4">
-                  <label className="text-[14px] text-gray-600 mb-1 block">╨Э╨░╨╖╨▓╨░╨╜╨╕╨╡ ╤Б╤В╨╕╨║╨╡╤А╨░</label>
+                  <label className="text-[14px] text-gray-600 mb-1 block">Название стикера</label>
                   <input
                     type="text"
                     value={stickerName}
                     onChange={(e) => setStickerName(e.target.value)}
-                    placeholder="╨Т╨▓╨╡╨┤╨╕╤В╨╡ ╨╜╨░╨╖╨▓╨░╨╜╨╕╨╡..."
+                    placeholder="Введите название..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500 text-[15px]"
                     autoFocus
                     onKeyDown={(e) => e.key === 'Enter' && handleStickerCreate()}
@@ -1296,14 +1247,14 @@ export default function ChatView() {
                 </div>
               </div>
               <div className="flex border-t border-gray-200">
-                <button onClick={handleStickerCancel} className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">╨Ю╤В╨╝╨╡╨╜╨░</button>
+                <button onClick={handleStickerCancel} className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">Отмена</button>
                 <button 
                   onClick={handleStickerCreate} 
                   disabled={isUploadingSticker}
                   className="flex-1 py-3 text-[16px] font-medium text-white hover:brightness-110 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: isUploadingSticker ? '#9ca3af' : '#3b82f6' }}
                 >
-                  {isUploadingSticker ? '╨Ч╨░╨│╤А╤Г╨╖╨║╨░...' : '╨б╨╛╨╖╨┤╨░╤В╤М'}
+                  {isUploadingSticker ? 'Загрузка...' : 'Создать'}
                 </button>
               </div>
             </motion.div>
@@ -1318,12 +1269,12 @@ export default function ChatView() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50" onClick={() => setShowClearModal(false)} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10">
               <div className="p-5">
-                <h3 className="text-[18px] font-medium text-black mb-2">╨Ю╤З╨╕╤Б╤В╨╕╤В╤М ╨╕╤Б╤В╨╛╤А╨╕╤О</h3>
-                <p className="text-[15px] text-gray-600">╨Т╤Л ╤Г╨▓╨╡╤А╨╡╨╜╤Л, ╤З╤В╨╛ ╤Е╨╛╤В╨╕╤В╨╡ ╤Г╨┤╨░╨╗╨╕╤В╤М ╨▓╤Б╨╡ ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╤П?</p>
+                <h3 className="text-[18px] font-medium text-black mb-2">Очистить историю</h3>
+                <p className="text-[15px] text-gray-600">Вы уверены, что хотите удалить все сообщения?</p>
               </div>
               <div className="flex border-t border-gray-200">
-                <button onClick={() => setShowClearModal(false)} className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">╨Ю╤В╨╝╨╡╨╜╨░</button>
-                <button onClick={() => { if (activeChatId) clearHistory(activeChatId); setShowClearModal(false); }} className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 transition-colors">╨Ю╤З╨╕╤Б╤В╨╕╤В╤М</button>
+                <button onClick={() => setShowClearModal(false)} className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">Отмена</button>
+                <button onClick={() => { if (activeChatId) clearHistory(activeChatId); setShowClearModal(false); }} className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 transition-colors">Очистить</button>
               </div>
             </motion.div>
           </div>
@@ -1337,12 +1288,12 @@ export default function ChatView() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50" onClick={() => setShowDeleteModal(false)} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden z-10">
               <div className="p-5">
-                <h3 className="text-[18px] font-medium text-black mb-2">╨г╨┤╨░╨╗╨╕╤В╤М ╤З╨░╤В</h3>
-                <p className="text-[15px] text-gray-600">╨Т╤Л ╤Г╨▓╨╡╤А╨╡╨╜╤Л, ╤З╤В╨╛ ╤Е╨╛╤В╨╕╤В╨╡ ╤Г╨┤╨░╨╗╨╕╤В╤М ╤З╨░╤В ╤Б {contact.name}?</p>
+                <h3 className="text-[18px] font-medium text-black mb-2">Удалить чат</h3>
+                <p className="text-[15px] text-gray-600">Вы уверены, что хотите удалить чат с {contact.name}?</p>
               </div>
               <div className="flex border-t border-gray-200">
-                <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">╨Ю╤В╨╝╨╡╨╜╨░</button>
-                <button onClick={() => { if (activeChatId) deleteChat(activeChatId); setShowDeleteModal(false); }} className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 transition-colors">╨г╨┤╨░╨╗╨╕╤В╤М</button>
+                <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">Отмена</button>
+                <button onClick={() => { if (activeChatId) deleteChat(activeChatId); setShowDeleteModal(false); }} className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 transition-colors">Удалить</button>
               </div>
             </motion.div>
           </div>

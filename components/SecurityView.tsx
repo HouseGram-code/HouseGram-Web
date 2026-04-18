@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Lock, Key, Delete, Shield, Smartphone, LogOut, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Lock, Key, Delete, Shield, Smartphone, LogOut, AlertTriangle } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, signOut } from 'firebase/auth';
-import { doc, updateDoc, serverTimestamp, collection, query, where, getDocs, addDoc, deleteDoc, orderBy, Timestamp } from 'firebase/firestore';
-import { getDeviceInfo } from '@/utils/deviceInfo';
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { doc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function SecurityView() {
   const { setView, themeColor, isGlassEnabled, passcode, updatePasscode, logout } = useChat();
@@ -19,7 +18,6 @@ export default function SecurityView() {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showActiveSessions, setShowActiveSessions] = useState(false);
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   
   useEffect(() => {
     if (showActiveSessions) {
@@ -28,123 +26,29 @@ export default function SecurityView() {
   }, [showActiveSessions]);
 
   const loadActiveSessions = async () => {
-    try {
-      setLoading(true);
-      const user = auth.currentUser;
-      if (!user) return;
-
-      // Получаем текущую сессию
-      const currentSessionId = localStorage.getItem('sessionId');
-      
-      // Загружаем все сессии пользователя из Firebase
-      const sessionsRef = collection(db, 'sessions');
-      const q = query(sessionsRef, where('userId', '==', user.uid));
-      const snapshot = await getDocs(q);
-      
-      const sessions = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          lastActive: data.lastActive as Timestamp | undefined,
-          current: doc.id === currentSessionId
-        };
-      }).sort((a, b) => {
-        // Сортируем: текущая первая, остальные по lastActive
-        if (a.current) return -1;
-        if (b.current) return 1;
-        const aTime = a.lastActive?.seconds || 0;
-        const bTime = b.lastActive?.seconds || 0;
-        return bTime - aTime;
-      });
-      
-      setActiveSessions(sessions);
-    } catch (error) {
-      console.error('Error loading sessions:', error);
-      // Fallback: показываем хотя бы текущую сессию
-      const currentSessionId = localStorage.getItem('sessionId');
-      const deviceInfo = getDeviceInfo();
-      setActiveSessions([{
-        id: currentSessionId || 'current',
-        device: deviceInfo.device,
-        location: deviceInfo.location,
-        lastActive: Timestamp.now(),
+    // Имитация активных сессий (в реальном приложении это будет из Firebase)
+    const sessions = [
+      {
+        id: '1',
+        device: 'Windows PC',
+        location: 'Москва, Россия',
+        lastActive: new Date(),
         current: true
-      }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createSession = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return null;
-
-      const deviceInfo = getDeviceInfo();
-      const sessionId = crypto.randomUUID();
-      localStorage.setItem('sessionId', sessionId);
-      
-      await addDoc(collection(db, 'sessions'), {
-        userId: user.uid,
-        deviceId: sessionId,
-        device: deviceInfo.device,
-        platform: deviceInfo.platform,
-        browser: deviceInfo.browser,
-        location: deviceInfo.location,
-        createdAt: serverTimestamp(),
-        lastActive: serverTimestamp()
-      });
-      
-      return sessionId;
-    } catch (error) {
-      console.error('Error creating session:', error);
-      return null;
-    }
-  };
-
-  const updateSessionActivity = async (sessionId: string) => {
-    try {
-      const sessionRef = doc(db, 'sessions', sessionId);
-      await updateDoc(sessionRef, {
-        lastActive: serverTimestamp()
-      });
-    } catch (error) {
-      console.error('Error updating session:', error);
-    }
+      }
+    ];
+    setActiveSessions(sessions);
   };
 
   const terminateSession = async (sessionId: string) => {
-    if (!confirm('Завершить эту сессию?')) return;
-    
-    try {
-      await deleteDoc(doc(db, 'sessions', sessionId));
+    if (confirm('Завершить эту сессию?')) {
       setActiveSessions(prev => prev.filter(s => s.id !== sessionId));
-    } catch (error) {
-      console.error('Error terminating session:', error);
-      alert('Не удалось завершить сессию');
     }
   };
 
   const terminateAllSessions = async () => {
-    if (!confirm('Завершить все сессии кроме текущей? Вам придется войти заново на всех устройствах.')) return;
-    
-    try {
-      const currentSessionId = localStorage.getItem('sessionId');
-      const sessionsToTerminate = activeSessions.filter(s => !s.current);
-      
-      for (const session of sessionsToTerminate) {
-        try {
-          await deleteDoc(doc(db, 'sessions', session.id));
-        } catch (e) {
-          console.error(`Error deleting session ${session.id}:`, e);
-        }
-      }
-      
+    if (confirm('Завершить все сессии кроме текущей? Вам придется войти заново на всех устройствах.')) {
       setActiveSessions(prev => prev.filter(s => s.current));
-    } catch (error) {
-      console.error('Error terminating all sessions:', error);
-      alert('Не удалось завершить сессии');
+      await logout();
     }
   };
 

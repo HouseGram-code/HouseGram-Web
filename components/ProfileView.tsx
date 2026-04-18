@@ -20,7 +20,7 @@ export default function ProfileView() {
   );
 
   const handleShare = () => {
-    if (contact.isBot) {
+    if (contact.id === 'test_bot') {
       sendMessage(`Юзернейм бота: ${contact.username}`);
     } else {
       sendMessage(`Контакт: ${contact.name} (${contact.username})`);
@@ -104,7 +104,7 @@ export default function ProfileView() {
           )}
           
           {/* Security Warning for Bots */}
-          {contact.isBot && (
+          {contact.id === 'test_bot' && (
             <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-100">
               <div className="flex items-start gap-3">
                 <div className="text-yellow-600 shrink-0 mt-0.5">⚠️</div>
@@ -113,7 +113,7 @@ export default function ProfileView() {
                     Это бот. Будьте осторожны при отправке конфиденциальной информации.
                   </div>
                   <div className="text-[13px] text-gray-500 mt-1">
-                    Тест
+                    Боты могут иметь доступ к вашим сообщениям и данным.
                   </div>
                 </div>
               </div>
@@ -126,7 +126,7 @@ export default function ProfileView() {
 
         <div className="bg-tg-bg-light border-y border-tg-divider mb-2.5">
           {!contact.isChannel && <ActionButton text="Отправить сообщение" onClick={() => setView('chat')} color={themeColor} />}
-          {!contact.isChannel && contact.id !== 'saved_messages' && !contact.isBot && (
+          {!contact.isChannel && contact.id !== 'saved_messages' && contact.id !== 'test_bot' && (
             <ActionButton 
               text="Подарки" 
               icon={<Gift size={20} />}
@@ -158,8 +158,8 @@ export default function ProfileView() {
               <div className="p-5">
                 <h3 className="text-[18px] font-medium text-black mb-2">Поделиться контактом</h3>
                 <p className="text-[15px] text-gray-600">
-                  {contact.isBot
-                    ? `Отправить бота ${contact.name}? Будет отправлен его юзернейм.`
+                  {contact.id === 'test_bot' 
+                    ? `Отправить бота ${contact.name}? Будет отправлен его юзернейм.` 
                     : `Отправить контакт ${contact.name} в текущий чат?`}
                 </p>
               </div>
@@ -239,7 +239,7 @@ function ActionButton({ text, isDestructive, onClick, color, icon }: { text: str
   return (
     <button 
       onClick={onClick}
-      className={`block w-full px-4 py-3 text-left text-[16px] border-b border-tg-divider last:border-b-0 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100 dark:active:bg-gray-700/50 ${
+      className={`block w-full px-4 py-3 text-left text-[16px] border-b border-tg-divider last:border-b-0 transition-colors hover:bg-gray-50 active:bg-gray-100 ${
         isDestructive ? 'text-tg-red' : ''
       } flex items-center gap-3`}
       style={!isDestructive && color ? { color } : {}}
