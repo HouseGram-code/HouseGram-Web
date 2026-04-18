@@ -211,7 +211,7 @@ export default function SettingsView() {
           style={{ backgroundColor: themeColor }}
         >
           <div className="flex items-center gap-4">
-            <div className="w-[72px] h-[72px] rounded-full bg-gray-300 flex items-center justify-center text-gray-500 text-3xl font-medium overflow-hidden relative">
+            <div className={`w-[72px] h-[72px] rounded-full flex items-center justify-center text-3xl font-medium overflow-hidden relative ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-300 text-gray-500'}`}>
               {currentProfile.avatarUrl ? (
                 <Image src={currentProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
               ) : (
@@ -263,12 +263,12 @@ export default function SettingsView() {
           )}
         </div>
 
-        <div className="pt-4 pb-10 bg-white">
+        <div className={`pt-4 pb-10 ${isDarkMode ? 'bg-tg-bg-dark' : 'bg-white'}`}>
         {/* Account Section */}
         <div className="px-4 py-2">
           <div className="text-[15px] font-medium mb-2" style={{ color: themeColor }}>Аккаунт</div>
           
-          <div className="py-2.5 border-b border-gray-100">
+          <div className={`py-2.5 border-b ${isDarkMode ? 'border-tg-divider' : 'border-gray-100'}`}>
             {isEditing ? (
               <div>
                 <input 
@@ -281,21 +281,21 @@ export default function SettingsView() {
                     setEditProfile({...editProfile, username: val});
                   }}
                   maxLength={16}
-                  className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1"
+                  className={`w-full text-[16px] outline-none border-b pb-1 ${isDarkMode ? 'text-tg-text-primary border-tg-divider bg-tg-bg-dark' : 'text-black border-blue-300'}`}
                   placeholder="@username"
                 />
                 <div className="flex justify-between items-center mt-1">
-                  <div className="text-[12px] text-gray-400">Только английские буквы, цифры и _</div>
-                  <div className="text-[11px] text-gray-400">{editProfile.username.length}/16</div>
+                  <div className={`text-[12px] ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-400'}`}>Только английские буквы, цифры и _</div>
+                  <div className={`text-[11px] ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-400'}`}>{editProfile.username.length}/16</div>
                 </div>
               </div>
             ) : (
-              <div className="text-[16px] text-black">{userProfile.username}</div>
+              <div className={`text-[16px] ${isDarkMode ? 'text-tg-text-primary' : 'text-black'}`}>{userProfile.username}</div>
             )}
-            <div className="text-[13px] text-gray-500 mt-1">Имя пользователя</div>
+            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-500'}`}>Имя пользователя</div>
           </div>
           
-          <div className="py-2.5 border-b border-gray-100">
+          <div className={`py-2.5 border-b ${isDarkMode ? 'border-tg-divider' : 'border-gray-100'}`}>
             {isEditing ? (
               <div>
                 <textarea 
@@ -303,18 +303,18 @@ export default function SettingsView() {
                   onChange={e => setEditProfile({...editProfile, bio: e.target.value})}
                   maxLength={70}
                   rows={2}
-                  className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1 resize-none"
+                  className={`w-full text-[16px] outline-none border-b pb-1 resize-none ${isDarkMode ? 'text-tg-text-primary border-tg-divider bg-tg-bg-dark' : 'text-black border-blue-300'}`}
                   placeholder="О себе"
                 />
                 <div className="flex justify-between items-center mt-1">
-                  <div className="text-[12px] text-gray-400">Расскажите о себе</div>
-                  <div className="text-[11px] text-gray-400">{editProfile.bio.length}/70</div>
+                  <div className={`text-[12px] ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-400'}`}>Расскажите о себе</div>
+                  <div className={`text-[11px] ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-400'}`}>{editProfile.bio.length}/70</div>
                 </div>
               </div>
             ) : (
-              <div className="text-[16px] text-black">{userProfile.bio || 'Не указано'}</div>
+              <div className={`text-[16px] ${isDarkMode ? 'text-tg-text-primary' : 'text-black'}`}>{userProfile.bio || 'Не указано'}</div>
             )}
-            <div className="text-[13px] text-gray-500 mt-1">О себе</div>
+            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-500'}`}>О себе</div>
           </div>
         </div>
 
@@ -323,30 +323,30 @@ export default function SettingsView() {
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="px-4 py-3 mx-4 my-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl"
+            className={`px-4 py-3 mx-4 my-3 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 to-purple-50'}`}
           >
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={16} className="text-blue-600" />
-              <span className="text-[13px] font-medium text-gray-700">Статистика аккаунта</span>
+              <TrendingUp size={16} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
+              <span className={`text-[13px] font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Статистика аккаунта</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center">
-                <div className="text-[20px] font-bold text-blue-600">{accountStats.chats}</div>
-                <div className="text-[11px] text-gray-600">Чатов</div>
+                <div className={`text-[20px] font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{accountStats.chats}</div>
+                <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Чатов</div>
               </div>
-              <div className="text-center border-x border-blue-200">
-                <div className="text-[20px] font-bold text-purple-600">{accountStats.days}</div>
-                <div className="text-[11px] text-gray-600">Дней</div>
+              <div className={`text-center border-x ${isDarkMode ? 'border-gray-700' : 'border-blue-200'}`}>
+                <div className={`text-[20px] font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>{accountStats.days}</div>
+                <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Дней</div>
               </div>
               <div className="text-center">
-                <div className="text-[20px] font-bold text-pink-600">{userProfile.giftsSent || 0}</div>
-                <div className="text-[11px] text-gray-600">Подарков</div>
+                <div className={`text-[20px] font-bold ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}>{userProfile.giftsSent || 0}</div>
+                <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Подарков</div>
               </div>
             </div>
           </motion.div>
         )}
 
-        <div className="h-2 bg-gray-100 w-full my-2"></div>
+        <div className={`h-2 ${isDarkMode ? 'bg-tg-divider' : 'bg-gray-100'} w-full my-2`}></div>
 
         {/* Settings Section */}
         <div className="px-4 py-2">
@@ -443,7 +443,7 @@ export default function SettingsView() {
           {/* Группа: Данные */}
           <div className={`${isDarkMode ? 'bg-tg-bg-dark border border-tg-divider' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             <SettingsItem 
-              icon={<Database size={22} className="text-gray-500" />} 
+              icon={<Database size={22} className="isDarkMode ? 'text-tg-text-secondary' : 'text-gray-500'" />} 
               text="Данные и память" 
               soon 
               isDarkMode={isDarkMode}
