@@ -36,8 +36,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" className={roboto.variable}>
-      <body className="font-roboto antialiased" suppressHydrationWarning>
+    <html lang="ru" className={roboto.variable} suppressHydrationWarning>
+      <body className="font-roboto antialiased bg-white text-black dark:bg-[#0f0f0f] dark:text-white" suppressHydrationWarning>
         {children}
       </body>
     </html>

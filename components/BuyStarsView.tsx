@@ -9,12 +9,12 @@ import { doc, updateDoc, increment, addDoc, collection, serverTimestamp } from '
 
 // Пакеты молний как в Telegram
 const STAR_PACKAGES = [
-  { stars: 50, price: 99, priceUSD: 0.99, popular: false },
-  { stars: 100, price: 199, priceUSD: 1.99, popular: false },
-  { stars: 250, price: 449, priceUSD: 4.49, popular: true },
-  { stars: 500, price: 899, priceUSD: 8.99, popular: false },
-  { stars: 1000, price: 1699, priceUSD: 16.99, popular: false },
-  { stars: 2500, price: 3999, priceUSD: 39.99, popular: false },
+  { stars: 50, price: 79, oldPrice: 149, priceUSD: 0.79, popular: false, discount: true },
+  { stars: 100, price: 159, oldPrice: 199, priceUSD: 1.59, popular: false, discount: true },
+  { stars: 250, price: 399, oldPrice: 449, priceUSD: 3.99, popular: true, discount: true },
+  { stars: 500, price: 799, oldPrice: 899, priceUSD: 7.99, popular: false, discount: true },
+  { stars: 1000, price: 1499, oldPrice: 1699, priceUSD: 14.99, popular: false, discount: true },
+  { stars: 2500, price: 3499, oldPrice: 3999, priceUSD: 34.99, popular: false, discount: true },
 ];
 
 export default function BuyStarsView() {
@@ -129,12 +129,30 @@ export default function BuyStarsView() {
 
                 {/* Price */}
                 <div className="text-right">
-                  <div className="text-[18px] font-bold text-gray-900">
-                    {pkg.price} ₽
-                  </div>
-                  <div className="text-[13px] text-gray-500">
-                    ${pkg.priceUSD}
-                  </div>
+                  {pkg.discount ? (
+                    <div className="flex flex-col items-end">
+                      <div className="text-[13px] text-gray-400 line-through font-medium">
+                        {pkg.oldPrice} ₽
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[18px] font-bold text-red-500">
+                          {pkg.price} ₽
+                        </span>
+                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md animate-pulse">
+                          -{Math.round(((pkg.oldPrice! - pkg.price) / pkg.oldPrice!) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-[18px] font-bold text-gray-900">
+                        {pkg.price} ₽
+                      </div>
+                      <div className="text-[13px] text-gray-500">
+                        ${pkg.priceUSD}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 

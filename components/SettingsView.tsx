@@ -1,8 +1,8 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { motion } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare, Moon, Sun, Palette } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { storage, auth, db } from '@/lib/firebase';
@@ -12,12 +12,24 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import imageCompression from 'browser-image-compression';
 
+const colorThemes = [
+  { id: 'blue', name: 'Синий', color: '#3B82F6', bg: 'bg-blue-500' },
+  { id: 'green', name: 'Зеленый', color: '#22C55E', bg: 'bg-green-500' },
+  { id: 'red', name: 'Красный', color: '#EF4444', bg: 'bg-red-500' },
+  { id: 'purple', name: 'Фиолетовый', color: '#A855F7', bg: 'bg-purple-500' },
+  { id: 'orange', name: 'Оранжевый', color: '#F97316', bg: 'bg-orange-500' },
+  { id: 'cyan', name: 'Голубой', color: '#06B6D4', bg: 'bg-cyan-500' },
+  { id: 'pink', name: 'Розовый', color: '#EC4899', bg: 'bg-pink-500' },
+  { id: 'amber', name: 'Желтый', color: '#F59E0B', bg: 'bg-amber-500' },
+];
+
 export default function SettingsView() {
-  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile, user } = useChat();
+  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile, user, isDarkMode, setIsDarkMode, setThemeColor } = useChat();
   const [isEditing, setIsEditing] = useState(false);
   const [editProfile, setEditProfile] = useState(userProfile);
   const [isUploading, setIsUploading] = useState(false);
   const [accountStats, setAccountStats] = useState({ messages: 0, chats: 0, days: 0 });
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -149,7 +161,7 @@ export default function SettingsView() {
     <motion.div 
       initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="absolute inset-0 bg-white flex flex-col z-20"
+      className={`absolute inset-0 flex flex-col z-20 ${isDarkMode ? 'bg-[#0f0f0f] text-white' : 'bg-white text-black'}`}
     >
       {/* Header - Fixed */}
       <div 
@@ -176,10 +188,10 @@ export default function SettingsView() {
               {isMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-50 text-black">
+                  <div className={`absolute right-0 top-full mt-1 w-48 rounded-md shadow-lg py-1 z-50 ${isDarkMode ? 'bg-[#1c1c1d]' : 'bg-white'}`}>
                     <button 
                       onClick={() => { setIsEditing(true); setIsMenuOpen(false); }}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px]"
+                      className={`w-full text-left px-4 py-2 text-[15px] ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-black'}`}
                     >
                       Изменить
                     </button>
@@ -192,14 +204,14 @@ export default function SettingsView() {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-grow overflow-y-auto no-scrollbar bg-white">
+      <div className={`flex-grow overflow-y-auto no-scrollbar ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}>
         {/* Profile Info Area */}
         <div 
           className="text-white px-6 pb-6 pt-2 relative"
           style={{ backgroundColor: themeColor }}
         >
           <div className="flex items-center gap-4">
-            <div className="w-[72px] h-[72px] rounded-full bg-gray-300 flex items-center justify-center text-gray-500 text-3xl font-medium overflow-hidden relative">
+            <div className={`w-[72px] h-[72px] rounded-full flex items-center justify-center text-3xl font-medium overflow-hidden relative ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-300 text-gray-500'}`}>
               {currentProfile.avatarUrl ? (
                 <Image src={currentProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
               ) : (
@@ -251,12 +263,12 @@ export default function SettingsView() {
           )}
         </div>
 
-        <div className="pt-4 pb-10 bg-white">
+        <div className={`pt-4 pb-10 ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}>
         {/* Account Section */}
         <div className="px-4 py-2">
           <div className="text-[15px] font-medium mb-2" style={{ color: themeColor }}>Аккаунт</div>
           
-          <div className="py-2.5 border-b border-gray-100">
+          <div className={`py-2.5 border-b ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
             {isEditing ? (
               <div>
                 <input 
@@ -269,21 +281,21 @@ export default function SettingsView() {
                     setEditProfile({...editProfile, username: val});
                   }}
                   maxLength={16}
-                  className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1"
+                  className={`w-full text-[16px] outline-none border-b pb-1 ${isDarkMode ? 'text-white border-[#2c2c2e] bg-[#0f0f0f]' : 'text-black border-blue-300'}`}
                   placeholder="@username"
                 />
                 <div className="flex justify-between items-center mt-1">
-                  <div className="text-[12px] text-gray-400">Только английские буквы, цифры и _</div>
-                  <div className="text-[11px] text-gray-400">{editProfile.username.length}/16</div>
+                  <div className={`text-[12px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>Только английские буквы, цифры и _</div>
+                  <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>{editProfile.username.length}/16</div>
                 </div>
               </div>
             ) : (
-              <div className="text-[16px] text-black">{userProfile.username}</div>
+              <div className={`text-[16px] ${isDarkMode ? 'text-white' : 'text-black'}`}>{userProfile.username}</div>
             )}
-            <div className="text-[13px] text-gray-500 mt-1">Имя пользователя</div>
+            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Имя пользователя</div>
           </div>
           
-          <div className="py-2.5 border-b border-gray-100">
+          <div className={`py-2.5 border-b ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
             {isEditing ? (
               <div>
                 <textarea 
@@ -291,18 +303,18 @@ export default function SettingsView() {
                   onChange={e => setEditProfile({...editProfile, bio: e.target.value})}
                   maxLength={70}
                   rows={2}
-                  className="w-full text-[16px] text-black outline-none border-b border-blue-300 pb-1 resize-none"
+                  className={`w-full text-[16px] outline-none border-b pb-1 resize-none ${isDarkMode ? 'text-white border-[#2c2c2e] bg-[#0f0f0f]' : 'text-black border-blue-300'}`}
                   placeholder="О себе"
                 />
                 <div className="flex justify-between items-center mt-1">
-                  <div className="text-[12px] text-gray-400">Расскажите о себе</div>
-                  <div className="text-[11px] text-gray-400">{editProfile.bio.length}/70</div>
+                  <div className={`text-[12px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>Расскажите о себе</div>
+                  <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>{editProfile.bio.length}/70</div>
                 </div>
               </div>
             ) : (
-              <div className="text-[16px] text-black">{userProfile.bio || 'Не указано'}</div>
+              <div className={`text-[16px] ${isDarkMode ? 'text-white' : 'text-black'}`}>{userProfile.bio || 'Не указано'}</div>
             )}
-            <div className="text-[13px] text-gray-500 mt-1">О себе</div>
+            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>О себе</div>
           </div>
         </div>
 
@@ -311,41 +323,41 @@ export default function SettingsView() {
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="px-4 py-3 mx-4 my-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl"
+            className={`px-4 py-3 mx-4 my-3 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 to-purple-50'}`}
           >
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={16} className="text-blue-600" />
-              <span className="text-[13px] font-medium text-gray-700">Статистика аккаунта</span>
+              <TrendingUp size={16} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
+              <span className={`text-[13px] font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Статистика аккаунта</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center">
-                <div className="text-[20px] font-bold text-blue-600">{accountStats.chats}</div>
-                <div className="text-[11px] text-gray-600">Чатов</div>
+                <div className={`text-[20px] font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{accountStats.chats}</div>
+                <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Чатов</div>
               </div>
-              <div className="text-center border-x border-blue-200">
-                <div className="text-[20px] font-bold text-purple-600">{accountStats.days}</div>
-                <div className="text-[11px] text-gray-600">Дней</div>
+              <div className={`text-center border-x ${isDarkMode ? 'border-gray-700' : 'border-blue-200'}`}>
+                <div className={`text-[20px] font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>{accountStats.days}</div>
+                <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Дней</div>
               </div>
               <div className="text-center">
-                <div className="text-[20px] font-bold text-pink-600">{userProfile.giftsSent || 0}</div>
-                <div className="text-[11px] text-gray-600">Подарков</div>
+                <div className={`text-[20px] font-bold ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}>{userProfile.giftsSent || 0}</div>
+                <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Подарков</div>
               </div>
             </div>
           </motion.div>
         )}
 
-        <div className="h-2 bg-gray-100 w-full my-2"></div>
+        <div className={`h-2 ${isDarkMode ? 'bg-tg-divider' : 'bg-gray-100'} w-full my-2`}></div>
 
         {/* Settings Section */}
         <div className="px-4 py-2">
-          <div className="text-[15px] font-medium mb-3 text-gray-500 uppercase tracking-wide">Настройки</div>
+          <div className={`text-[15px] font-medium mb-3 uppercase tracking-wide ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Настройки</div>
           
           {/* Группа: Персонализация */}
-          <div className="bg-white rounded-2xl overflow-hidden mb-3 shadow-sm">
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             {/* HouseGram Premium */}
             <div 
               onClick={() => setView('premium')}
-              className="flex items-center gap-3 px-4 py-3 active:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100"
+              className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer ${isDarkMode ? 'active:bg-white/5 border-tg-divider' : 'active:bg-gray-50 border-gray-100'} border-b`}
             >
               <div className="relative">
                 <motion.div
@@ -374,8 +386,8 @@ export default function SettingsView() {
                 </motion.div>
               </div>
               <div className="flex-grow">
-                <div className="text-[16px] text-black font-normal">HouseGram Premium</div>
-                <div className="text-[13px] text-gray-500">Эксклюзивные возможности</div>
+                <div className={`text-[16px] font-normal ${isDarkMode ? 'text-white' : 'text-black'}`}>HouseGram Premium</div>
+                <div className={`text-[13px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Эксклюзивные возможности</div>
               </div>
             </div>
             
@@ -383,7 +395,8 @@ export default function SettingsView() {
               icon={<Zap size={22} className="text-yellow-500" fill="currentColor" />} 
               text="Молнии" 
               subtitle="Баланс и подарки"
-              onClick={() => setView('stars')} 
+              onClick={() => setView('stars')}
+              isDarkMode={isDarkMode}
             />
             <SettingsItem 
               icon={<Gift size={22} className="text-pink-500" />} 
@@ -391,6 +404,7 @@ export default function SettingsView() {
               subtitle="Полученные подарки"
               onClick={() => setView('my-gifts')} 
               divider
+              isDarkMode={isDarkMode}
             />
             <SettingsItem 
               icon={<Calendar size={22} className="text-purple-500" />} 
@@ -398,76 +412,102 @@ export default function SettingsView() {
               subtitle="Просмотр и управление"
               onClick={() => setView('my-stories')} 
               divider
+              isDarkMode={isDarkMode}
             />
           </div>
 
           {/* Группа: Приватность */}
-          <div className="bg-white rounded-2xl overflow-hidden mb-3 shadow-sm">
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             <SettingsItem 
               icon={<Bell size={22} className="text-blue-500" />} 
               text="Уведомления и звуки" 
-              onClick={() => setView('notifications')} 
+              onClick={() => setView('notifications')}
+              isDarkMode={isDarkMode}
             />
             <SettingsItem 
               icon={<Lock size={22} className="text-purple-500" />} 
               text="Конфиденциальность" 
               onClick={() => setView('privacy-settings')} 
               divider
+              isDarkMode={isDarkMode}
             />
             <SettingsItem 
               icon={<ShieldCheck size={22} className="text-green-500" />} 
               text="Безопасность" 
               onClick={() => setView('security')} 
               divider
+              isDarkMode={isDarkMode}
             />
           </div>
 
           {/* Группа: Данные */}
-          <div className="bg-white rounded-2xl overflow-hidden mb-3 shadow-sm">
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             <SettingsItem 
-              icon={<Database size={22} className="text-gray-500" />} 
+              icon={<Database size={22} className="isDarkMode ? 'text-gray-400' : 'text-gray-500'" />} 
               text="Данные и память" 
               soon 
+              isDarkMode={isDarkMode}
             />
             <SettingsItem 
               icon={<MessageCircle size={22} className="text-indigo-500" />} 
               text="Настройки чата" 
               onClick={() => setView('chat-settings')} 
               divider
+              isDarkMode={isDarkMode}
             />
           </div>
 
           {/* Группа: Информация */}
-          <div className="bg-white rounded-2xl overflow-hidden mb-3 shadow-sm">
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             <SettingsItem 
               icon={<Server size={22} className="text-cyan-500" />} 
               text="Статус сервера" 
-              onClick={() => setView('server-status')} 
+              onClick={() => setView('server-status')}
+              isDarkMode={isDarkMode}
             />
             <SettingsItem 
               icon={<Info size={22} className="text-orange-500" />} 
               text="Правила и политика" 
               onClick={() => setView('privacy')} 
               divider
+              isDarkMode={isDarkMode}
             />
             <SettingsItem 
               icon={<Info size={22} className="text-teal-500" />} 
               text="О приложении" 
               onClick={() => setView('info')} 
               divider
+              isDarkMode={isDarkMode}
             />
           </div>
 
+
+          {/* Темная тема */}
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm mb-3`}>
+            <div
+              className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
+              onClick={() => setIsDarkMode(!isDarkMode)}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-yellow-500/20' : 'bg-gray-200'}`}>
+                {isDarkMode ? <Sun size={18} className="text-yellow-500" /> : <Moon size={18} className="text-gray-600" />}
+              </div>
+              <span className={`text-[16px] flex-grow font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Темная тема</span>
+              <div className={`w-12 h-7 rounded-full p-1 transition-all duration-300 ${isDarkMode ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`} />
+              </div>
+            </div>
+          </div>
+
           {/* Стеклянный дизайн */}
-          <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-            <div 
-              className="flex items-center px-4 py-3.5 gap-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm`}>
+            <div
+              className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
               onClick={() => setIsGlassEnabled(!isGlassEnabled)}
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
                 <Layers size={18} className="text-blue-600" />
               </div>
-              <span className="text-[16px] text-gray-900 flex-grow font-medium">Стеклянный дизайн</span>
+              <span className={`text-[16px] flex-grow font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Стеклянный дизайн</span>
               <div className={`w-12 h-7 rounded-full p-1 transition-all duration-300 ${isGlassEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
                 <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${isGlassEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
               </div>
@@ -480,26 +520,27 @@ export default function SettingsView() {
   );
 }
 
-function SettingsItem({ icon, text, subtitle, onClick, soon, divider }: { icon: React.ReactNode; text: string; subtitle?: string; onClick?: () => void; soon?: boolean; divider?: boolean }) {
+function SettingsItem({ icon, text, subtitle, onClick, soon, divider, isDarkMode }: { icon: React.ReactNode; text: string; subtitle?: string; onClick?: () => void; soon?: boolean; divider?: boolean; isDarkMode?: boolean }) {
+  const dark = isDarkMode || false;
   return (
-    <div className={divider ? 'border-t border-gray-100' : ''}>
+    <div className={divider ? `border-t ${dark ? 'border-tg-divider' : 'border-gray-100'}` : ''}>
       <div 
         className={`flex items-center px-4 py-3.5 gap-4 transition-colors ${
           soon 
             ? 'opacity-50 cursor-not-allowed' 
-            : 'cursor-pointer hover:bg-gray-50 active:bg-gray-100'
+            : `cursor-pointer ${dark ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`
         }`}
         onClick={!soon ? onClick : undefined}
       >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center shrink-0">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${dark ? 'bg-white/5' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
           {icon}
         </div>
         <div className="flex-grow">
-          <div className="text-[16px] text-gray-900 font-medium">{text}</div>
-          {subtitle && <div className="text-[13px] text-gray-500 mt-0.5">{subtitle}</div>}
+          <div className={`text-[16px] font-medium ${dark ? 'text-tg-text-primary' : 'text-gray-900'}`}>{text}</div>
+          {subtitle && <div className={`text-[13px] mt-0.5 ${dark ? 'text-tg-text-secondary' : 'text-gray-500'}`}>{subtitle}</div>}
         </div>
         {soon && (
-          <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium bg-gray-100 px-2.5 py-1 rounded-full">
+          <div className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full ${dark ? 'text-tg-text-secondary bg-white/5' : 'text-gray-400 bg-gray-100'}`}>
             <span>soon!</span>
             <Lock size={10} />
           </div>

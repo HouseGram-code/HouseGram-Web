@@ -67,10 +67,13 @@ interface ChatContextType {
   userProfile: UserProfile;
   setUserProfile: (profile: UserProfile) => void;
   blockContact: (contactId: string) => void;
+  unblockContact: (contactId: string) => void;
   notificationsEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
+  isDarkMode: boolean;
+  setIsDarkMode: (enabled: boolean) => void;
   passcode: string | null;
   isLocked: boolean;
   setIsLocked: (locked: boolean) => void;
@@ -115,6 +118,26 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   });
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('housegram_dark_mode');
+      return saved === 'true';
+    }
+    return false;
+  });
+
+  // Эффект применения темной темы
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('dark');
+      }
+    }
+  }, [isDarkMode]);
   const [passcode, setPasscode] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [savedStickers, setSavedStickers] = useState<string[]>(() => {
@@ -579,6 +602,17 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       await updateDoc(doc(db, 'chats', chatId), updateData); 
     } catch (e) {}
     setContacts(prev => ({ ...prev, [contactId]: { ...prev[contactId], isBlocked: true } }));
+  }, [user]);
+
+  const unblockContact = useCallback(async (contactId: string) => {
+    if (!user) return;
+    const chatId = [user.uid, contactId].sort().join('_');
+    try { 
+      const updateData: Record<string, any> = {};
+      updateData[`blockedBy.${user.uid}`] = null;
+      await updateDoc(doc(db, 'chats', chatId), updateData); 
+    } catch (e) {}
+    setContacts(prev => ({ ...prev, [contactId]: { ...prev[contactId], isBlocked: false } }));
   }, [user]);
 
   const lastMessageTimeRef = useRef<number>(0);
@@ -1057,9 +1091,10 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       themeColor, setThemeColor: (c: string) => { setThemeColor(c); localStorage.setItem('housegram_theme', c); },
       wallpaper, setWallpaper: (u: string) => { setWallpaper(u); localStorage.setItem('housegram_wallpaper', u); },
       isGlassEnabled, setIsGlassEnabled: (v: boolean) => { setIsGlassEnabled(v); localStorage.setItem('housegram_glass', String(v)); },
-      clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, addContact,
+      clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, unblockContact, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
+      isDarkMode, setIsDarkMode: (val: boolean) => { setIsDarkMode(val); localStorage.setItem('housegram_dark_mode', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode, user, 
       currentUser: user ? { id: user.uid, email: user.email } : null,
       isAdmin, isMaintenance, logout, setTypingStatus

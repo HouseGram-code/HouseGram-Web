@@ -131,31 +131,8 @@ export default function ChatSettingsView() {
         <div className="px-4 py-2 text-[13px] text-tg-secondary-text uppercase font-medium">Комфорт</div>
         <div className="bg-tg-bg-light border-y border-tg-divider mb-6">
           <div 
-            onClick={toggleDarkMode}
-            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-tg-divider"
-          >
-            <div className="flex items-center gap-3">
-              {darkMode ? <Moon size={24} className="text-indigo-500" /> : <Sun size={24} className="text-yellow-500" />}
-              <div>
-                <div className="text-[16px] text-tg-text-primary flex items-center gap-2">
-                  Темная тема
-                  <span className="px-2 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[11px] font-bold rounded uppercase tracking-wide">
-                    NEW
-                  </span>
-                </div>
-                <div className="text-[13px] text-tg-secondary-text">
-                  {darkMode ? 'Включена' : 'Выключена'}
-                </div>
-              </div>
-            </div>
-            <div className={`w-12 h-7 rounded-full transition-colors relative ${darkMode ? 'bg-indigo-500' : 'bg-gray-300'}`}>
-              <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-1'}`} />
-            </div>
-          </div>
-          
-          <div 
             onClick={toggleEyeProtection}
-            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-tg-divider"
+            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100 dark:active:bg-gray-700/50 transition-colors border-b border-tg-divider"
           >
             <div className="flex items-center gap-3">
               <Eye size={24} className="text-green-500" />
@@ -171,7 +148,7 @@ export default function ChatSettingsView() {
           
           <div 
             onClick={toggleFullscreen}
-            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100 dark:active:bg-gray-700/50 transition-colors"
           >
             <div className="flex items-center gap-3">
               <Maximize size={24} className="text-blue-500" />
