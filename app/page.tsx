@@ -61,9 +61,6 @@ const InfoView = dynamic(() => import('@/components/InfoView'), {
 const FaqView = dynamic(() => import('@/components/FaqView'), {
   loading: () => <LoadingSpinner />
 });
-const StarBackground = dynamic(() => import('@/components/StarBackground'), {
-  ssr: false
-});
 const TermsView = dynamic(() => import('@/components/TermsView'), {
   loading: () => <LoadingSpinner />
 });
@@ -173,8 +170,6 @@ function AppContent() {
 
   return (
     <AppShell>
-      {/* Анимированный фон со звездами */}
-      <StarBackground />
 
       <AnimatePresence initial={false} mode="popLayout">
         {ActiveView && <ActiveView key={view} />}

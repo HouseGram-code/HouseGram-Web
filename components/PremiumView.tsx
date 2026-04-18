@@ -7,7 +7,7 @@
 import { useChat } from '@/context/ChatContext';
 import { motion } from 'motion/react';
 import { ArrowLeft, Check } from 'lucide-react';
-import StarBackground from './StarBackground';
+
 
 export default function PremiumView() {
   const { setView, themeColor } = useChat();
@@ -25,8 +25,7 @@ export default function PremiumView() {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="absolute inset-0 bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 flex flex-col z-10"
     >
-      {/* Animated Star Background */}
-      <StarBackground />
+
 
       {/* Header */}
       <div
