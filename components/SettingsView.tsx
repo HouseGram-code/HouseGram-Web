@@ -161,7 +161,7 @@ export default function SettingsView() {
     <motion.div 
       initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`absolute inset-0 flex flex-col z-20 ${isDarkMode ? 'bg-tg-bg-dark dark' : 'bg-tg-bg-light'}`}
+      className={`absolute inset-0 flex flex-col z-20 ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}
     >
       {/* Header - Fixed */}
       <div 
@@ -188,10 +188,10 @@ export default function SettingsView() {
               {isMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
-                  <div className={`absolute right-0 top-full mt-1 w-48 rounded-md shadow-lg py-1 z-50 ${isDarkMode ? 'bg-tg-bg-dark text-tg-text-primary' : 'bg-white text-black'}`}>
+                  <div className={`absolute right-0 top-full mt-1 w-48 rounded-md shadow-lg py-1 z-50 ${isDarkMode ? 'bg-[#1c1c1d] text-white' : 'bg-white text-black'}`}>
                     <button 
                       onClick={() => { setIsEditing(true); setIsMenuOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-[15px] ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-gray-100'}`}
+                      className={`w-full text-left px-4 py-2 text-[15px] ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
                     >
                       Изменить
                     </button>
@@ -204,7 +204,7 @@ export default function SettingsView() {
       </div>
 
       {/* Scrollable Content */}
-      <div className={`flex-grow overflow-y-auto no-scrollbar ${isDarkMode ? 'bg-tg-bg-dark' : 'bg-tg-bg-light'}`}>
+      <div className={`flex-grow overflow-y-auto no-scrollbar ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}>
         {/* Profile Info Area */}
         <div 
           className="text-white px-6 pb-6 pt-2 relative"
@@ -263,12 +263,12 @@ export default function SettingsView() {
           )}
         </div>
 
-        <div className={`pt-4 pb-10 ${isDarkMode ? 'bg-tg-bg-dark' : 'bg-white'}`}>
+        <div className={`pt-4 pb-10 ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}>
         {/* Account Section */}
         <div className="px-4 py-2">
           <div className="text-[15px] font-medium mb-2" style={{ color: themeColor }}>Аккаунт</div>
           
-          <div className={`py-2.5 border-b ${isDarkMode ? 'border-tg-divider' : 'border-gray-100'}`}>
+          <div className={`py-2.5 border-b ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
             {isEditing ? (
               <div>
                 <input 
@@ -281,21 +281,21 @@ export default function SettingsView() {
                     setEditProfile({...editProfile, username: val});
                   }}
                   maxLength={16}
-                  className={`w-full text-[16px] outline-none border-b pb-1 ${isDarkMode ? 'text-tg-text-primary border-tg-divider bg-tg-bg-dark' : 'text-black border-blue-300'}`}
+                  className={`w-full text-[16px] outline-none border-b pb-1 ${isDarkMode ? 'text-white border-[#2c2c2e] bg-[#0f0f0f]' : 'text-black border-blue-300'}`}
                   placeholder="@username"
                 />
                 <div className="flex justify-between items-center mt-1">
-                  <div className={`text-[12px] ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-400'}`}>Только английские буквы, цифры и _</div>
-                  <div className={`text-[11px] ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-400'}`}>{editProfile.username.length}/16</div>
+                  <div className={`text-[12px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>Только английские буквы, цифры и _</div>
+                  <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>{editProfile.username.length}/16</div>
                 </div>
               </div>
             ) : (
-              <div className={`text-[16px] ${isDarkMode ? 'text-tg-text-primary' : 'text-black'}`}>{userProfile.username}</div>
+              <div className={`text-[16px] ${isDarkMode ? 'text-white' : 'text-black'}`}>{userProfile.username}</div>
             )}
-            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-500'}`}>Имя пользователя</div>
+            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Имя пользователя</div>
           </div>
           
-          <div className={`py-2.5 border-b ${isDarkMode ? 'border-tg-divider' : 'border-gray-100'}`}>
+          <div className={`py-2.5 border-b ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
             {isEditing ? (
               <div>
                 <textarea 
@@ -303,18 +303,18 @@ export default function SettingsView() {
                   onChange={e => setEditProfile({...editProfile, bio: e.target.value})}
                   maxLength={70}
                   rows={2}
-                  className={`w-full text-[16px] outline-none border-b pb-1 resize-none ${isDarkMode ? 'text-tg-text-primary border-tg-divider bg-tg-bg-dark' : 'text-black border-blue-300'}`}
+                  className={`w-full text-[16px] outline-none border-b pb-1 resize-none ${isDarkMode ? 'text-white border-[#2c2c2e] bg-[#0f0f0f]' : 'text-black border-blue-300'}`}
                   placeholder="О себе"
                 />
                 <div className="flex justify-between items-center mt-1">
-                  <div className={`text-[12px] ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-400'}`}>Расскажите о себе</div>
-                  <div className={`text-[11px] ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-400'}`}>{editProfile.bio.length}/70</div>
+                  <div className={`text-[12px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>Расскажите о себе</div>
+                  <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>{editProfile.bio.length}/70</div>
                 </div>
               </div>
             ) : (
-              <div className={`text-[16px] ${isDarkMode ? 'text-tg-text-primary' : 'text-black'}`}>{userProfile.bio || 'Не указано'}</div>
+              <div className={`text-[16px] ${isDarkMode ? 'text-white' : 'text-black'}`}>{userProfile.bio || 'Не указано'}</div>
             )}
-            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-500'}`}>О себе</div>
+            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>О себе</div>
           </div>
         </div>
 
@@ -350,10 +350,10 @@ export default function SettingsView() {
 
         {/* Settings Section */}
         <div className="px-4 py-2">
-          <div className={`text-[15px] font-medium mb-3 uppercase tracking-wide ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-500'}`}>Настройки</div>
+          <div className={`text-[15px] font-medium mb-3 uppercase tracking-wide ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Настройки</div>
           
           {/* Группа: Персонализация */}
-          <div className={`${isDarkMode ? 'bg-tg-bg-dark border border-tg-divider' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             {/* HouseGram Premium */}
             <div 
               onClick={() => setView('premium')}
@@ -386,8 +386,8 @@ export default function SettingsView() {
                 </motion.div>
               </div>
               <div className="flex-grow">
-                <div className={`text-[16px] font-normal ${isDarkMode ? 'text-tg-text-primary' : 'text-black'}`}>HouseGram Premium</div>
-                <div className={`text-[13px] ${isDarkMode ? 'text-tg-text-secondary' : 'text-gray-500'}`}>Эксклюзивные возможности</div>
+                <div className={`text-[16px] font-normal ${isDarkMode ? 'text-white' : 'text-black'}`}>HouseGram Premium</div>
+                <div className={`text-[13px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Эксклюзивные возможности</div>
               </div>
             </div>
             
@@ -417,7 +417,7 @@ export default function SettingsView() {
           </div>
 
           {/* Группа: Приватность */}
-          <div className={`${isDarkMode ? 'bg-tg-bg-dark border border-tg-divider' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             <SettingsItem 
               icon={<Bell size={22} className="text-blue-500" />} 
               text="Уведомления и звуки" 
@@ -441,9 +441,9 @@ export default function SettingsView() {
           </div>
 
           {/* Группа: Данные */}
-          <div className={`${isDarkMode ? 'bg-tg-bg-dark border border-tg-divider' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             <SettingsItem 
-              icon={<Database size={22} className="isDarkMode ? 'text-tg-text-secondary' : 'text-gray-500'" />} 
+              icon={<Database size={22} className="isDarkMode ? 'text-gray-400' : 'text-gray-500'" />} 
               text="Данные и память" 
               soon 
               isDarkMode={isDarkMode}
@@ -458,7 +458,7 @@ export default function SettingsView() {
           </div>
 
           {/* Группа: Информация */}
-          <div className={`${isDarkMode ? 'bg-tg-bg-dark border border-tg-divider' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             <SettingsItem 
               icon={<Server size={22} className="text-cyan-500" />} 
               text="Статус сервера" 
@@ -482,7 +482,7 @@ export default function SettingsView() {
           </div>
 
           {/* Стеклянный дизайн */}
-          <div className={`${isDarkMode ? 'bg-tg-bg-dark border border-tg-divider' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm`}>
             <div 
               className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
               onClick={() => setIsGlassEnabled(!isGlassEnabled)}
@@ -490,7 +490,7 @@ export default function SettingsView() {
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
                 <Layers size={18} className="text-blue-600" />
               </div>
-              <span className={`text-[16px] flex-grow font-medium ${isDarkMode ? 'text-tg-text-primary' : 'text-gray-900'}`}>Стеклянный дизайн</span>
+              <span className={`text-[16px] flex-grow font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Стеклянный дизайн</span>
               <div className={`w-12 h-7 rounded-full p-1 transition-all duration-300 ${isGlassEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
                 <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${isGlassEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
               </div>
