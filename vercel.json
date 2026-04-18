@@ -1,1 +1,1 @@
-{"buildCommand":"npm run build","outputDirectory":".next","devCommand":"next dev","installCommand":"npm install","cacheDirectory":".next/cache"}
+{"buildCommand":"npm run build","outputDirectory":".next","devCommand":"next dev","installCommand":"npm install"}
