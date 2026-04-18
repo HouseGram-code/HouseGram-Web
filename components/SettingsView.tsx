@@ -481,9 +481,26 @@ export default function SettingsView() {
             />
           </div>
 
+
+          {/* Темная тема */}
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm mb-3`}>
+            <div
+              className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
+              onClick={() => setIsDarkMode(!isDarkMode)}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-yellow-500/20' : 'bg-gray-200'}`}>
+                {isDarkMode ? <Sun size={18} className="text-yellow-500" /> : <Moon size={18} className="text-gray-600" />}
+              </div>
+              <span className={`text-[16px] flex-grow font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Темная тема</span>
+              <div className={`w-12 h-7 rounded-full p-1 transition-all duration-300 ${isDarkMode ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`} />
+              </div>
+            </div>
+          </div>
+
           {/* Стеклянный дизайн */}
           <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm`}>
-            <div 
+            <div
               className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
               onClick={() => setIsGlassEnabled(!isGlassEnabled)}
             >
@@ -500,6 +517,8 @@ export default function SettingsView() {
         </div>
       </div>
     </motion.div>
+  );
+}
   );
 }
 
