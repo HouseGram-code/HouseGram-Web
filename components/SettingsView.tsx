@@ -161,7 +161,7 @@ export default function SettingsView() {
     <motion.div 
       initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`absolute inset-0 flex flex-col z-20 ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}
+      className={`absolute inset-0 flex flex-col z-20 ${isDarkMode ? 'bg-[#0f0f0f] text-white' : 'bg-white text-black'}`}
     >
       {/* Header - Fixed */}
       <div 
@@ -188,10 +188,10 @@ export default function SettingsView() {
               {isMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
-                  <div className={`absolute right-0 top-full mt-1 w-48 rounded-md shadow-lg py-1 z-50 ${isDarkMode ? 'bg-[#1c1c1d] text-white' : 'bg-white text-black'}`}>
+                  <div className={`absolute right-0 top-full mt-1 w-48 rounded-md shadow-lg py-1 z-50 ${isDarkMode ? 'bg-[#1c1c1d]' : 'bg-white'}`}>
                     <button 
                       onClick={() => { setIsEditing(true); setIsMenuOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-[15px] ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                      className={`w-full text-left px-4 py-2 text-[15px] ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-black'}`}
                     >
                       Изменить
                     </button>
