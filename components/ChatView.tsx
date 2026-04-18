@@ -14,7 +14,7 @@ import {
   CheckCheck,
   Mic
 } from 'lucide-react';
-import { useChatContext } from '@/context/ChatContext';
+import { useChat } from '@/context/ChatContext';
 import { useRouter } from 'next/navigation';
 
 interface ChatViewProps {
