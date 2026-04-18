@@ -226,7 +226,7 @@ export default function ChatList() {
               exit={{ opacity: 0, x: 20 }}
               transition={{ delay: index * 0.05, type: 'spring', bounce: 0.3 }}
               onClick={() => handleSearchResultClick(user)}
-              className="flex items-center px-4 py-3 cursor-pointer border-b border-tg-divider hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent active:bg-blue-100 transition-all duration-200 gap-3 group"
+              className="flex items-center px-4 py-3 cursor-pointer border-b border-tg-divider hover:bg-gradient-to-r hover:from-blue-50 dark:hover:from-blue-900/30 hover:to-transparent active:bg-blue-100 dark:active:bg-blue-900/40 transition-all duration-200 gap-3 group"
             >
               <div className="relative">
                 {user.avatarUrl ? (
@@ -278,7 +278,7 @@ export default function ChatList() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.03, type: 'spring', bounce: 0.3 }}
               onClick={() => handleChatClick(contact.id)}
-              className="flex items-center px-4 py-3.5 cursor-pointer border-b border-tg-divider hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent active:bg-blue-100 transition-all duration-200 gap-3 group"
+              className="flex items-center px-4 py-3.5 cursor-pointer border-b border-tg-divider hover:bg-gradient-to-r hover:from-blue-50 dark:hover:from-blue-900/30 hover:to-transparent active:bg-blue-100 dark:active:bg-blue-900/40 transition-all duration-200 gap-3 group"
             >
               <div className="relative">
                 {contact.id === 'saved_messages' ? (

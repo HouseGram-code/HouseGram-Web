@@ -132,7 +132,7 @@ export default function ChatSettingsView() {
         <div className="bg-tg-bg-light border-y border-tg-divider mb-6">
           <div 
             onClick={toggleDarkMode}
-            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-tg-divider"
+            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100 dark:active:bg-gray-700/50 transition-colors border-b border-tg-divider"
           >
             <div className="flex items-center gap-3">
               {darkMode ? <Moon size={24} className="text-indigo-500" /> : <Sun size={24} className="text-yellow-500" />}
@@ -155,7 +155,7 @@ export default function ChatSettingsView() {
           
           <div 
             onClick={toggleEyeProtection}
-            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-tg-divider"
+            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100 dark:active:bg-gray-700/50 transition-colors border-b border-tg-divider"
           >
             <div className="flex items-center gap-3">
               <Eye size={24} className="text-green-500" />
@@ -171,7 +171,7 @@ export default function ChatSettingsView() {
           
           <div 
             onClick={toggleFullscreen}
-            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100 dark:active:bg-gray-700/50 transition-colors"
           >
             <div className="flex items-center gap-3">
               <Maximize size={24} className="text-blue-500" />

@@ -239,7 +239,7 @@ function ActionButton({ text, isDestructive, onClick, color, icon }: { text: str
   return (
     <button 
       onClick={onClick}
-      className={`block w-full px-4 py-3 text-left text-[16px] border-b border-tg-divider last:border-b-0 transition-colors hover:bg-gray-50 active:bg-gray-100 ${
+      className={`block w-full px-4 py-3 text-left text-[16px] border-b border-tg-divider last:border-b-0 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100 dark:active:bg-gray-700/50 ${
         isDestructive ? 'text-tg-red' : ''
       } flex items-center gap-3`}
       style={!isDestructive && color ? { color } : {}}

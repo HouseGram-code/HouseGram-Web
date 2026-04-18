@@ -125,6 +125,19 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }
     return false;
   });
+
+  // Эффект применения темной темы
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('dark');
+      }
+    }
+  }, [isDarkMode]);
   const [passcode, setPasscode] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [savedStickers, setSavedStickers] = useState<string[]>(() => {

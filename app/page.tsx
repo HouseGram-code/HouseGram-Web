@@ -139,11 +139,11 @@ const viewComponents: Record<string, React.ComponentType> = {
 };
 
 function AppContent() {
-  const { view, isLocked, user } = useChat();
+  const { view, isLocked, user, isDarkMode } = useChat();
 
   // Контейнер-обёртка
   const AppShell = ({ children }: { children: React.ReactNode }) => (
-    <div className="relative w-full h-[100dvh] bg-tg-bg-light overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh]">
+    <div className={`relative w-full h-[100dvh] overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh] ${isDarkMode ? 'bg-[#0f0f0f] dark' : 'bg-tg-bg-light'}`}>
       {children}
     </div>
   );

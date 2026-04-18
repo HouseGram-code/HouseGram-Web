@@ -2,7 +2,7 @@
 
 @theme {
   --color-tg-bg-light: #ffffff;
-  --color-tg-bg-dark: #ebebeb;
+  --color-tg-bg-dark: #0f0f0f;
   --color-tg-primary: #517da2;
   --color-tg-secondary-text: #8E8E93;
   --color-tg-sent-bubble: #e1ffc7;
@@ -24,6 +24,25 @@
   --color-side-menu-user-text: #ffffff;
   --color-side-menu-user-phone: #d1e0ec;
   --color-overlay-bg: rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode variables */
+.dark {
+  --color-tg-bg-light: #0f0f0f;
+  --color-tg-bg-dark: #1a1a1a;
+  --color-tg-sent-bubble: #2b5278;
+  --color-tg-received-bubble: #212121;
+  --color-tg-text-primary: #ffffff;
+  --color-tg-text-secondary: #8E8E93;
+  --color-tg-divider: #2f2f2f;
+  --color-tg-input-bg: #1a1a1a;
+  --color-tg-header-text: #ffffff;
+  --color-tg-profile-bg: #1a1a1a;
+  --color-side-menu-bg: #1a1a1a;
+  --color-side-menu-header-bg: #2b5278;
+  --color-side-menu-icon-color: #a0a0a0;
+  --color-side-menu-text-color: #ffffff;
+  --color-side-menu-user-phone: #4a6fa5;
 }
 
 @layer base {
