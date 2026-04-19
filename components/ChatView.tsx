@@ -732,8 +732,8 @@ export default function ChatView() {
             : isJumbo
               ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
               : isOwn
-                ? 'bg-tg-sent-bubble self-end rounded-br-[6px] message-tail-sent shadow-md text-[15px] leading-relaxed'
-                : 'bg-tg-received-bubble self-start rounded-bl-[6px] message-tail-received shadow-md text-[15px] leading-relaxed'
+                ? 'message-bubble-sent self-end rounded-br-[6px] message-tail-sent text-[15px] leading-relaxed'
+                : 'message-bubble-received self-start rounded-bl-[6px] message-tail-received text-[15px] leading-relaxed'
         }`}
       >
         {msg.forwardedFrom && (
@@ -800,8 +800,8 @@ export default function ChatView() {
     <div className="absolute inset-0 bg-tg-bg-light flex flex-col z-10">
       {/* Header */}
       <div
-        className={`text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0 transition-colors fixed top-0 left-0 right-0 z-30 ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
-        style={{ backgroundColor: isGlassEnabled ? themeColor + 'CC' : themeColor }}
+        className={`chat-header text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0 fixed top-0 left-0 right-0 z-30 ${isGlassEnabled ? 'chat-header-glass border-b border-black/10' : ''}`}
+        style={{ backgroundColor: isGlassEnabled ? undefined : themeColor }}
       >
         <button onClick={(e) => { e.stopPropagation(); setView('menu'); }} className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors mr-1">
           <ArrowLeft size={24} />
@@ -1059,7 +1059,7 @@ export default function ChatView() {
 
         {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
         <div 
-          className={`flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-sm transition-all duration-200 ${
+          className={`flex items-center px-3 py-2 message-bubble-received self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative transition-all duration-200 ${
             contact.isTyping && !contact.isBlocked 
               ? 'opacity-100 mb-1.5 min-h-[44px]' 
               : 'opacity-0 pointer-events-none h-0 mb-0 overflow-hidden'
@@ -1329,20 +1329,20 @@ export default function ChatView() {
 
       {/* Input Area */}
       {contact.isBlocked ? (
-        <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
+        <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'input-area-glass' : ''}`}>
           <span className="text-tg-secondary-text text-[15px]">Вы заблокировали этого пользователя</span>
         </div>
       ) : contact.isChannel && channelOwnerId && user?.uid !== channelOwnerId ? (
-        <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
+        <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'input-area-glass' : ''}`}>
           <span className="text-tg-secondary-text text-[15px]">Только владелец канала может отправлять сообщения</span>
         </div>
       ) : (
-        <div className={`flex items-end px-2.5 py-2 border-t border-tg-divider shrink-0 gap-1.5 z-30 transition-colors relative ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
+        <div className={`input-area flex items-end px-2.5 py-2 border-t border-tg-divider shrink-0 gap-1.5 z-30 relative ${isGlassEnabled ? 'input-area-glass' : ''}`}>
           <AnimatePresence>
             {showAttachMenu && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute bottom-14 left-2 bg-white rounded-xl shadow-lg border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[160px]"
+                className="absolute bottom-14 left-2 bg-white rounded-xl shadow-lg border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[160px] attach-menu"
               >
                 <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
                 <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
@@ -1383,7 +1383,7 @@ export default function ChatView() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
                 disabled={isRecording}
-                className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50"
+                className="message-input flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50"
               />
               {!isRecording && (
                 <button onClick={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
@@ -1403,7 +1403,7 @@ export default function ChatView() {
               </button>
             </div>
           ) : inputText.trim() ? (
-            <button onClick={handleSend} className="w-10 h-10 p-2 rounded-full mb-0.5 flex items-center justify-center text-white hover:brightness-110 active:scale-90 transition-all" style={{ backgroundColor: themeColor }}>
+            <button onClick={handleSend} className="send-button w-10 h-10 p-2 rounded-full mb-0.5 flex items-center justify-center text-white" style={{ backgroundColor: themeColor }}>
               {editingMsg ? <Check size={20} /> : <Send size={20} className="ml-0.5" />}
             </button>
           ) : (
