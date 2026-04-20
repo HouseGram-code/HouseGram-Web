@@ -864,61 +864,70 @@ export default function ChatView() {
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <Download size={20} className="text-white drop-shadow-lg" />
                   </div>
+                  {/* Время для стикеров */}
+                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
+                    <span>{msg.time}</span>
+                    {isOwn && !contact.isChannel && (
+                      msg.status === 'sending' ? <Clock size={11} /> :
+                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
+                    )}
+                  </div>
                 </div>
               ) : isGif ? (
-                <img src={msg.gifUrl} alt="GIF" className="w-56 h-auto rounded-xl object-contain shadow-md" />
+                <div className="relative">
+                  <img src={msg.gifUrl} alt="GIF" className="w-56 h-auto rounded-xl object-contain shadow-md" />
+                  {/* Время для GIF */}
+                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
+                    <span>{msg.time}</span>
+                    {isOwn && !contact.isChannel && (
+                      msg.status === 'sending' ? <Clock size={11} /> :
+                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
+                    )}
+                  </div>
+                </div>
               ) : isJumbo ? (
                 <span className="text-[64px] leading-none">{msg.text}</span>
-              ) : (
-                <div className="flex flex-col">
-                  <span className="whitespace-pre-wrap">{msg.text}</span>
-                  {msg.editedAt && (
-                    <span className={`text-[11px] italic mt-1 ${isOwn ? 'text-white/70' : 'text-gray-500'}`}>
-                      изменено
-                    </span>
-                  )}
-                </div>
-              )}
+              ) : null}
               
-              {/* Время и статус */}
+              {/* Обычные сообщения с текстом */}
               {!isSticker && !isGif && !isJumbo && (
-                <div className={`flex items-center gap-1 mt-1 self-end ${
-                  isOwn ? 'text-white/80' : 'text-gray-500'
-                }`}>
-                  <span className="text-[11px]">{msg.time}</span>
-                  {contact.isChannel && msg.views !== undefined && (
-                    <>
-                      <Eye size={12} />
-                      <span className="text-[11px]">{msg.views}</span>
-                    </>
-                  )}
-                  {isOwn && !contact.isChannel && (
-                    <span className="ml-0.5">
-                      {msg.status === 'sending' ? (
-                        <Clock size={13} className="opacity-60" />
-                      ) : msg.status === 'read' ? (
-                        <CheckCheck size={15} className="text-blue-400" />
-                      ) : (
-                        <Check size={15} />
-                      )}
-                    </span>
-                  )}
+                <>
+                  <div className="flex flex-col">
+                    <span className="whitespace-pre-wrap">{msg.text}</span>
+                    {msg.editedAt && (
+                      <span className={`text-[11px] italic mt-1 ${isOwn ? 'text-white/70' : 'text-gray-500'}`}>
+                        изменено
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Время и статус */}
+                  <div className={`flex items-center gap-1 mt-1 self-end ${
+                    isOwn ? 'text-white/80' : 'text-gray-500'
+                  }`}>
+                    <span className="text-[11px]">{msg.time}</span>
+                    {contact.isChannel && msg.views !== undefined && (
+                      <>
+                        <Eye size={12} />
+                        <span className="text-[11px]">{msg.views}</span>
+                      </>
+                    )}
+                    {isOwn && !contact.isChannel && (
+                      <span className="ml-0.5">
+                        {msg.status === 'sending' ? (
+                          <Clock size={13} className="opacity-60" />
+                        ) : msg.status === 'read' ? (
+                          <CheckCheck size={15} className="text-blue-400" />
+                        ) : (
+                          <Check size={15} />
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
-              
-              {/* Время для стикеров и GIF */}
-              {(isSticker || isGif) && (
-                <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
-                  <span>{msg.time}</span>
-                  {isOwn && !contact.isChannel && (
-                    msg.status === 'sending' ? <Clock size={11} /> :
-                    msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
-                  )}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        );
+            </motion.div>
+          );
         })}
 
         {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
