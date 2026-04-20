@@ -302,7 +302,7 @@ export default function SendGiftView() {
         senderId: currentUser.id,
         text: `Подарок: ${selectedGift.emoji} ${selectedGift.name}`,
         time: timeString,
-        createdAt: timestamp, // ← Используем клиентский timestamp вместо serverTimestamp()
+        createdAt: serverTimestamp(),
         status: 'sent',
         type: 'sent',
         gift: {
