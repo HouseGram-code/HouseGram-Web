@@ -759,26 +759,169 @@ export default function ChatView() {
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                      className="rounded-2xl p-4 text-white text-center min-w-[200px] bg-gradient-to-br from-purple-500 to-pink-500"
+                      className={`rounded-2xl p-4 text-white text-center min-w-[200px] relative overflow-hidden ${
+                        msg.gift.id === 'cosmonaut'
+                          ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black'
+                          : msg.gift.id === 'easter_bunny' 
+                          ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400' 
+                          : 'bg-gradient-to-br from-purple-500 to-pink-500'
+                      }`}
                     >
-                      <div className="text-[80px] mb-2">{msg.gift.emoji}</div>
-                      <div className="text-[16px] font-bold mb-1">{msg.gift.name}</div>
-                      <div className="text-[13px] text-white/90">
-                        Подарок от {isOwn ? 'вас' : contact.name}
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <>
-                      {msg.text}
-                      <div className={`text-right text-[11px] mt-1 ${isOwn ? 'text-white/80' : 'text-gray-500'}`}>
-                        {msg.time}
-                      </div>
-                    </>
+                      {/* Космический фон для космонавта */}
+                      {msg.gift.id === 'cosmonaut' && (
+                        <div className="absolute inset-0">
+                          {[...Array(20)].map((_, i) => (
+                            <motion.div
+                              key={i}
+                              className="absolute text-white"
+                              style={{
+                                left: `${Math.random() * 100}%`,
+                                top: `${Math.random() * 100}%`,
+                                fontSize: `${6 + Math.random() * 6}px`
+                              }}
+                              animate={{
+                                opacity: [0.3, 1, 0.3],
+                                scale: [0.8, 1.2, 0.8]
+                              }}
+                              transition={{
+                                duration: 2 + Math.random() * 2,
+                                repeat: Infinity,
+                                delay: i * 0.1
+                              }}
+                            >
+                              ⭐
+                            </motion.div>
+                          ))}
+                          <motion.div 
+                            className="absolute top-2 right-2 text-[25px]"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                          >
+                            🪐
+                          </motion.div>
+                          <motion.div 
+                            className="absolute bottom-2 left-2 text-[20px]"
+                            animate={{ y: [-5, 5, -5] }}
+                            transition={{ duration: 3, repeat: Infinity }}
+                          >
+                            🌍
+                          </motion.div>
+                        </div>
+                      )}
+                      
+                      {/* Пасхальный фон для зайца */}
+                      {msg.gift.id === 'easter_bunny' && (
+                        <div className="absolute inset-0 opacity-20">
+                      <motion.div 
+                        className="absolute top-2 left-2 text-[25px]"
+                        animate={{ rotate: [0, 10, -10, 0], y: [0, -5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        🌸
+                      </motion.div>
+                      <motion.div 
+                        className="absolute top-2 right-2 text-[25px]"
+                        animate={{ rotate: [0, -10, 10, 0], y: [0, -5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                      >
+                        🌷
+                      </motion.div>
+                      <motion.div 
+                        className="absolute bottom-2 left-2 text-[25px]"
+                        animate={{ rotate: [0, 10, -10, 0], y: [0, 5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                      >
+                        🌼
+                      </motion.div>
+                      <motion.div 
+                        className="absolute bottom-2 right-2 text-[25px]"
+                        animate={{ rotate: [0, -10, 10, 0], y: [0, 5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
+                      >
+                        🌺
+                      </motion.div>
+                    </div>
                   )}
+                  
+                  <motion.div
+                    animate={
+                      msg.gift.id === 'cosmonaut'
+                        ? {
+                            y: [0, -20, 0],
+                            rotate: [0, 10, -10, 0]
+                          }
+                        : msg.gift.id === 'easter_bunny'
+                        ? {
+                            scale: [1, 1.1, 1],
+                            rotate: [0, -5, 5, -3, 3, 0],
+                            y: [0, -15, 0, -8, 0]
+                          }
+                        : {
+                            scale: [1, 1.15, 1],
+                            rotate: [0, -15, 15, -10, 10, -5, 5, 0],
+                            y: [0, -10, 0, -5, 0]
+                          }
+                    }
+                    transition={{ 
+                      duration: msg.gift.id === 'cosmonaut' ? 3 : msg.gift.id === 'easter_bunny' ? 2 : 1.5,
+                      times: [0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 1],
+                      ease: "easeInOut",
+                      repeat: (msg.gift.id === 'easter_bunny' || msg.gift.id === 'cosmonaut') ? Infinity : 0
+                    }}
+                    className="text-[80px] mb-2 relative z-10"
+                  >
+                    {msg.gift.emoji}
+                  </motion.div>
+                  <div className="text-[16px] font-bold mb-1 relative z-10">{msg.gift.name}</div>
+                  <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10">
+                    Подарок от {isOwn ? 'вас' : contact.name}
+                  </div>
+                  {msg.gift.id === 'cosmonaut' && (
+                    <div className="text-[11px] text-cyan-300 mt-1 relative z-10">
+                      🚀 День космонавтики! 🚀
+                    </div>
+                  )}
+                  {msg.gift.id === 'easter_bunny' && (
+                    <div className="text-[11px] text-white/80 mt-1 relative z-10">
+                      ✨ Эксклюзивный пасхальный подарок ✨
+                    </div>
+                  )}
+                </motion.div>
+              ) : isSticker ? (
+                <div className="relative group">
+                  <img
+                    src={msg.stickerUrl}
+                    alt="Sticker"
+                    className="w-32 h-32 object-contain cursor-pointer"
+                    onClick={() => saveSticker(msg.stickerUrl!)}
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <Download size={20} className="text-white drop-shadow-lg" />
+                  </div>
+                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
+                    <span>{msg.time}</span>
+                    {isOwn && !contact.isChannel && (
+                      msg.status === 'sending' ? <Clock size={11} /> :
+                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
+                    )}
+                  </div>
                 </div>
-              )}
+              ) : isGif ? (
+                <div className="relative">
+                  <img src={msg.gifUrl} alt="GIF" className="w-56 h-auto rounded-xl object-contain shadow-md" />
+                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
+                    <span>{msg.time}</span>
+                    {isOwn && !contact.isChannel && (
+                      msg.status === 'sending' ? <Clock size={11} /> :
+                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
+                    )}
+                  </div>
+                </div>
+              ) : isJumbo ? (
+                <span className="text-[64px] leading-none">{msg.text}</span>
+              ) : null}
             </motion.div>
-        ))}
+        );})}
 
         {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
         <div 
