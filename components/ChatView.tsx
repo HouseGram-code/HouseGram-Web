@@ -889,7 +889,8 @@ export default function ChatView() {
                 </motion.div>
                   ) : (
                     <>{msg.text}</>
-                  )}
+                  )
+                  }
                   <div className={`text-right text-[11px] mt-1 flex items-center justify-end gap-1 ${isOwn ? 'text-white/80' : 'text-gray-500'}`}>
                     <span>{msg.time}</span>
                     {isOwn && !contact.isChannel && (
