@@ -768,15 +768,13 @@ export default function ChatView() {
                       </div>
                     </motion.div>
                   ) : (
-                    <>{msg.text}</>
+                    <>
+                      {msg.text}
+                      <div className={`text-right text-[11px] mt-1 ${isOwn ? 'text-white/80' : 'text-gray-500'}`}>
+                        {msg.time}
+                      </div>
+                    </>
                   )}
-                  <div className={`text-right text-[11px] mt-1 flex items-center justify-end gap-1 ${isOwn ? 'text-white/80' : 'text-gray-500'}`}>
-                    <span>{msg.time}</span>
-                    {isOwn && !contact.isChannel && (
-                      msg.status === 'sending' ? <Clock size={11} /> :
-                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
-                    )}
-                  </div>
                 </div>
               )}
             </motion.div>
