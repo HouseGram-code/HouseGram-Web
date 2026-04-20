@@ -2,9 +2,11 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle, Gift } from 'lucide-react';
+import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle, Gift, Phone, Mail, Calendar, MessageCircle, User, Shield, Clock, MapPin } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function ProfileView() {
   const { contacts, activeChatId, setView, themeColor, isGlassEnabled, sendMessage, blockContact } = useChat();
@@ -12,6 +14,36 @@ export default function ProfileView() {
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
+  const [userStats, setUserStats] = useState({
+    giftsSent: 0,
+    giftsReceived: 0,
+    stars: 0,
+    joinedDate: null as Date | null
+  });
+
+  // Загрузка статистики пользователя
+  useEffect(() => {
+    const loadUserStats = async () => {
+      if (!contact || contact.id === 'saved_messages' || contact.id === 'test_bot' || contact.isChannel) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', contact.id));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUserStats({
+            giftsSent: data.giftsSent || 0,
+            giftsReceived: data.giftsReceived || 0,
+            stars: data.stars || 0,
+            joinedDate: data.createdAt?.toDate() || null
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load user stats:', error);
+      }
+    };
+
+    loadUserStats();
+  }, [contact]);
 
   if (!contact) return (
     <div className="absolute inset-0 bg-tg-profile-bg flex items-center justify-center z-20">
@@ -56,79 +88,192 @@ export default function ProfileView() {
         <div className="text-[17px] font-medium flex-grow">Инфо</div>
       </div>
 
-      <div className="flex-grow overflow-y-auto pt-14 no-scrollbar">
-        <div className="bg-tg-bg-light p-5 flex items-center gap-5 border-b border-tg-divider mb-2.5">
-          {contact.id === 'saved_messages' ? (
-            <div 
-              className="w-[70px] h-[70px] rounded-full flex items-center justify-center text-white shrink-0"
-              style={{ backgroundColor: contact.avatarColor }}
-            >
-              <Bookmark size={32} fill="currentColor" />
-            </div>
-          ) : contact.avatarUrl ? (
-            <Image 
-              src={contact.avatarUrl} 
-              alt={contact.name} 
-              width={70} 
-              height={70} 
-              className="rounded-full object-cover shrink-0" 
-              referrerPolicy="no-referrer"
-              unoptimized
-            />
-          ) : (
-            <div 
-              className="w-[70px] h-[70px] rounded-full flex items-center justify-center text-white font-medium text-[30px] shrink-0"
-              style={{ backgroundColor: contact.avatarColor }}
-            >
-              {contact.initial}
-            </div>
-          )}
-          <div className="flex flex-col">
-            <div className="text-[20px] font-medium text-tg-text-primary mb-1 flex items-center gap-1">
+      <div className="flex-grow overflow-y-auto pt-14 no-scrollbar bg-gray-50">
+        {/* Header Card with Avatar */}
+        <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-6 relative overflow-hidden">
+          {/* Decorative Background */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+          </div>
+          
+          <div className="relative z-10 flex flex-col items-center text-center">
+            {contact.id === 'saved_messages' ? (
+              <div 
+                className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white shrink-0 shadow-xl mb-3"
+                style={{ backgroundColor: contact.avatarColor }}
+              >
+                <Bookmark size={40} fill="currentColor" />
+              </div>
+            ) : contact.avatarUrl ? (
+              <div className="relative mb-3">
+                <Image 
+                  src={contact.avatarUrl} 
+                  alt={contact.name} 
+                  width={90} 
+                  height={90} 
+                  className="rounded-full object-cover shrink-0 shadow-xl border-4 border-white/20" 
+                  referrerPolicy="no-referrer"
+                  unoptimized
+                />
+                {contact.statusOffline === 'в сети' && (
+                  <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white"></div>
+                )}
+              </div>
+            ) : (
+              <div 
+                className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white font-medium text-[36px] shrink-0 shadow-xl mb-3 border-4 border-white/20"
+                style={{ backgroundColor: contact.avatarColor }}
+              >
+                {contact.initial}
+              </div>
+            )}
+            
+            <div className="text-[24px] font-bold text-white mb-1 flex items-center gap-2">
               {contact.name}
-              {contact.isOfficial && <BadgeCheck size={20} className="text-blue-500 fill-blue-500 text-white" />}
+              {contact.isOfficial && <BadgeCheck size={24} className="text-white fill-white" />}
             </div>
-            <div className="text-[14px] text-tg-secondary-text">{contact.statusOffline}</div>
+            
+            <div className="flex items-center gap-2 text-white/90 text-[14px] mb-2">
+              <Clock size={14} />
+              {contact.statusOffline}
+            </div>
+            
+            {contact.username && (
+              <div className="text-white/80 text-[14px]">{contact.username}</div>
+            )}
           </div>
         </div>
 
-        <div className="bg-tg-bg-light border-y border-tg-divider mb-2.5">
-          {contact.isOfficial && (
-            <div className="px-4 py-3 flex items-center gap-3 border-b border-tg-divider">
-              <BadgeCheck size={24} className="text-blue-500 fill-blue-500 text-white shrink-0" />
+        {/* Badges Section */}
+        {contact.isOfficial && (
+          <div className="mx-4 mt-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                <BadgeCheck size={24} className="text-white" />
+              </div>
               <div>
-                <div className="text-[16px] text-tg-text-primary">Официальный аккаунт</div>
-                <div className="text-[13px] text-tg-secondary-text">Подтверждено администрацией</div>
+                <div className="text-[16px] font-semibold text-gray-900">Официальный аккаунт</div>
+                <div className="text-[13px] text-gray-600">Подтверждено администрацией HouseGram</div>
               </div>
             </div>
-          )}
+          </div>
+        )}
+        
+        {/* Security Warning for Bots */}
+        {contact.id === 'test_bot' && (
+          <div className="mx-4 mt-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center shrink-0 text-white text-xl">
+                🤖
+              </div>
+              <div>
+                <div className="text-[15px] font-semibold text-gray-900 mb-1">Это бот</div>
+                <div className="text-[13px] text-gray-600 leading-relaxed">
+                  Будьте осторожны при отправке конфиденциальной информации. Боты могут иметь доступ к вашим сообщениям.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User Stats - только для обычных пользователей */}
+        {!contact.isChannel && contact.id !== 'saved_messages' && contact.id !== 'test_bot' && (
+          <div className="mx-4 mt-4 bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <h3 className="text-[15px] font-semibold text-gray-900">Статистика</h3>
+            </div>
+            <div className="grid grid-cols-3 divide-x divide-gray-100">
+              <div className="p-4 text-center">
+                <div className="text-[24px] font-bold text-blue-600">{userStats.stars}</div>
+                <div className="text-[12px] text-gray-500 mt-1">⚡ Молний</div>
+              </div>
+              <div className="p-4 text-center">
+                <div className="text-[24px] font-bold text-purple-600">{userStats.giftsSent}</div>
+                <div className="text-[12px] text-gray-500 mt-1">🎁 Отправлено</div>
+              </div>
+              <div className="p-4 text-center">
+                <div className="text-[24px] font-bold text-pink-600">{userStats.giftsReceived}</div>
+                <div className="text-[12px] text-gray-500 mt-1">🎁 Получено</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Info Section */}
+        <div className="mx-4 mt-4 bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-[15px] font-semibold text-gray-900">Информация</h3>
+          </div>
           
-          {/* Security Warning for Bots */}
-          {contact.id === 'test_bot' && (
-            <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-100">
+          {contact.bio && (
+            <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-start gap-3">
-                <div className="text-yellow-600 shrink-0 mt-0.5">⚠️</div>
+                <User size={20} className="text-gray-400 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[14px] text-gray-700 leading-relaxed">
-                    Это бот. Будьте осторожны при отправке конфиденциальной информации.
-                  </div>
-                  <div className="text-[13px] text-gray-500 mt-1">
-                    Боты могут иметь доступ к вашим сообщениям и данным.
-                  </div>
+                  <div className="text-[13px] text-gray-500 mb-1">О себе</div>
+                  <div className="text-[15px] text-gray-900 leading-relaxed">{contact.bio}</div>
                 </div>
               </div>
             </div>
           )}
           
-          <InfoItem label="О себе" value={contact.bio} />
-          {!contact.isChannel && contact.username && <InfoItem label="Имя пользователя" value={contact.username} isLink color={themeColor} />}
+          {contact.username && !contact.isChannel && (
+            <div className="px-4 py-3 border-b border-gray-100">
+              <div className="flex items-start gap-3">
+                <MessageCircle size={20} className="text-gray-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-[13px] text-gray-500 mb-1">Имя пользователя</div>
+                  <div className="text-[15px] font-medium" style={{ color: themeColor }}>{contact.username}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {contact.phone && contact.phone !== '+7 9XX XXX XX XX' && (
+            <div className="px-4 py-3 border-b border-gray-100">
+              <div className="flex items-start gap-3">
+                <Phone size={20} className="text-gray-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-[13px] text-gray-500 mb-1">Телефон</div>
+                  <div className="text-[15px] text-gray-900">{contact.phone}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {userStats.joinedDate && (
+            <div className="px-4 py-3">
+              <div className="flex items-start gap-3">
+                <Calendar size={20} className="text-gray-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-[13px] text-gray-500 mb-1">Дата регистрации</div>
+                  <div className="text-[15px] text-gray-900">
+                    {userStats.joinedDate.toLocaleDateString('ru-RU', { 
+                      day: 'numeric', 
+                      month: 'long', 
+                      year: 'numeric' 
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="bg-tg-bg-light border-y border-tg-divider mb-2.5">
-          {!contact.isChannel && <ActionButton text="Отправить сообщение" onClick={() => setView('chat')} color={themeColor} />}
+        {/* Actions Section */}
+        <div className="mx-4 mt-4 mb-6 bg-white rounded-xl shadow-sm overflow-hidden">
+          {!contact.isChannel && (
+            <ActionButton 
+              text="Отправить сообщение" 
+              icon={<MessageCircle size={20} />}
+              onClick={() => setView('chat')} 
+              color={themeColor} 
+            />
+          )}
           {!contact.isChannel && contact.id !== 'saved_messages' && contact.id !== 'test_bot' && (
             <ActionButton 
-              text="Подарки" 
+              text="Посмотреть подарки" 
               icon={<Gift size={20} />}
               onClick={() => setView('user-gifts')} 
               color={themeColor} 
@@ -136,8 +281,18 @@ export default function ProfileView() {
           )}
           {!contact.isChannel && contact.id !== 'saved_messages' && (
             <>
-              <ActionButton text="Поделиться контактом" onClick={() => setShowShareModal(true)} color={themeColor} />
-              <ActionButton text="Заблокировать" onClick={() => setShowBlockModal(true)} isDestructive />
+              <ActionButton 
+                text="Поделиться контактом" 
+                icon={<User size={20} />}
+                onClick={() => setShowShareModal(true)} 
+                color={themeColor} 
+              />
+              <ActionButton 
+                text="Заблокировать пользователя" 
+                icon={<Shield size={20} />}
+                onClick={() => setShowBlockModal(true)} 
+                isDestructive 
+              />
             </>
           )}
         </div>
@@ -221,31 +376,18 @@ export default function ProfileView() {
   );
 }
 
-function InfoItem({ label, value, isLink, color }: { label: string; value: string; isLink?: boolean; color?: string }) {
-  return (
-    <div className="px-4 py-3 border-b border-tg-divider last:border-b-0 flex flex-col text-[15px]">
-      <span className="text-[13px] text-tg-secondary-text mb-1">{label}</span>
-      <span 
-        className={`leading-snug ${isLink ? 'cursor-pointer' : 'text-tg-text-primary'}`}
-        style={isLink && color ? { color } : {}}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
 function ActionButton({ text, isDestructive, onClick, color, icon }: { text: string; isDestructive?: boolean; onClick?: () => void; color?: string; icon?: React.ReactNode }) {
   return (
     <button 
       onClick={onClick}
-      className={`block w-full px-4 py-3 text-left text-[16px] border-b border-tg-divider last:border-b-0 transition-colors hover:bg-gray-50 active:bg-gray-100 ${
-        isDestructive ? 'text-tg-red' : ''
-      } flex items-center gap-3`}
+      className={`block w-full px-4 py-3.5 text-left text-[15px] border-b border-gray-100 last:border-b-0 transition-all hover:bg-gray-50 active:bg-gray-100 ${
+        isDestructive ? 'text-red-500' : ''
+      } flex items-center gap-3 font-medium`}
       style={!isDestructive && color ? { color } : {}}
     >
-      {icon && <span>{icon}</span>}
-      <span>{text}</span>
+      {icon && <span className="shrink-0">{icon}</span>}
+      <span className="flex-grow">{text}</span>
+      <span className="text-gray-400">›</span>
     </button>
   );
 }
