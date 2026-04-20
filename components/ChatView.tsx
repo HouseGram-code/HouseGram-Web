@@ -887,7 +887,39 @@ export default function ChatView() {
                     </div>
                   )}
                 </motion.div>
-              )}
+              ) : isSticker ? (
+                <div className="relative group">
+                  <img
+                    src={msg.stickerUrl}
+                    alt="Sticker"
+                    className="w-32 h-32 object-contain cursor-pointer"
+                    onClick={() => saveSticker(msg.stickerUrl!)}
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <Download size={20} className="text-white drop-shadow-lg" />
+                  </div>
+                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
+                    <span>{msg.time}</span>
+                    {isOwn && !contact.isChannel && (
+                      msg.status === 'sending' ? <Clock size={11} /> :
+                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
+                    )}
+                  </div>
+                </div>
+              ) : isGif ? (
+                <div className="relative">
+                  <img src={msg.gifUrl} alt="GIF" className="w-56 h-auto rounded-xl object-contain shadow-md" />
+                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
+                    <span>{msg.time}</span>
+                    {isOwn && !contact.isChannel && (
+                      msg.status === 'sending' ? <Clock size={11} /> :
+                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
+                    )}
+                  </div>
+                </div>
+              ) : isJumbo ? (
+                <span className="text-[64px] leading-none">{msg.text}</span>
+              ) : null}
             </motion.div>
           );
         })}
