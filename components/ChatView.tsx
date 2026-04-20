@@ -812,36 +812,36 @@ export default function ChatView() {
                       {/* Пасхальный фон для зайца */}
                       {msg.gift.id === 'easter_bunny' && (
                         <div className="absolute inset-0 opacity-20">
-                      <motion.div 
-                        className="absolute top-2 left-2 text-[25px]"
-                        animate={{ rotate: [0, 10, -10, 0], y: [0, -5, 0] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        🌸
-                      </motion.div>
-                      <motion.div 
-                        className="absolute top-2 right-2 text-[25px]"
-                        animate={{ rotate: [0, -10, 10, 0], y: [0, -5, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                      >
-                        🌷
-                      </motion.div>
-                      <motion.div 
-                        className="absolute bottom-2 left-2 text-[25px]"
-                        animate={{ rotate: [0, 10, -10, 0], y: [0, 5, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-                      >
-                        🌼
-                      </motion.div>
-                      <motion.div 
-                        className="absolute bottom-2 right-2 text-[25px]"
-                        animate={{ rotate: [0, -10, 10, 0], y: [0, 5, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
-                      >
-                        🌺
-                      </motion.div>
-                    </div>
-                  )}
+                          <motion.div 
+                            className="absolute top-2 left-2 text-[25px]"
+                            animate={{ rotate: [0, 10, -10, 0], y: [0, -5, 0] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          >
+                            🌸
+                          </motion.div>
+                          <motion.div 
+                            className="absolute top-2 right-2 text-[25px]"
+                            animate={{ rotate: [0, -10, 10, 0], y: [0, -5, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                          >
+                            🌷
+                          </motion.div>
+                          <motion.div 
+                            className="absolute bottom-2 left-2 text-[25px]"
+                            animate={{ rotate: [0, 10, -10, 0], y: [0, 5, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                          >
+                            🌼
+                          </motion.div>
+                          <motion.div 
+                            className="absolute bottom-2 right-2 text-[25px]"
+                            animate={{ rotate: [0, -10, 10, 0], y: [0, 5, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
+                          >
+                            🌺
+                          </motion.div>
+                        </div>
+                      )}
                   
                   <motion.div
                     animate={
