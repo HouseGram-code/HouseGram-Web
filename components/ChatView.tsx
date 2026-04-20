@@ -891,7 +891,11 @@ export default function ChatView() {
               
               {/* Обычные сообщения с текстом */}
               {!isSticker && !isGif && !isJumbo && (
-                <>
+                <div className={`px-3 py-2 rounded-2xl shadow-sm text-[15px] leading-[1.4] ${
+                  isOwn
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md'
+                    : 'bg-white text-gray-900 rounded-bl-md'
+                }`}>
                   <div className="flex flex-col">
                     <span className="whitespace-pre-wrap">{msg.text}</span>
                     {msg.editedAt && (
