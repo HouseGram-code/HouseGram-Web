@@ -843,50 +843,50 @@ export default function ChatView() {
                         </div>
                       )}
                   
-                  <motion.div
-                    animate={
-                      msg.gift.id === 'cosmonaut'
-                        ? {
-                            y: [0, -20, 0],
-                            rotate: [0, 10, -10, 0]
-                          }
-                        : msg.gift.id === 'easter_bunny'
-                        ? {
-                            scale: [1, 1.1, 1],
-                            rotate: [0, -5, 5, -3, 3, 0],
-                            y: [0, -15, 0, -8, 0]
-                          }
-                        : {
-                            scale: [1, 1.15, 1],
-                            rotate: [0, -15, 15, -10, 10, -5, 5, 0],
-                            y: [0, -10, 0, -5, 0]
-                          }
-                    }
-                    transition={{ 
-                      duration: msg.gift.id === 'cosmonaut' ? 3 : msg.gift.id === 'easter_bunny' ? 2 : 1.5,
-                      times: [0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 1],
-                      ease: "easeInOut",
-                      repeat: (msg.gift.id === 'easter_bunny' || msg.gift.id === 'cosmonaut') ? Infinity : 0
-                    }}
-                    className="text-[80px] mb-2 relative z-10"
-                  >
-                    {msg.gift.emoji}
-                  </motion.div>
-                  <div className="text-[16px] font-bold mb-1 relative z-10">{msg.gift.name}</div>
-                  <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10">
-                    Подарок от {isOwn ? 'вас' : contact.name}
-                  </div>
-                  {msg.gift.id === 'cosmonaut' && (
-                    <div className="text-[11px] text-cyan-300 mt-1 relative z-10">
-                      🚀 День космонавтики! 🚀
-                    </div>
-                  )}
-                  {msg.gift.id === 'easter_bunny' && (
-                    <div className="text-[11px] text-white/80 mt-1 relative z-10">
-                      ✨ Эксклюзивный пасхальный подарок ✨
-                    </div>
-                  )}
-                </motion.div>
+                      <motion.div
+                        animate={
+                          msg.gift.id === 'cosmonaut'
+                            ? {
+                                y: [0, -20, 0],
+                                rotate: [0, 10, -10, 0]
+                              }
+                            : msg.gift.id === 'easter_bunny'
+                            ? {
+                                scale: [1, 1.1, 1],
+                                rotate: [0, -5, 5, -3, 3, 0],
+                                y: [0, -15, 0, -8, 0]
+                              }
+                            : {
+                                scale: [1, 1.15, 1],
+                                rotate: [0, -15, 15, -10, 10, -5, 5, 0],
+                                y: [0, -10, 0, -5, 0]
+                              }
+                        }
+                        transition={{ 
+                          duration: msg.gift.id === 'cosmonaut' ? 3 : msg.gift.id === 'easter_bunny' ? 2 : 1.5,
+                          times: [0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 1],
+                          ease: "easeInOut",
+                          repeat: (msg.gift.id === 'easter_bunny' || msg.gift.id === 'cosmonaut') ? Infinity : 0
+                        }}
+                        className="text-[80px] mb-2 relative z-10"
+                      >
+                        {msg.gift.emoji}
+                      </motion.div>
+                      <div className="text-[16px] font-bold mb-1 relative z-10">{msg.gift.name}</div>
+                      <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10">
+                        Подарок от {isOwn ? 'вас' : contact.name}
+                      </div>
+                      {msg.gift.id === 'cosmonaut' && (
+                        <div className="text-[11px] text-cyan-300 mt-1 relative z-10">
+                          🚀 День космонавтики! 🚀
+                        </div>
+                      )}
+                      {msg.gift.id === 'easter_bunny' && (
+                        <div className="text-[11px] text-white/80 mt-1 relative z-10">
+                          ✨ Эксклюзивный пасхальный подарок ✨
+                        </div>
+                      )}
+                    </motion.div>
                   ) : (
                     <>{msg.text}</>
                   )}
