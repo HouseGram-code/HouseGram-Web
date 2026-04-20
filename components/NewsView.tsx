@@ -8,7 +8,13 @@ export default function NewsView() {
   const { setView, themeColor, isGlassEnabled } = useChat();
 
   // Здесь можно добавить реальные новости из базы данных
-  const news = [
+  const news: Array<{
+    id: number;
+    title: string;
+    description: string;
+    date: string;
+    icon: string;
+  }> = [
     // Пример структуры новости:
     // {
     //   id: 1,
