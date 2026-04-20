@@ -888,17 +888,17 @@ export default function ChatView() {
 
         {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={false}
           animate={{ 
             opacity: contact.isTyping && !contact.isBlocked ? 1 : 0,
-            scale: contact.isTyping && !contact.isBlocked ? 1 : 0.8,
-            height: contact.isTyping && !contact.isBlocked ? 'auto' : 0
+            marginBottom: contact.isTyping && !contact.isBlocked ? '6px' : '0px',
+            height: contact.isTyping && !contact.isBlocked ? 'auto' : '0px'
           }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className={`flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-md ${
+          className={`flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-md overflow-hidden ${
             contact.isTyping && !contact.isBlocked 
-              ? 'mb-1.5 min-h-[44px]' 
-              : 'pointer-events-none overflow-hidden'
+              ? 'min-h-[44px]' 
+              : 'pointer-events-none'
           }`}
         >
           <div className="dot-flashing"></div>
