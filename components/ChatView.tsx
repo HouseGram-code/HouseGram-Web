@@ -921,7 +921,7 @@ export default function ChatView() {
                 <span className="text-[64px] leading-none">{msg.text}</span>
               ) : null}
             </motion.div>
-        );})}
+        ))}
 
         {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
         <div 
