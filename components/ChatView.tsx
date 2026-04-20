@@ -931,8 +931,7 @@ export default function ChatView() {
                 </div>
               )}
             </motion.div>
-          );
-        })}
+        );})}
 
         {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
         <div 
