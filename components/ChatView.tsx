@@ -656,162 +656,98 @@ export default function ChatView() {
           const isGif = !!msg.gifUrl;
 
           return (
-            <motion.div
+            <div
               key={msg.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
               onContextMenu={(e) => handleContextMenu(e, msg.id)}
               onTouchStart={(e) => handleTouchStart(e, msg.id)}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchMove}
-              className={`message max-w-[80%] mb-1 relative break-words flex flex-col cursor-pointer select-none ${
+              className={`message max-w-[75%] px-3 py-1.5 mb-1.5 rounded-[18px] relative break-words flex flex-col cursor-pointer select-none ${
                 isSticker || isGif
                   ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
                   : isJumbo
                     ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
                     : isOwn
-                      ? 'self-end'
-                      : 'self-start'
+                      ? 'bg-tg-sent-bubble self-end rounded-br-[5px] message-tail-sent shadow-sm text-[15px] leading-snug'
+                      : 'bg-tg-received-bubble self-start rounded-bl-[5px] message-tail-received shadow-sm text-[15px] leading-snug'
               }`}
             >
-              {isSticker ? (
-                <div className="relative group">
-                  <img
-                    src={msg.stickerUrl}
-                    alt="Sticker"
-                    className="w-32 h-32 object-contain cursor-pointer"
-                    onClick={() => saveSticker(msg.stickerUrl!)}
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <Download size={20} className="text-white drop-shadow-lg" />
-                  </div>
-                  {/* Время для стикеров */}
-                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
-                    <span>{msg.time}</span>
-                    {isOwn && !contact.isChannel && (
-                      msg.status === 'sending' ? <Clock size={11} /> :
-                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
-                    )}
-                  </div>
+              {msg.forwardedFrom && (
+                <div className="text-[13px] font-medium mb-1 italic" style={{ color: themeColor }}>
+                  Переслано от {msg.forwardedFrom.senderName}
                 </div>
-              ) : isGif ? (
-                <div className="relative">
-                  <img src={msg.gifUrl} alt="GIF" className="w-56 h-auto rounded-xl object-contain shadow-md" />
-                  {/* Время для GIF */}
-                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
-                    <span>{msg.time}</span>
-                    {isOwn && !contact.isChannel && (
-                      msg.status === 'sending' ? <Clock size={11} /> :
-                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
-                    )}
-                  </div>
+              )}
+              {msg.replyTo && (
+                <div className="mb-1 pl-2 border-l-2 rounded text-[13px] opacity-70" style={{ borderColor: themeColor }}>
+                  <div className="font-medium" style={{ color: themeColor }}>{msg.replyTo.senderName}</div>
+                  <div className="truncate max-w-[200px]">{msg.replyTo.text}</div>
                 </div>
-              ) : isJumbo ? (
-                <span className="text-[64px] leading-none">{msg.text}</span>
-              ) : (
-                <div className={`px-3 py-2 rounded-2xl shadow-sm text-[15px] leading-[1.4] ${
-                  isOwn
-                    ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md'
-                    : 'bg-white text-gray-900 rounded-bl-md'
-                }`}>
-                  {msg.forwardedFrom && (
-                    <div className={`text-[13px] font-medium mb-1.5 pb-1.5 border-b ${isOwn ? 'border-white/20' : 'border-gray-200'}`}>
-                      <span className={isOwn ? 'text-white/90' : 'text-blue-600'}>
-                        ↪ Переслано от {msg.forwardedFrom.senderName}
-                      </span>
-                    </div>
-                  )}
-                  {msg.replyTo && (
-                    <div className={`mb-2 pl-2.5 py-1.5 rounded-lg border-l-3 ${
-                      isOwn ? 'bg-white/10 border-white/40' : 'bg-gray-100 border-blue-500'
-                    }`}>
-                      <div className={`font-semibold text-[13px] mb-0.5 ${isOwn ? 'text-white' : 'text-blue-600'}`}>
-                        {msg.replyTo.senderName}
-                      </div>
-                      <div className={`text-[13px] truncate max-w-[250px] ${isOwn ? 'text-white/80' : 'text-gray-600'}`}>
-                        {msg.replyTo.text}
-                      </div>
-                    </div>
-                  )}
-                  {msg.audioUrl ? (
-                    <div className="mb-1"><audio controls src={msg.audioUrl} className="h-10 w-56 rounded-lg" /></div>
-                  ) : msg.fileUrl ? (
-                    <div className={`flex items-center gap-3 p-2.5 rounded-xl mb-1 ${
-                      isOwn ? 'bg-white/10' : 'bg-gray-50'
-                    }`}>
-                      <div className={`p-2.5 rounded-xl ${isOwn ? 'bg-white/20' : 'bg-blue-500'}`}>
-                        <FileIcon size={20} className={isOwn ? 'text-white' : 'text-white'} />
-                      </div>
-                      <a 
-                        href={msg.fileUrl} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className={`font-medium truncate max-w-[180px] ${
-                          isOwn ? 'text-white underline' : 'text-blue-600 underline'
-                        }`}
+              )}
+              {msg.audioUrl ? (
+                <div className="mb-1"><audio controls src={msg.audioUrl} className="h-8 w-48" /></div>
+              ) : msg.fileUrl ? (
+                <div className="flex items-center gap-2 mb-1 bg-black/5 p-2 rounded-lg">
+                  <div className="p-2 bg-blue-500 text-white rounded-full"><FileIcon size={16} /></div>
+                  <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline truncate max-w-[150px]">{msg.fileName}</a>
+                </div>
+              ) : msg.gift ? (
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                  className={`rounded-2xl p-4 text-white text-center min-w-[200px] relative overflow-hidden ${
+                    msg.gift.id === 'cosmonaut'
+                      ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black'
+                      : msg.gift.id === 'easter_bunny' 
+                      ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400' 
+                      : 'bg-gradient-to-br from-purple-500 to-pink-500'
+                  }`}
+                >
+                  {/* Космический фон для космонавта */}
+                  {msg.gift.id === 'cosmonaut' && (
+                    <div className="absolute inset-0">
+                      {[...Array(20)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          className="absolute text-white"
+                          style={{
+                            left: `${Math.random() * 100}%`,
+                            top: `${Math.random() * 100}%`,
+                            fontSize: `${6 + Math.random() * 6}px`
+                          }}
+                          animate={{
+                            opacity: [0.3, 1, 0.3],
+                            scale: [0.8, 1.2, 0.8]
+                          }}
+                          transition={{
+                            duration: 2 + Math.random() * 2,
+                            repeat: Infinity,
+                            delay: i * 0.1
+                          }}
+                        >
+                          ⭐
+                        </motion.div>
+                      ))}
+                      <motion.div 
+                        className="absolute top-2 right-2 text-[25px]"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                       >
-                        {msg.fileName}
-                      </a>
+                        🪐
+                      </motion.div>
+                      <motion.div 
+                        className="absolute bottom-2 left-2 text-[20px]"
+                        animate={{ y: [-5, 5, -5] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                      >
+                        🌍
+                      </motion.div>
                     </div>
-                  ) : msg.gift ? (
-                    <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                      className={`rounded-2xl p-4 text-white text-center min-w-[200px] relative overflow-hidden ${
-                        msg.gift.id === 'cosmonaut'
-                          ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black'
-                          : msg.gift.id === 'easter_bunny' 
-                          ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400' 
-                          : 'bg-gradient-to-br from-purple-500 to-pink-500'
-                      }`}
-                    >
-                      {/* Космический фон для космонавта */}
-                      {msg.gift.id === 'cosmonaut' && (
-                        <div className="absolute inset-0">
-                          {[...Array(20)].map((_, i) => (
-                            <motion.div
-                              key={i}
-                              className="absolute text-white"
-                              style={{
-                                left: `${Math.random() * 100}%`,
-                                top: `${Math.random() * 100}%`,
-                                fontSize: `${6 + Math.random() * 6}px`
-                              }}
-                              animate={{
-                                opacity: [0.3, 1, 0.3],
-                                scale: [0.8, 1.2, 0.8]
-                              }}
-                              transition={{
-                                duration: 2 + Math.random() * 2,
-                                repeat: Infinity,
-                                delay: i * 0.1
-                              }}
-                            >
-                              ⭐
-                            </motion.div>
-                          ))}
-                          <motion.div 
-                            className="absolute top-2 right-2 text-[25px]"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                          >
-                            🪐
-                          </motion.div>
-                          <motion.div 
-                            className="absolute bottom-2 left-2 text-[20px]"
-                            animate={{ y: [-5, 5, -5] }}
-                            transition={{ duration: 3, repeat: Infinity }}
-                          >
-                            🌍
-                          </motion.div>
-                        </div>
-                      )}
-                      
-                      {/* Пасхальный фон для зайца */}
-                      {msg.gift.id === 'easter_bunny' && (
-                        <div className="absolute inset-0 opacity-20">
+                  )}
+                  
+                  {/* Пасхальный фон для зайца */}
+                  {msg.gift.id === 'easter_bunny' && (
+                    <div className="absolute inset-0 opacity-20">
                       <motion.div 
                         className="absolute top-2 left-2 text-[25px]"
                         animate={{ rotate: [0, 10, -10, 0], y: [0, -5, 0] }}
@@ -898,30 +834,34 @@ export default function ChatView() {
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <Download size={20} className="text-white drop-shadow-lg" />
                   </div>
-                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
-                    <span>{msg.time}</span>
-                    {isOwn && !contact.isChannel && (
-                      msg.status === 'sending' ? <Clock size={11} /> :
-                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
-                    )}
-                  </div>
                 </div>
               ) : isGif ? (
-                <div className="relative">
-                  <img src={msg.gifUrl} alt="GIF" className="w-56 h-auto rounded-xl object-contain shadow-md" />
-                  <div className="absolute bottom-1 right-1 bg-black/40 text-white px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] flex items-center gap-1">
-                    <span>{msg.time}</span>
-                    {isOwn && !contact.isChannel && (
-                      msg.status === 'sending' ? <Clock size={11} /> :
-                      msg.status === 'read' ? <CheckCheck size={12} className="text-blue-300" /> : <Check size={12} />
-                    )}
-                  </div>
-                </div>
+                <img src={msg.gifUrl} alt="GIF" className="w-48 h-auto rounded-lg object-contain" />
               ) : isJumbo ? (
                 <span className="text-[64px] leading-none">{msg.text}</span>
-              ) : null}
-            </motion.div>
-        ))}
+              ) : (
+                <span className="mb-0.5 text-tg-text-primary">{msg.text}</span>
+              )}
+              <div className={`text-[11px] select-none relative z-10 pl-2 self-end mt-auto -mb-0.5 flex items-center gap-1 ${
+                isSticker || isGif || isJumbo ? 'bg-black/20 text-white px-1.5 py-0.5 rounded-full backdrop-blur-sm mt-1' :
+                isOwn ? 'text-[#70a050]' : 'text-tg-secondary-text'
+              }`}>
+                {msg.editedAt && <span className="italic mr-0.5">ред.</span>}
+                <span>{msg.time}</span>
+                {contact.isChannel && msg.views !== undefined && (
+                  <>
+                    <Eye size={12} />
+                    <span>{msg.views}</span>
+                  </>
+                )}
+                {isOwn && !contact.isChannel && (
+                  msg.status === 'sending' ? <Clock size={12} /> :
+                  msg.status === 'read' ? <CheckCheck size={14} /> : <Check size={14} />
+                )}
+              </div>
+            </div>
+          );
+        })}
 
         {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
         <div 
@@ -1214,14 +1154,14 @@ export default function ChatView() {
                 <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
                 
-                <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px] transition-colors">
-                  <div className="text-blue-500"><ImageIcon size={20} /></div><span className="text-gray-900">Фото / Видео</span>
+                <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                  <div className="text-blue-500"><ImageIcon size={20} /></div><span>Фото / Видео</span>
                 </button>
-                <button onClick={() => audioInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px] transition-colors">
-                  <div className="text-orange-500"><Music size={20} /></div><span className="text-gray-900">Музыка</span>
+                <button onClick={() => audioInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                  <div className="text-orange-500"><Music size={20} /></div><span>Музыка</span>
                 </button>
-                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px] transition-colors">
-                  <div className="text-green-500"><FileIcon size={20} /></div><span className="text-gray-900">Файл</span>
+                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                  <div className="text-green-500"><FileIcon size={20} /></div><span>Файл</span>
                 </button>
               </motion.div>
             )}
