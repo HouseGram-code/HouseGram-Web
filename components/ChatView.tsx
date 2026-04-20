@@ -90,7 +90,10 @@ export default function ChatView() {
     
     // Если текст не пустой, отправляем статус "печатает"
     if (text.trim()) {
-      setTypingStatus(activeChatId, true);
+      // Отправляем статус только если он ещё не установлен
+      if (!contact?.isTyping) {
+        setTypingStatus(activeChatId, true);
+      }
       
       // Сбрасываем предыдущий таймер
       if (typingTimerRef.current) {
@@ -103,12 +106,14 @@ export default function ChatView() {
       }, 2000);
     } else {
       // Если текст пустой, сразу убираем статус
-      setTypingStatus(activeChatId, false);
+      if (contact?.isTyping) {
+        setTypingStatus(activeChatId, false);
+      }
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
       }
     }
-  }, [activeChatId, setTypingStatus]);
+  }, [activeChatId, setTypingStatus, contact?.isTyping]);
 
   // Очистка таймера при размонтировании
   useEffect(() => {
@@ -568,9 +573,7 @@ export default function ChatView() {
     >
       {/* Header */}
       <motion.div
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        initial={false}
         className={`text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0 transition-colors fixed top-0 left-0 right-0 z-30 ${isGlassEnabled ? 'backdrop-blur-xl border-b border-white/20 shadow-xl' : 'shadow-lg'}`}
         style={{ backgroundColor: isGlassEnabled ? themeColor + 'DD' : themeColor }}
       >
@@ -715,7 +718,7 @@ export default function ChatView() {
                 </div>
               ) : msg.gift ? (
                 <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
+                  initial={false}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                   className={`rounded-2xl p-4 text-white text-center min-w-[200px] relative overflow-hidden ${
@@ -1213,12 +1216,15 @@ export default function ChatView() {
             )}
             <div className="flex items-center">
               <input
+                id="message-input"
+                name="message"
                 type="text"
                 value={inputText}
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
                 disabled={isRecording}
+                autoComplete="off"
                 className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50 focus:placeholder-opacity-50 transition-all"
               />
               {!isRecording && (
