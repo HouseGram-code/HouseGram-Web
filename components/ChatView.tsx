@@ -898,7 +898,7 @@ export default function ChatView() {
                     )}
                   </div>
                 </div>
-              ) : null}
+              )}
             </motion.div>
         ))}
 
