@@ -887,8 +887,7 @@ export default function ChatView() {
                     </div>
                   )}
                 </motion.div>
-              ) : isSticker ? (
-                <div className="relative group">
+              )}
             </motion.div>
           );
         })}
