@@ -567,14 +567,27 @@ export default function ChatView() {
       className="absolute inset-0 bg-tg-bg-light flex flex-col z-10"
     >
       {/* Header */}
-      <div
-        className={`text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0 transition-colors fixed top-0 left-0 right-0 z-30 ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
-        style={{ backgroundColor: isGlassEnabled ? themeColor + 'CC' : themeColor }}
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className={`text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0 transition-colors fixed top-0 left-0 right-0 z-30 ${isGlassEnabled ? 'backdrop-blur-xl border-b border-white/20 shadow-xl' : 'shadow-lg'}`}
+        style={{ backgroundColor: isGlassEnabled ? themeColor + 'DD' : themeColor }}
       >
-        <button onClick={(e) => { e.stopPropagation(); setView('menu'); }} className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors mr-1">
+        <motion.button 
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={(e) => { e.stopPropagation(); setView('menu'); }} 
+          className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
+        >
           <ArrowLeft size={24} />
-        </button>
-        <div className="flex items-center gap-2.5 cursor-pointer hover:bg-white/5 p-1 rounded-md transition-colors" onClick={() => setView('profile')}>
+        </motion.button>
+        <motion.div 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center gap-2.5 cursor-pointer hover:bg-white/10 p-1.5 rounded-lg transition-all" 
+          onClick={() => setView('profile')}
+        >
           {contact.id === 'saved_messages' ? (
             <div className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: contact.avatarColor }}>
               <Bookmark size={20} fill="currentColor" />
@@ -590,20 +603,27 @@ export default function ChatView() {
             <div className="font-medium text-[16px] flex items-center gap-1">{contact.name}{contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}</div>
             <div className="text-[13px] text-[#d1e0ec]">{contact.isChannel ? contact.statusOnline : (contact.isTyping ? 'печатает...' : contact.statusOffline)}</div>
           </div>
-        </div>
+        </motion.div>
         <div className="flex-grow"></div>
         {contact.isChannel ? (
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => setView('channel-info')} 
-            className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
           >
             <Info size={24} />
-          </button>
+          </motion.button>
         ) : (
           <div className="relative">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors">
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
+            >
               <MoreVertical size={24} />
-            </button>
+            </motion.button>
             {isMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
@@ -615,7 +635,7 @@ export default function ChatView() {
             )}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Messages */}
       <div
@@ -656,20 +676,23 @@ export default function ChatView() {
           const isGif = !!msg.gifUrl;
 
           return (
-            <div
+            <motion.div
               key={msg.id}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
               onContextMenu={(e) => handleContextMenu(e, msg.id)}
               onTouchStart={(e) => handleTouchStart(e, msg.id)}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchMove}
-              className={`message max-w-[75%] px-3 py-1.5 mb-1.5 rounded-[18px] relative break-words flex flex-col cursor-pointer select-none ${
+              className={`message max-w-[75%] px-3 py-1.5 mb-1.5 rounded-[18px] relative break-words flex flex-col cursor-pointer select-none transition-all hover:scale-[1.02] active:scale-[0.98] ${
                 isSticker || isGif
                   ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
                   : isJumbo
                     ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
                     : isOwn
-                      ? 'bg-tg-sent-bubble self-end rounded-br-[5px] message-tail-sent shadow-sm text-[15px] leading-snug'
-                      : 'bg-tg-received-bubble self-start rounded-bl-[5px] message-tail-received shadow-sm text-[15px] leading-snug'
+                      ? 'bg-tg-sent-bubble self-end rounded-br-[5px] message-tail-sent shadow-md hover:shadow-lg text-[15px] leading-snug'
+                      : 'bg-tg-received-bubble self-start rounded-bl-[5px] message-tail-received shadow-md hover:shadow-lg text-[15px] leading-snug'
               }`}
             >
               {msg.forwardedFrom && (
@@ -859,20 +882,27 @@ export default function ChatView() {
                   msg.status === 'read' ? <CheckCheck size={14} /> : <Check size={14} />
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
 
         {/* Индикатор печати - всегда в DOM, но скрыт через opacity */}
-        <div 
-          className={`flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-sm transition-all duration-200 ${
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ 
+            opacity: contact.isTyping && !contact.isBlocked ? 1 : 0,
+            scale: contact.isTyping && !contact.isBlocked ? 1 : 0.8,
+            height: contact.isTyping && !contact.isBlocked ? 'auto' : 0
+          }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className={`flex items-center px-3 py-2 bg-tg-received-bubble self-start rounded-[18px] rounded-bl-[5px] message-tail-received relative shadow-md ${
             contact.isTyping && !contact.isBlocked 
-              ? 'opacity-100 mb-1.5 min-h-[44px]' 
-              : 'opacity-0 pointer-events-none h-0 mb-0 overflow-hidden'
+              ? 'mb-1.5 min-h-[44px]' 
+              : 'pointer-events-none overflow-hidden'
           }`}
         >
           <div className="dot-flashing"></div>
-        </div>
+        </motion.div>
         <div ref={messagesEndRef} />
       </div>
 
@@ -1189,7 +1219,7 @@ export default function ChatView() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
                 disabled={isRecording}
-                className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50"
+                className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50 focus:placeholder-opacity-50 transition-all"
               />
               {!isRecording && (
                 <button onClick={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
@@ -1209,9 +1239,15 @@ export default function ChatView() {
               </button>
             </div>
           ) : inputText.trim() ? (
-            <button onClick={handleSend} className="w-10 h-10 p-2 rounded-full mb-0.5 flex items-center justify-center text-white hover:brightness-110 active:scale-90 transition-all" style={{ backgroundColor: themeColor }}>
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleSend} 
+              className="w-10 h-10 p-2 rounded-full mb-0.5 flex items-center justify-center text-white hover:brightness-110 active:scale-90 transition-all shadow-lg" 
+              style={{ backgroundColor: themeColor }}
+            >
               {editingMsg ? <Check size={20} /> : <Send size={20} className="ml-0.5" />}
-            </button>
+            </motion.button>
           ) : (
             <button onClick={startRecording} className="p-1.5 mb-0.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
               <Mic size={24} />
