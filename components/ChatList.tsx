@@ -116,7 +116,7 @@ export default function ChatList() {
   };
 
   const sortedContacts = Object.values(contacts)
-    .filter(c => c.id === 'saved_messages' || c.id === 'housegram_announcements' || c.isChannel || c.messages.length > 0)
+    .filter(c => c.id === 'saved_messages' || c.isChannel || c.messages.length > 0)
     .filter(c => {
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
@@ -193,6 +193,18 @@ export default function ChatList() {
               <div className="flex-grow text-[19px] font-semibold tracking-tight">
                 HouseGram
               </div>
+              <button 
+                onClick={() => setView('news')}
+                className="p-2 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
+                title="Новости"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/>
+                  <path d="M18 14h-8"/>
+                  <path d="M15 18h-5"/>
+                  <path d="M10 6h8v4h-8z"/>
+                </svg>
+              </button>
               <button 
                 onClick={() => setIsSearching(true)}
                 className="p-2 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"

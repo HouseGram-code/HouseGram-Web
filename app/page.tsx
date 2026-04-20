@@ -97,6 +97,9 @@ const BuyStarsView = dynamic(() => import('@/components/BuyStarsView'), {
 const MyStoriesView = dynamic(() => import('@/components/MyStoriesView'), {
   loading: () => <LoadingSpinner />
 });
+const NewsView = dynamic(() => import('@/components/NewsView'), {
+  loading: () => <LoadingSpinner />
+});
 
 function LoadingSpinner() {
   return (
@@ -133,6 +136,7 @@ const viewComponents: Record<string, React.ComponentType> = {
   'user-gifts': UserGiftsView,
   'buy-stars': BuyStarsView,
   'my-stories': MyStoriesView,
+  news: NewsView,
 };
 
 function AppContent() {

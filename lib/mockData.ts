@@ -32,22 +32,6 @@ export const initialContacts: Record<string, Contact> = {
     unread: 1,
     isOfficial: true,
     isBot: true,
-  },
-  housegram_announcements: {
-    id: 'housegram_announcements',
-    name: 'HouseGram Анонсы',
-    initial: 'H',
-    avatarColor: '#517da2',
-    avatarUrl: '',
-    statusOnline: 'Канал',
-    statusOffline: 'Канал',
-    phone: '',
-    bio: 'Официальный канал обновлений HouseGram Web.',
-    username: '',
-    messages: [],
-    isTyping: false,
-    unread: 0,
-    isChannel: true,
   }
 };
 
