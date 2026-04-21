@@ -820,22 +820,21 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const setTypingStatus = useCallback(async (chatId: string, isTyping: boolean) => {
-    if (!user || !chatId) return;
-    
-    // Не отправляем статус для ботов и специальных чатов
-    if (chatId === 'saved_messages' || chatId === 'test_bot') return;
-    
-    const chatDocId = [user.uid, chatId].sort().join('_');
-    
-    try {
-      await updateDoc(doc(db, 'chats', chatDocId), {
-        [`typing.${user.uid}`]: isTyping ? serverTimestamp() : null
-      });
-    } catch (e) {
-      // Если чат еще не создан, игнорируем ошибку
-      console.debug('Could not update typing status:', e);
-    }
-  }, [user]);
+    // Локальный typing status - не обновляем Firestore
+    // Это предотвращает ре-рендеры всего приложения
+    setContacts(prev => {
+      const contact = prev[chatId];
+      if (!contact) return prev;
+      
+      return {
+        ...prev,
+        [chatId]: {
+          ...contact,
+          isTyping
+        }
+      };
+    });
+  }, []);
 
   useEffect(() => {
     if (!user) return;
