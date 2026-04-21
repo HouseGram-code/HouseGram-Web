@@ -816,7 +816,7 @@ export default function ChatView() {
               msg={msg}
               isOwn={isOwn}
               themeColor={themeColor}
-              isChannel={contact.isChannel}
+              isChannel={contact.isChannel || false}
               onContextMenu={handleContextMenu}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
