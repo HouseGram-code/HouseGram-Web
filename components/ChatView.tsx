@@ -648,20 +648,55 @@ export default function ChatView() {
             <motion.button 
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
+              animate={{ 
+                rotate: isMenuOpen ? 90 : 0,
+              }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 260, 
+                damping: 20 
+              }}
               onClick={() => setIsMenuOpen(!isMenuOpen)} 
               className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
             >
               <MoreVertical size={24} />
             </motion.button>
-            {isMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
-                <div className="absolute right-2 top-full mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-50 text-black">
-                  <button onClick={() => { setShowClearModal(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px]">Очистить историю</button>
-                  <button onClick={() => { setShowDeleteModal(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-[15px] text-red-500">Удалить чат</button>
-                </div>
-              </>
-            )}
+            <AnimatePresence>
+              {isMenuOpen && (
+                <>
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsMenuOpen(false)} 
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="absolute right-2 top-full mt-1 w-48 bg-white rounded-xl shadow-2xl py-1 z-50 text-black overflow-hidden"
+                  >
+                    <button 
+                      onClick={() => { setShowClearModal(true); setIsMenuOpen(false); }} 
+                      className="w-full text-left px-4 py-3 hover:bg-gray-100 text-[15px] transition-colors flex items-center gap-3"
+                    >
+                      <span className="text-gray-600">🗑️</span>
+                      Очистить историю
+                    </button>
+                    <div className="h-px bg-gray-100 mx-2" />
+                    <button 
+                      onClick={() => { setShowDeleteModal(true); setIsMenuOpen(false); }} 
+                      className="w-full text-left px-4 py-3 hover:bg-red-50 text-[15px] text-red-500 transition-colors flex items-center gap-3"
+                    >
+                      <span>❌</span>
+                      Удалить чат
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </motion.div>
