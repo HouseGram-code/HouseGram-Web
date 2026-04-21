@@ -1175,24 +1175,26 @@ export default function ChatView() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden border-t border-tg-divider"
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="overflow-hidden"
               >
-                <div className="flex items-center gap-2 px-3 py-2.5 mx-2.5 mt-2 bg-gradient-to-r from-gray-50 to-white rounded-lg border-l-4 shadow-sm" style={{ borderLeftColor: themeColor }}>
-                  <Reply size={16} className="text-gray-400 shrink-0" />
-                  <div className="flex-grow min-w-0">
-                    <div className="text-[13px] font-semibold mb-0.5" style={{ color: themeColor }}>
-                      {replyingTo.senderName}
-                    </div>
-                    <div className="text-[13px] text-gray-600 truncate leading-tight">
-                      {replyingTo.text || 'Медиа'}
+                <div className="flex items-start gap-2 px-3 py-2 border-t border-gray-200">
+                  <div className="flex-grow min-w-0 flex items-start gap-2">
+                    <div className="w-1 h-10 rounded-full shrink-0 mt-0.5" style={{ backgroundColor: themeColor }}></div>
+                    <div className="flex-grow min-w-0">
+                      <div className="text-[13px] font-medium mb-0.5" style={{ color: themeColor }}>
+                        {replyingTo.senderName}
+                      </div>
+                      <div className="text-[13px] text-gray-500 truncate">
+                        {replyingTo.text || 'Медиа'}
+                      </div>
                     </div>
                   </div>
                   <button 
                     onClick={cancelReply} 
-                    className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1 transition-all shrink-0"
+                    className="text-gray-400 hover:text-gray-600 transition-colors shrink-0 mt-0.5"
                   >
-                    <X size={16} />
+                    <X size={18} />
                   </button>
                 </div>
               </motion.div>
