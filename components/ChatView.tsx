@@ -10,12 +10,14 @@ import { uploadFile } from '@/lib/supabase';
 import { doc, getDoc } from 'firebase/firestore';
 import { stickerPacks, gifCollection } from '@/lib/stickers';
 import Message from './Message';
+import ChatInput from './ChatInput';
 
 type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 
 export default function ChatView() {
   const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus } = useChat();
-  const [inputText, setInputText] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [hasText, setHasText] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -79,7 +81,7 @@ export default function ChatView() {
 
   // Обработка статуса печати
   const handleInputChange = useCallback((text: string) => {
-    setInputText(text);
+    setHasText(text.trim().length > 0);
     
     if (!activeChatId || !setTypingStatus) return;
     
@@ -164,6 +166,7 @@ export default function ChatView() {
   );
 
   const handleSend = () => {
+    const inputText = inputRef.current?.value || '';
     if (inputText.trim() && !contact.isBlocked) {
       if (editingMsg) {
         editMessage(editingMsg.id, inputText.trim());
@@ -171,7 +174,10 @@ export default function ChatView() {
       } else {
         sendMessage(inputText.trim(), replyingTo ? { replyTo: replyingTo } : undefined);
       }
-      setInputText('');
+      if (inputRef.current) {
+        inputRef.current.value = '';
+      }
+      setHasText(false);
       setShowPicker(false);
       setReplyingTo(null);
       
@@ -186,7 +192,10 @@ export default function ChatView() {
   };
 
   const handleEmojiClick = (emoji: string) => {
-    setInputText(prev => prev + emoji);
+    if (inputRef.current) {
+      inputRef.current.value += emoji;
+      inputRef.current.focus();
+    }
   };
 
   const sendSticker = (stickerUrl: string, width: number, height: number) => {
@@ -520,7 +529,10 @@ export default function ChatView() {
 
   const handleEdit = (msgId: string, text: string) => {
     setEditingMsg({ id: msgId, text });
-    setInputText(text);
+    if (inputRef.current) {
+      inputRef.current.value = text;
+      inputRef.current.focus();
+    }
     setContextMenu(null);
   };
 
@@ -545,7 +557,12 @@ export default function ChatView() {
     setShowForwardPicker(false);
   };
 
-  const cancelEdit = () => { setEditingMsg(null); setInputText(''); };
+  const cancelEdit = () => { 
+    setEditingMsg(null); 
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  };
   const cancelReply = () => { setReplyingTo(null); };
 
   const forwardableContacts = useMemo(() =>
@@ -1153,10 +1170,11 @@ export default function ChatView() {
             )}
             <div className="flex items-center">
               <input
+                ref={inputRef}
                 id="message-input"
                 name="message"
                 type="text"
-                value={inputText}
+                defaultValue=""
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
@@ -1181,7 +1199,7 @@ export default function ChatView() {
                 <Square size={16} fill="currentColor" />
               </button>
             </div>
-          ) : inputText.trim() ? (
+          ) : hasText ? (
             <motion.button 
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
