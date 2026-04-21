@@ -697,8 +697,16 @@ export default function ChatView() {
           </div>
         )}
 
-        {contact.messages.map((msg) => {
+        {contact.messages.map((msg, index) => {
           const isOwn = msg.type === 'sent';
+          const prevMsg = index > 0 ? contact.messages[index - 1] : null;
+          const nextMsg = index < contact.messages.length - 1 ? contact.messages[index + 1] : null;
+          
+          // Группировка сообщений от одного отправителя
+          const isFirstInGroup = !prevMsg || prevMsg.senderId !== msg.senderId;
+          const isLastInGroup = !nextMsg || nextMsg.senderId !== msg.senderId;
+          const showAvatar = isLastInGroup && !isOwn;
+          const marginTop = isFirstInGroup ? 'mt-3' : 'mt-0.5';
 
           // Если это подарок, рендерим его отдельно (с анимациями)
           if (msg.gift) {
@@ -841,20 +849,35 @@ export default function ChatView() {
             );
           }
 
-          // Для обычных сообщений используем мемоизированный компонент
+          // Для обычных сообщений используем мемоизированный компонент с улучшениями
           return (
-            <Message
+            <motion.div
               key={msg.id}
-              msg={msg}
-              isOwn={isOwn}
-              themeColor={themeColor}
-              isChannel={contact.isChannel || false}
-              onContextMenu={handleContextMenu}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              onTouchMove={handleTouchMove}
-              onSaveSticker={saveSticker}
-            />
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ 
+                type: "spring",
+                stiffness: 500,
+                damping: 30,
+                mass: 0.5
+              }}
+              className={marginTop}
+            >
+              <Message
+                msg={msg}
+                isOwn={isOwn}
+                themeColor={themeColor}
+                isChannel={contact.isChannel || false}
+                onContextMenu={handleContextMenu}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onTouchMove={handleTouchMove}
+                onSaveSticker={saveSticker}
+                showAvatar={showAvatar}
+                isFirstInGroup={isFirstInGroup}
+                isLastInGroup={isLastInGroup}
+              />
+            </motion.div>
           );
         })}
 
