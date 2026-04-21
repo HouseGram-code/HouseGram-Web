@@ -248,8 +248,8 @@ export const sendMessageNotification = async (
 
     const fcmToken = userDoc.data().fcmToken;
     if (!fcmToken) {
-      console.log('User does not have FCM token');
-      return;
+      console.log('User does not have FCM token - skipping notification');
+      return; // Тихо возвращаемся, не блокируя отправку сообщения
     }
 
     const response = await fetch('/api/send-notification', {
