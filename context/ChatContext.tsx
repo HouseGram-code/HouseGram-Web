@@ -917,16 +917,21 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         // Начинаем с initialContacts чтобы бот и избранное всегда были
         const updated = { ...initialContacts };
         
-        // Добавляем предыдущие контакты (кроме initialContacts)
+        // Добавляем предыдущие контакты (кроме initialContacts), СОХРАНЯЯ их messages
         for (const [id, contact] of Object.entries(prev)) {
           if (!initialContacts[id]) {
             updated[id] = contact;
           }
         }
         
-        // Обновляем/добавляем новые контакты из Firebase
+        // Обновляем/добавляем новые контакты из Firebase, НО сохраняем messages если они есть
         for (const [id, contact] of Object.entries(newContacts)) {
-          updated[id] = contact;
+          // Если контакт уже существует, сохраняем его messages
+          if (updated[id] && updated[id].messages && updated[id].messages.length > 0) {
+            updated[id] = { ...contact, messages: updated[id].messages };
+          } else {
+            updated[id] = contact;
+          }
         }
         
         return updated;
