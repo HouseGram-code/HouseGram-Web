@@ -82,6 +82,11 @@ export default function ChatView() {
   const isTypingRef = useRef(false);
   
   const handleInputChange = useCallback((text: string) => {
+    // ВРЕМЕННО ОТКЛЮЧЕНО - вызывает баги с очисткой поля
+    // TODO: Реализовать через WebSocket или отдельный механизм
+    return;
+    
+    /*
     if (!activeChatId || !setTypingStatus) return;
     
     // Если текст не пустой, отправляем статус "печатает"
@@ -112,11 +117,14 @@ export default function ChatView() {
         clearTimeout(typingTimerRef.current);
       }
     }
+    */
   }, [activeChatId, setTypingStatus]);
 
-  // Очистка таймера при размонтировании
+  // Очистка таймера при размонтировании (ОТКЛЮЧЕНО)
   useEffect(() => {
     return () => {
+      // Временно отключено
+      /*
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
       }
@@ -125,6 +133,7 @@ export default function ChatView() {
         setTypingStatus(activeChatId, false);
         isTypingRef.current = false;
       }
+      */
     };
   }, [activeChatId, setTypingStatus]);
 
@@ -183,7 +192,8 @@ export default function ChatView() {
       setShowPicker(false);
       setReplyingTo(null);
       
-      // Убираем статус печати после отправки
+      // Убираем статус печати после отправки (ОТКЛЮЧЕНО)
+      /*
       if (activeChatId && setTypingStatus && isTypingRef.current) {
         setTypingStatus(activeChatId, false);
         isTypingRef.current = false;
@@ -191,6 +201,7 @@ export default function ChatView() {
           clearTimeout(typingTimerRef.current);
         }
       }
+      */
     }
   };
 
