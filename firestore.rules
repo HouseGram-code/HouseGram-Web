@@ -142,10 +142,18 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) &&
                     request.resource.data.chatId == chatId;
       
-      // Разрешаем обновлять только статус сообщения его автору или получателю
+      // Разрешаем обновлять статус сообщения его автору или получателю
       allow update: if isAuthenticated() && isNotBanned() && 
                     (request.auth.uid == resource.data.senderId || request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants) &&
                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      
+      // Разрешаем автору редактировать текст своего сообщения
+      allow update: if isAuthenticated() && isNotBanned() && 
+                    request.auth.uid == resource.data.senderId &&
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt']) ||
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text']) ||
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['editedAt'])) &&
+                    request.resource.data.text is string && request.resource.data.text.size() <= 4000;
       
       allow delete: if isAuthenticated();
     }

@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Shield, MessageSquare, Zap, Lock, Key, Check, Eye, User, Bell, Smartphone, LogOut } from 'lucide-react';
+import { ArrowLeft, Shield, MessageSquare, Zap, Lock, Key, Check, Eye, User, Bell, Smartphone, LogOut, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function FeaturesView() {
@@ -114,14 +114,26 @@ export default function FeaturesView() {
           <ChatBotDemo themeColor={themeColor} />
         </DemoCard>
 
-        {/* Демо 6: Уведомления */}
+        {/* Демо 6: ИИ исправление текста */}
+        <DemoCard
+          icon={<Sparkles size={20} />}
+          title="ИИ исправление текста"
+          description="Автоматическое исправление ошибок в сообщениях"
+          color="#8b5cf6"
+          isActive={activeDemo === 6}
+          onClick={() => setActiveDemo(activeDemo === 6 ? null : 6)}
+        >
+          <AiCorrectionDemo themeColor={themeColor} />
+        </DemoCard>
+
+        {/* Демо 7: Push-уведомления */}
         <DemoCard
           icon={<Bell size={20} />}
           title="Push-уведомления"
           description="Мгновенные уведомления о новых сообщениях"
           color="#ec4899"
-          isActive={activeDemo === 6}
-          onClick={() => setActiveDemo(activeDemo === 6 ? null : 6)}
+          isActive={activeDemo === 7}
+          onClick={() => setActiveDemo(activeDemo === 7 ? null : 7)}
         >
           <NotificationDemo themeColor={themeColor} />
         </DemoCard>
@@ -468,6 +480,175 @@ function ChatBotDemo({ themeColor }: { themeColor: string }) {
           </motion.div>
         ))}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// Демонстрация ИИ исправления текста
+function AiCorrectionDemo({ themeColor }: { themeColor: string }) {
+  const [step, setStep] = useState(0);
+  const [originalText, setOriginalText] = useState('превет как дила? я сегодня пашол в магазин');
+  const [correctedText, setCorrectedText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setStep(0);
+    setIsLoading(false);
+    setCorrectedText('');
+  }, []);
+
+  useEffect(() => {
+    if (step === 0) {
+      const timer = setTimeout(() => setStep(1), 1000);
+      return () => clearTimeout(timer);
+    } else if (step === 1) {
+      setIsLoading(true);
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+        setCorrectedText('Привет! Как дела? Я сегодня пошёл в магазин.');
+        setStep(2);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
+  return (
+    <div className="space-y-4">
+      {/* Оригинальное сообщение */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative"
+      >
+        <div className="flex justify-end mb-2">
+          <div className="bg-blue-500 text-white px-4 py-2 rounded-2xl rounded-tr-sm max-w-[80%] text-sm">
+            {originalText}
+          </div>
+        </div>
+        
+        {step >= 1 && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="absolute -bottom-2 right-4"
+          >
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="bg-purple-500 text-white p-2 rounded-full shadow-lg"
+              onClick={() => step === 1 && setStep(1)}
+            >
+              <Sparkles size={16} />
+            </motion.button>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* ИИ анализ */}
+      {step >= 1 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <motion.div
+              animate={{ rotate: isLoading ? 360 : 0 }}
+              transition={{ duration: 1, repeat: isLoading ? Infinity : 0, ease: "linear" }}
+              className="text-purple-500"
+            >
+              <Sparkles size={20} />
+            </motion.div>
+            <div>
+              <div className="font-semibold text-purple-700 text-sm">ИИ Анализ</div>
+              <div className="text-purple-600 text-xs">
+                {isLoading ? 'Проверяем орфографию и грамматику...' : 'Найдено 5 ошибок'}
+              </div>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full"
+              />
+            </div>
+          ) : step >= 2 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3"
+            >
+              <div>
+                <div className="text-xs text-gray-600 mb-1">Исправленный текст:</div>
+                <div className="bg-white border border-green-200 rounded-lg p-3 text-sm">
+                  {correctedText}
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 px-4 rounded-lg text-sm font-medium"
+                >
+                  Применить
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600"
+                >
+                  Отмена
+                </motion.button>
+              </div>
+            </motion.div>
+          ) : null}
+        </motion.div>
+      )}
+
+      {/* Результат */}
+      {step >= 2 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex justify-end"
+        >
+          <div className="bg-green-500 text-white px-4 py-2 rounded-2xl rounded-tr-sm max-w-[80%] text-sm relative">
+            {correctedText}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.5 }}
+              className="absolute -bottom-1 -right-1 bg-green-600 text-white rounded-full p-1"
+            >
+              <Check size={12} />
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Статистика */}
+      {step >= 2 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-blue-50 border border-blue-200 rounded-lg p-3"
+        >
+          <div className="text-xs text-blue-700 font-medium mb-2">Исправления:</div>
+          <div className="space-y-1 text-xs text-blue-600">
+            <div>• "превет" → "Привет" (орфография)</div>
+            <div>• "дила" → "дела" (орфография)</div>
+            <div>• "пашол" → "пошёл" (орфография)</div>
+            <div>• Добавлены знаки препинания</div>
+            <div>• Исправлена заглавная буква</div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
