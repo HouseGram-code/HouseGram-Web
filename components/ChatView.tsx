@@ -17,7 +17,6 @@ type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 export default function ChatView() {
   const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus } = useChat();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [hasText, setHasText] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -81,8 +80,6 @@ export default function ChatView() {
 
   // Обработка статуса печати
   const handleInputChange = useCallback((text: string) => {
-    setHasText(text.trim().length > 0);
-    
     if (!activeChatId || !setTypingStatus) return;
     
     // Если текст не пустой, отправляем статус "печатает"
@@ -177,7 +174,6 @@ export default function ChatView() {
       if (inputRef.current) {
         inputRef.current.value = '';
       }
-      setHasText(false);
       setShowPicker(false);
       setReplyingTo(null);
       
@@ -1199,16 +1195,6 @@ export default function ChatView() {
                 <Square size={16} fill="currentColor" />
               </button>
             </div>
-          ) : hasText ? (
-            <motion.button 
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleSend} 
-              className="w-10 h-10 p-2 rounded-full mb-0.5 flex items-center justify-center text-white hover:brightness-110 active:scale-90 transition-all shadow-lg" 
-              style={{ backgroundColor: themeColor }}
-            >
-              {editingMsg ? <Check size={20} /> : <Send size={20} className="ml-0.5" />}
-            </motion.button>
           ) : (
             <button onClick={startRecording} className="p-1.5 mb-0.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
               <Mic size={24} />
