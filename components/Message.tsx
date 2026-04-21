@@ -74,9 +74,13 @@ const Message = memo(function Message({
         </div>
       )}
       {msg.replyTo && (
-        <div className="mb-1 pl-2 border-l-2 rounded text-[13px] opacity-70" style={{ borderColor: themeColor }}>
-          <div className="font-medium" style={{ color: themeColor }}>{msg.replyTo.senderName}</div>
-          <div className="truncate max-w-[200px]">{msg.replyTo.text}</div>
+        <div className="mb-2 pl-2.5 py-1.5 border-l-[3px] rounded-sm bg-black/5 backdrop-blur-sm" style={{ borderColor: themeColor }}>
+          <div className="font-semibold text-[13px] mb-0.5" style={{ color: themeColor }}>
+            {msg.replyTo.senderName}
+          </div>
+          <div className="text-[13px] text-gray-700 line-clamp-2 leading-tight">
+            {msg.replyTo.text || 'Медиа'}
+          </div>
         </div>
       )}
       {msg.audioUrl ? (
