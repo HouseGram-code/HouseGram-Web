@@ -140,7 +140,7 @@ const viewComponents: Record<string, React.ComponentType> = {
 };
 
 function AppContent() {
-  const { view, isLocked, user, isDarkMode } = useChat();
+  const { view, isLocked, user, isDarkMode, activeChatId } = useChat();
 
   // Контейнер-обёртка
   const AppShell = ({ children }: { children: React.ReactNode }) => (
@@ -176,7 +176,7 @@ function AppContent() {
     <AppShell>
 
       <AnimatePresence initial={false} mode="popLayout">
-        {ActiveView && <ActiveView key={view} />}
+        {ActiveView && <ActiveView key={`${view}-${activeChatId || 'none'}`} />}
       </AnimatePresence>
       <SideMenu />
     </AppShell>
