@@ -58,7 +58,7 @@ const Message = memo(function Message({
       onTouchStart={(e) => onTouchStart(e, msg.id)}
       onTouchEnd={onTouchEnd}
       onTouchMove={onTouchMove}
-      className={`message max-w-[75%] px-3 py-1.5 ${borderRadius} relative break-words flex flex-col cursor-pointer select-none transition-all hover:scale-[1.02] active:scale-[0.98] ${
+      className={`message w-full px-3 py-1.5 ${borderRadius} relative break-words flex flex-col cursor-pointer select-none transition-all hover:scale-[1.02] active:scale-[0.98] ${
         isSticker || isGif
           ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
           : isJumbo

@@ -860,7 +860,7 @@ export default function ChatView() {
                 damping: 30,
                 mass: 0.5
               }}
-              className={marginTop}
+              className={`${marginTop} ${isOwn ? 'self-end' : 'self-start'} max-w-[75%]`}
             >
               <Message
                 msg={msg}
