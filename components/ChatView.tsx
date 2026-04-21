@@ -38,7 +38,7 @@ export default function ChatView() {
   const [contextMenu, setContextMenu] = useState<{ msgId: string; x: number; y: number } | null>(null);
   const [showForwardPicker, setShowForwardPicker] = useState(false);
   const [editingMsg, setEditingMsg] = useState<{ id: string; text: string } | null>(null);
-  const [replyingTo, setReplyingTo] = useState<{ messageId: string; senderName: string; text: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ messageId: string; senderName: string; text: string; senderAvatar?: string } | null>(null);
   const [selectedStickerPack, setSelectedStickerPack] = useState<string | null>(null);
   const [gifSearch, setGifSearch] = useState('');
   const [isUploadingSticker, setIsUploadingSticker] = useState(false);
@@ -192,17 +192,6 @@ export default function ChatView() {
       }
       setShowPicker(false);
       setReplyingTo(null);
-      
-      // Убираем статус печати после отправки (ОТКЛЮЧЕНО)
-      /*
-      if (activeChatId && setTypingStatus && isTypingRef.current) {
-        setTypingStatus(activeChatId, false);
-        isTypingRef.current = false;
-        if (typingTimerRef.current) {
-          clearTimeout(typingTimerRef.current);
-        }
-      }
-      */
     }
   };
 
@@ -562,8 +551,15 @@ export default function ChatView() {
   };
 
   const handleReply = (msgId: string, senderName: string, text: string) => {
-    setReplyingTo({ messageId: msgId, senderName, text: text.substring(0, 80) });
+    setReplyingTo({ 
+      messageId: msgId, 
+      senderName, 
+      text: text.substring(0, 100),
+      senderAvatar: contact.avatarUrl 
+    });
     setContextMenu(null);
+    // Фокусируемся на поле ввода
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   const handleForwardTo = (targetChatId: string) => {
@@ -578,7 +574,10 @@ export default function ChatView() {
       inputRef.current.value = '';
     }
   };
-  const cancelReply = () => { setReplyingTo(null); };
+
+  const cancelReply = () => { 
+    setReplyingTo(null); 
+  };
 
   const forwardableContacts = useMemo(() =>
     Object.values(contacts).filter(c => c.id !== activeChatId && c.id !== 'saved_messages'),
@@ -922,14 +921,14 @@ export default function ChatView() {
               onClick={(e) => e.stopPropagation()}
             >
               {canEdit && (
-                <button onClick={() => handleEdit(msg.id, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
+                <button onClick={() => handleEdit(msg.id, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700 transition-colors">
                   <Edit3 size={18} className="text-gray-500" /> Редактировать
                 </button>
               )}
-              <button onClick={() => handleReply(msg.id, isOwn ? 'Вы' : contact.name, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
+              <button onClick={() => handleReply(msg.id, isOwn ? 'Вы' : contact.name, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700 transition-colors">
                 <Reply size={18} className="text-gray-500" /> Ответить
               </button>
-              <button onClick={() => handleForward(msg.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
+              <button onClick={() => handleForward(msg.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700 transition-colors">
                 <Repeat2 size={18} className="text-gray-500" /> Переслать
               </button>
               {msg.stickerUrl && !savedStickers.includes(msg.stickerUrl) && (
@@ -1158,7 +1157,7 @@ export default function ChatView() {
         )}
       </AnimatePresence>
 
-      {/* Input Area */}
+      {/* Input Area - Classic Style */}
       {contact.isBlocked ? (
         <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
           <span className="text-tg-secondary-text text-[15px]">Вы заблокировали этого пользователя</span>
@@ -1168,80 +1167,114 @@ export default function ChatView() {
           <span className="text-tg-secondary-text text-[15px]">Только владелец канала может отправлять сообщения</span>
         </div>
       ) : (
-        <div className={`flex items-end px-2.5 py-2 border-t border-tg-divider shrink-0 gap-1.5 z-30 transition-colors relative ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
+        <div className={`shrink-0 z-30 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
+          {/* Reply Preview - Telegram Style */}
           <AnimatePresence>
-            {showAttachMenu && (
+            {replyingTo && (
               <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute bottom-14 left-2 bg-white rounded-xl shadow-lg border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[160px]"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden border-t border-tg-divider"
               >
-                <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
-                <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
-                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
-                
-                <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
-                  <div className="text-blue-500"><ImageIcon size={20} /></div><span className="text-gray-900">Фото / Видео</span>
-                </button>
-                <button onClick={() => audioInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
-                  <div className="text-orange-500"><Music size={20} /></div><span className="text-gray-900">Музыка</span>
-                </button>
-                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
-                  <div className="text-green-500"><FileIcon size={20} /></div><span className="text-gray-900">Файл</span>
-                </button>
+                <div className="flex items-center gap-2 px-3 py-2.5 mx-2.5 mt-2 bg-gradient-to-r from-gray-50 to-white rounded-lg border-l-4 shadow-sm" style={{ borderLeftColor: themeColor }}>
+                  <Reply size={16} className="text-gray-400 shrink-0" />
+                  <div className="flex-grow min-w-0">
+                    <div className="text-[13px] font-semibold mb-0.5" style={{ color: themeColor }}>
+                      {replyingTo.senderName}
+                    </div>
+                    <div className="text-[13px] text-gray-600 truncate leading-tight">
+                      {replyingTo.text || 'Медиа'}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={cancelReply} 
+                    className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1 transition-all shrink-0"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          <button onClick={() => setShowAttachMenu(!showAttachMenu)} className="p-1.5 mb-0.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
-            <Paperclip size={24} />
-          </button>
-
-          <div className="flex-grow flex flex-col bg-transparent relative">
-            {replyingTo && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-t-lg border-l-2" style={{ borderColor: themeColor }}>
-                <div className="flex-grow min-w-0">
-                  <div className="text-[13px] font-medium" style={{ color: themeColor }}>{replyingTo.senderName}</div>
-                  <div className="text-[13px] text-gray-500 truncate">{replyingTo.text}</div>
-                </div>
-                <button onClick={cancelReply} className="text-gray-400 hover:text-gray-600 shrink-0"><X size={16} /></button>
-              </div>
-            )}
-            <div className="flex items-center">
-              <input
-                ref={inputRef}
-                id="message-input"
-                name="message"
-                type="text"
-                defaultValue=""
-                onChange={(e) => handleInputChange(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
-                disabled={isRecording}
-                autoComplete="off"
-                className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50 focus:placeholder-opacity-50 transition-all"
-              />
-              {!isRecording && (
-                <button onClick={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
-                  <Smile size={24} />
-                </button>
+          {/* Input Area */}
+          <div className="flex items-center px-2.5 py-2 gap-1.5 relative">
+            <AnimatePresence>
+              {showAttachMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                  animate={{ opacity: 1, y: 0, scale: 1 }} 
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute bottom-14 left-2 bg-white rounded-xl shadow-lg border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[160px]"
+                >
+                  <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
+                  <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
+                  <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                  
+                  <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                    <div className="text-blue-500"><ImageIcon size={20} /></div><span className="text-gray-900">Фото / Видео</span>
+                  </button>
+                  <button onClick={() => audioInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                    <div className="text-orange-500"><Music size={20} /></div><span className="text-gray-900">Музыка</span>
+                  </button>
+                  <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
+                    <div className="text-green-500"><FileIcon size={20} /></div><span className="text-gray-900">Файл</span>
+                  </button>
+                </motion.div>
               )}
-            </div>
-          </div>
+            </AnimatePresence>
 
-          {isRecording ? (
-            <div className="flex items-center gap-2 mb-0.5">
-              <div className="flex items-center gap-1.5 px-2 text-red-500 font-medium">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />{formatTime(recordingTime)}
-              </div>
-              <button onClick={stopRecording} className="w-10 h-10 p-2 rounded-full flex items-center justify-center text-white bg-red-500 hover:brightness-110 active:scale-90 transition-all">
-                <Square size={16} fill="currentColor" />
-              </button>
-            </div>
-          ) : (
-            <button onClick={startRecording} className="p-1.5 mb-0.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
-              <Mic size={24} />
+            <button onClick={() => setShowAttachMenu(!showAttachMenu)} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
+              <Paperclip size={24} />
             </button>
-          )}
+
+            <input
+              ref={inputRef}
+              id="message-input"
+              name="message"
+              type="text"
+              defaultValue=""
+              onChange={(e) => handleInputChange(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : replyingTo ? "Ответить..." : "Сообщение"}
+              disabled={isRecording}
+              autoComplete="off"
+              className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50 focus:placeholder-opacity-50 transition-all"
+            />
+
+            {!isRecording && (
+              <button onClick={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
+                <Smile size={24} />
+              </button>
+            )}
+
+            {isRecording ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2 text-red-500 font-medium text-[14px]">
+                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />{formatTime(recordingTime)}
+                </div>
+                <button onClick={stopRecording} className="w-9 h-9 p-2 rounded-full flex items-center justify-center text-white bg-red-500 hover:brightness-110 active:scale-90 transition-all">
+                  <Square size={14} fill="currentColor" />
+                </button>
+              </div>
+            ) : inputRef.current?.value.trim() ? (
+              <motion.button 
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleSend} 
+                className="w-9 h-9 p-2 rounded-full flex items-center justify-center text-white hover:brightness-110 active:scale-90 transition-all shadow-lg" 
+                style={{ backgroundColor: themeColor }}
+              >
+                <Send size={18} className="ml-0.5" />
+              </motion.button>
+            ) : (
+              <button onClick={startRecording} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
+                <Mic size={24} />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
