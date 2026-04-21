@@ -2,13 +2,14 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info } from 'lucide-react';
+import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import NextImage from 'next/image';
 import { auth, db } from '@/lib/firebase';
 import { uploadFile } from '@/lib/supabase';
 import { doc, getDoc } from 'firebase/firestore';
 import { stickerPacks, gifCollection } from '@/lib/stickers';
+import { correctText, detectLanguage } from '@/lib/aiCorrection';
 import Message from './Message';
 import ChatInput from './ChatInput';
 
@@ -47,6 +48,14 @@ export default function ChatView() {
   const [stickerName, setStickerName] = useState('');
   const [stickerFile, setStickerFile] = useState<File | null>(null);
   const [channelOwnerId, setChannelOwnerId] = useState<string | null>(null);
+  
+  // ИИ исправление
+  const [aiCorrectionModal, setAiCorrectionModal] = useState<{
+    messageId: string;
+    originalText: string;
+    correctedText: string;
+    isLoading: boolean;
+  } | null>(null);
 
   // Стабилизируем contact через useMemo чтобы избежать потери при обновлении contacts
   const contact = useMemo(() => activeChatId ? contacts[activeChatId] : null, [activeChatId, contacts]);
@@ -139,6 +148,60 @@ export default function ChatView() {
   }, [activeChatId, setTypingStatus]);
 
   // Загрузка информации о владельце канала
+  useEffect(() => {
+    if (contact?.isChannel && activeChatId) {
+      const loadChannelOwner = async () => {
+        try {
+          const channelDoc = await getDoc(doc(db, 'channels', activeChatId));
+          if (channelDoc.exists()) {
+            setChannelOwnerId(channelDoc.data().ownerId);
+          }
+        } catch (error) {
+          console.error('Error loading channel owner:', error);
+        }
+      };
+      loadChannelOwner();
+    }
+  }, [contact?.isChannel, activeChatId]);
+
+  // ИИ исправление текста
+  const handleAiCorrection = useCallback(async (messageId: string, originalText: string) => {
+    setAiCorrectionModal({
+      messageId,
+      originalText,
+      correctedText: originalText,
+      isLoading: true,
+    });
+
+    try {
+      const language = detectLanguage(originalText);
+      const result = await correctText(originalText, language);
+      
+      setAiCorrectionModal(prev => prev ? {
+        ...prev,
+        correctedText: result.correctedText,
+        isLoading: false,
+      } : null);
+    } catch (error) {
+      console.error('AI correction error:', error);
+      setAiCorrectionModal(prev => prev ? {
+        ...prev,
+        isLoading: false,
+      } : null);
+    }
+  }, []);
+
+  // Применить исправления
+  const applyCorrection = useCallback(async () => {
+    if (!aiCorrectionModal) return;
+    
+    try {
+      await editMessage(aiCorrectionModal.messageId, aiCorrectionModal.correctedText);
+      setAiCorrectionModal(null);
+    } catch (error) {
+      console.error('Error applying correction:', error);
+    }
+  }, [aiCorrectionModal, editMessage]);
   useEffect(() => {
     const loadChannelOwner = async () => {
       if (!activeChatId || !contact?.isChannel) {
@@ -971,6 +1034,17 @@ export default function ChatView() {
                   <Download size={18} className="text-gray-500" /> Сохранить стикер
                 </button>
               )}
+              {isOwn && msg.text && (
+                <button 
+                  onClick={() => { 
+                    handleAiCorrection(msg.id, msg.text); 
+                    setContextMenu(null); 
+                  }} 
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 text-left text-[15px] text-purple-600"
+                >
+                  <Sparkles size={18} className="text-purple-500" /> ИИ исправление
+                </button>
+              )}
               {isOwn && (
                 <button onClick={() => handleDelete(msg.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-left text-[15px] text-red-500">
                   <Trash2 size={18} /> Удалить
@@ -1389,6 +1463,135 @@ export default function ChatView() {
               <div className="flex border-t border-gray-200">
                 <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3 text-[16px] font-medium text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">Отмена</button>
                 <button onClick={() => { if (activeChatId) deleteChat(activeChatId); setShowDeleteModal(false); }} className="flex-1 py-3 text-[16px] font-medium text-red-500 hover:bg-gray-50 transition-colors">Удалить</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Correction Modal */}
+      <AnimatePresence>
+        {aiCorrectionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+              onClick={() => setAiCorrectionModal(null)} 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden z-10"
+            >
+              {/* Header */}
+              <div className="p-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    animate={{ rotate: aiCorrectionModal.isLoading ? 360 : 0 }}
+                    transition={{ duration: 1, repeat: aiCorrectionModal.isLoading ? Infinity : 0, ease: "linear" }}
+                  >
+                    <Sparkles size={24} />
+                  </motion.div>
+                  <div>
+                    <h3 className="text-lg font-bold">ИИ Исправление</h3>
+                    <p className="text-purple-100 text-sm">
+                      {aiCorrectionModal.isLoading ? 'Анализируем текст...' : 'Проверьте исправления'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-4">
+                {/* Original Text */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Оригинальный текст:</label>
+                  <div className="p-3 bg-gray-50 rounded-xl border text-gray-800 text-sm">
+                    {aiCorrectionModal.originalText}
+                  </div>
+                </div>
+
+                {/* Corrected Text */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Исправленный текст:</label>
+                  <div className="relative">
+                    {aiCorrectionModal.isLoading ? (
+                      <div className="p-4 bg-purple-50 rounded-xl border border-purple-200 flex items-center justify-center">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full"
+                        />
+                        <span className="ml-3 text-purple-600 font-medium">Исправляем...</span>
+                      </div>
+                    ) : (
+                      <textarea
+                        value={aiCorrectionModal.correctedText}
+                        onChange={(e) => setAiCorrectionModal(prev => prev ? {
+                          ...prev,
+                          correctedText: e.target.value
+                        } : null)}
+                        className="w-full p-3 bg-green-50 border border-green-200 rounded-xl text-gray-800 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-300"
+                        rows={4}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Comparison */}
+                {!aiCorrectionModal.isLoading && aiCorrectionModal.originalText !== aiCorrectionModal.correctedText && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 bg-blue-50 border border-blue-200 rounded-xl"
+                  >
+                    <div className="flex items-center gap-2 text-blue-700 text-sm font-medium mb-1">
+                      <CheckCircle size={16} />
+                      Найдены исправления
+                    </div>
+                    <p className="text-blue-600 text-xs">
+                      ИИ предложил улучшения для вашего сообщения
+                    </p>
+                  </motion.div>
+                )}
+
+                {!aiCorrectionModal.isLoading && aiCorrectionModal.originalText === aiCorrectionModal.correctedText && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 bg-green-50 border border-green-200 rounded-xl"
+                  >
+                    <div className="flex items-center gap-2 text-green-700 text-sm font-medium mb-1">
+                      <CheckCircle size={16} />
+                      Текст выглядит отлично!
+                    </div>
+                    <p className="text-green-600 text-xs">
+                      Ошибок не найдено
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex border-t border-gray-200">
+                <button 
+                  onClick={() => setAiCorrectionModal(null)} 
+                  className="flex-1 py-4 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                  disabled={aiCorrectionModal.isLoading}
+                >
+                  Отмена
+                </button>
+                <button 
+                  onClick={applyCorrection}
+                  disabled={aiCorrectionModal.isLoading}
+                  className="flex-1 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {aiCorrectionModal.isLoading ? 'Загрузка...' : 'Применить'}
+                </button>
               </div>
             </motion.div>
           </div>
