@@ -78,15 +78,18 @@ export default function ChatView() {
     prevMessagesLengthRef.current = currentLength;
   }, [contact?.messages?.length, scrollToBottom]);
 
-  // Обработка статуса печати
+  // Обработка статуса печати с debounce
+  const isTypingRef = useRef(false);
+  
   const handleInputChange = useCallback((text: string) => {
     if (!activeChatId || !setTypingStatus) return;
     
     // Если текст не пустой, отправляем статус "печатает"
     if (text.trim()) {
       // Отправляем статус только если он ещё не установлен
-      if (!contact?.isTyping) {
+      if (!isTypingRef.current) {
         setTypingStatus(activeChatId, true);
+        isTypingRef.current = true;
       }
       
       // Сбрасываем предыдущий таймер
@@ -97,17 +100,19 @@ export default function ChatView() {
       // Через 2 секунды после остановки печати убираем статус
       typingTimerRef.current = setTimeout(() => {
         setTypingStatus(activeChatId, false);
+        isTypingRef.current = false;
       }, 2000);
     } else {
       // Если текст пустой, сразу убираем статус
-      if (contact?.isTyping) {
+      if (isTypingRef.current) {
         setTypingStatus(activeChatId, false);
+        isTypingRef.current = false;
       }
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
       }
     }
-  }, [activeChatId, setTypingStatus, contact?.isTyping]);
+  }, [activeChatId, setTypingStatus]);
 
   // Очистка таймера при размонтировании
   useEffect(() => {
@@ -116,8 +121,9 @@ export default function ChatView() {
         clearTimeout(typingTimerRef.current);
       }
       // Убираем статус печати при выходе из чата
-      if (activeChatId && setTypingStatus) {
+      if (activeChatId && setTypingStatus && isTypingRef.current) {
         setTypingStatus(activeChatId, false);
+        isTypingRef.current = false;
       }
     };
   }, [activeChatId, setTypingStatus]);
@@ -178,8 +184,9 @@ export default function ChatView() {
       setReplyingTo(null);
       
       // Убираем статус печати после отправки
-      if (activeChatId && setTypingStatus) {
+      if (activeChatId && setTypingStatus && isTypingRef.current) {
         setTypingStatus(activeChatId, false);
+        isTypingRef.current = false;
         if (typingTimerRef.current) {
           clearTimeout(typingTimerRef.current);
         }
