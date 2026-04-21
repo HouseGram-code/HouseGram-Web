@@ -702,10 +702,10 @@ export default function ChatView() {
           const nextMsg = index < contact.messages.length - 1 ? contact.messages[index + 1] : null;
           
           // Группировка сообщений от одного отправителя
-          const isFirstInGroup = !prevMsg || prevMsg.senderId !== msg.senderId;
-          const isLastInGroup = !nextMsg || nextMsg.senderId !== msg.senderId;
+          const isFirstInGroup = !prevMsg || prevMsg.type !== msg.type;
+          const isLastInGroup = !nextMsg || nextMsg.type !== msg.type;
           const showAvatar = isLastInGroup && !isOwn;
-          const marginTop = isFirstInGroup ? 'mt-3' : 'mt-0.5';
+          const marginTop = isFirstInGroup ? 'mt-2' : 'mt-0.5';
 
           // Если это подарок, рендерим его отдельно (с анимациями)
           if (msg.gift) {
