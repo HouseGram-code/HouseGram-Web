@@ -48,7 +48,8 @@ export default function ChatView() {
   const [stickerFile, setStickerFile] = useState<File | null>(null);
   const [channelOwnerId, setChannelOwnerId] = useState<string | null>(null);
 
-  const contact = activeChatId ? contacts[activeChatId] : null;
+  // Стабилизируем contact через useMemo чтобы избежать потери при обновлении contacts
+  const contact = useMemo(() => activeChatId ? contacts[activeChatId] : null, [activeChatId, contacts]);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const wasAtBottomRef = useRef(true);
 

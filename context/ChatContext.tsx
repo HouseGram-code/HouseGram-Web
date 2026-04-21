@@ -740,7 +740,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Failed to send message', e);
       alert(`Ошибка при отправке сообщения: ${e instanceof Error ? e.message : String(e)}`);
     }
-  }, [playSound, contacts]);
+  }, [playSound, contacts, userProfile]);
 
   const editMessage = useCallback(async (messageId: string, newText: string) => {
     if (!user || !activeChatId) return;
