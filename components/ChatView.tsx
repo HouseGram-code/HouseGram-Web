@@ -6,7 +6,7 @@ import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import NextImage from 'next/image';
 import { auth, db } from '@/lib/firebase';
-import { uploadFile } from '@/lib/supabase';
+import { uploadFile } from '@/lib/firebase-storage';
 import { doc, getDoc } from 'firebase/firestore';
 import { stickerPacks, gifCollection } from '@/lib/stickers';
 import { correctText, detectLanguage } from '@/lib/aiCorrection';

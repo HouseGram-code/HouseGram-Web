@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { uploadFile, uploadMultipleFiles, deleteFile, UploadProgress, UploadResult, FileType } from '@/lib/supabase';
+import { uploadFile, uploadMultipleFiles, deleteFile, UploadProgress, UploadResult, FileType } from '@/lib/firebase-storage';
 
 export interface UploadState {
   uploading: boolean;
@@ -143,7 +143,7 @@ export const useFileDelete = () => {
     setError(null);
 
     try {
-      const success = await deleteFile(filePath, bucket);
+      const success = await deleteFile(filePath);
       setDeleting(false);
       return success;
     } catch (error) {

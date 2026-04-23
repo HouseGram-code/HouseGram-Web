@@ -1,74 +1,81 @@
 import { useEffect, useRef } from 'react';
-import { OnlineStatusManager, userService, User } from '@/lib/supabase';
 
-/**
- * Хук для автоматического отслеживания онлайн статуса пользователя
- * @param userId - ID текущего пользователя
- * @param enabled - Включить/выключить отслеживание
- */
-export const useOnlineStatus = (userId: string | null, enabled: boolean = true) => {
+// Временные заглушки для типов
+interface User {
+  id: string;
+  status: 'online' | 'offline';
+  last_seen: string;
+}
+
+class OnlineStatusManager {
+  constructor(userId: string) {
+    // Заглушка
+  }
+
+  async start() {
+    // Заглушка
+  }
+
+  async stop() {
+    // Заглушка
+  }
+}
+
+// Хук для управления онлайн статусом пользователя
+export const useOnlineStatus = (userId: string | null) => {
   const managerRef = useRef<OnlineStatusManager | null>(null);
 
   useEffect(() => {
-    if (!userId || !enabled) return;
+    if (!userId) return;
 
-    // Создаём менеджер статуса
-    const manager = new OnlineStatusManager(userId);
-    managerRef.current = manager;
+    // Временно отключено - используем только Matrix + Firebase
+    // const manager = new OnlineStatusManager(userId);
+    // managerRef.current = manager;
+    // manager.start();
 
-    // Запускаем отслеживание
-    manager.start();
-
-    // Очистка при размонтировании
     return () => {
-      manager.stop();
-      managerRef.current = null;
+      // if (managerRef.current) {
+      //   managerRef.current.stop();
+      //   managerRef.current = null;
+      // }
     };
-  }, [userId, enabled]);
+  }, [userId]);
 
-  return managerRef.current;
+  return {
+    isOnline: false, // Временная заглушка
+  };
 };
 
-/**
- * Хук для подписки на статус конкретного пользователя
- * @param userId - ID пользователя для отслеживания
- * @param onStatusChange - Callback при изменении статуса
- */
+// Хук для подписки на статус одного пользователя
 export const useUserStatus = (
-  userId: string | null,
+  userId: string,
   onStatusChange: (user: User) => void
 ) => {
   useEffect(() => {
     if (!userId) return;
 
-    // Подписываемся на изменения статуса
-    const subscription = userService.subscribeToUserStatus(userId, onStatusChange);
+    // Временно отключено - используем только Matrix + Firebase
+    // const subscription = userService.subscribeToUserStatus(userId, onStatusChange);
 
-    // Отписываемся при размонтировании
     return () => {
-      subscription.unsubscribe();
+      // subscription?.unsubscribe();
     };
   }, [userId, onStatusChange]);
 };
 
-/**
- * Хук для подписки на статусы нескольких пользователей
- * @param userIds - Массив ID пользователей для отслеживания
- * @param onStatusChange - Callback при изменении статуса любого пользователя
- */
+// Хук для подписки на статусы нескольких пользователей
 export const useMultipleUserStatuses = (
   userIds: string[],
   onStatusChange: (user: User) => void
 ) => {
   useEffect(() => {
-    if (!userIds || userIds.length === 0) return;
+    if (userIds.length === 0) return;
 
-    // Подписываемся на изменения статусов
-    const subscription = userService.subscribeToMultipleUserStatuses(userIds, onStatusChange);
+    // Временно отключено - используем только Matrix + Firebase
+    // const subscription = userService.subscribeToMultipleUserStatuses(userIds, onStatusChange);
 
-    // Отписываемся при размонтировании
     return () => {
-      subscription.unsubscribe();
+      // subscription?.unsubscribe();
     };
   }, [userIds, onStatusChange]);
 };

@@ -5,15 +5,14 @@ import { AnimatePresence } from 'motion/react';
 import dynamic from 'next/dynamic';
 import { Suspense, useMemo, useState, useEffect } from 'react';
 import { isDemoMode } from '@/lib/firebase';
-import { isSupabaseDemoMode } from '@/lib/supabase';
 
 // Компонент для отображения демо-режима
 function DemoBanner() {
-  if (!isDemoMode && !isSupabaseDemoMode) return null;
+  if (!isDemoMode) return null;
   
   return (
     <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 text-center text-sm font-medium z-50 shadow-lg">
-      🎭 ДЕМО РЕЖИМ: Приложение работает с тестовыми данными. Для полной функциональности настройте Firebase и Supabase.
+      🎭 ДЕМО РЕЖИМ: Приложение работает с тестовыми данными. Для полной функциональности настройте Firebase.
     </div>
   );
 }
