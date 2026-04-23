@@ -92,7 +92,14 @@ export const initMegaStorage = async (email: string, password: string): Promise<
       
       console.log('✅ MEGA Storage initialized successfully');
       console.log(`📦 Account: ${storage.name}`);
-      console.log(`💾 Storage used: ${formatFileSize(storage.spaceUsed || 0)} / ${formatFileSize(storage.spaceTotal || 0)}`);
+      
+      // Получаем информацию об аккаунте
+      try {
+        const accountInfo = await storage.getAccountInfo();
+        console.log(`💾 Storage used: ${formatFileSize(accountInfo.spaceUsed || 0)} / ${formatFileSize(accountInfo.spaceTotal || 0)}`);
+      } catch (err) {
+        console.warn('Could not fetch account info:', err);
+      }
       
       resolve(storage);
     } catch (error: any) {
