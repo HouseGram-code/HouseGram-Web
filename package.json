@@ -26,6 +26,7 @@
     "firebase": "^12.10.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.553.0",
+    "matrix-js-sdk": "^41.4.0-rc.0",
     "motion": "^12.23.24",
     "next": "^15.5.14",
     "postcss": "^8.5.6",
