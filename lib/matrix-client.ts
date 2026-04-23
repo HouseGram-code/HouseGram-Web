@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient, MatrixClient, Room, MatrixEvent, EventType, MsgType, IContent, Visibility, Preset } from 'matrix-js-sdk';
+import { uploadFile as uploadToMega, detectFileType } from '@/lib/mega-storage';
 
 export interface MatrixConfig {
   homeserverUrl: string;
@@ -12,6 +13,7 @@ export interface MatrixConfig {
 export interface MediaUploadResult {
   content_uri: string;
   file_size: number;
+  mega_url?: string;
 }
 
 export class MatrixClientManager {
@@ -134,24 +136,33 @@ export class MatrixClientManager {
     }
 
     try {
-      // Проверяем размер файла (Matrix обычно поддерживает до 50MB)
-      const maxSize = 50 * 1024 * 1024; // 50MB
+      // Проверяем размер файла - MEGA поддерживает до 4GB
+      const maxSize = 4 * 1024 * 1024 * 1024; // 4GB
       if (file.size > maxSize) {
-        throw new Error(`Файл слишком большой. Максимальный размер: ${maxSize / 1024 / 1024}MB`);
+        throw new Error(`Файл слишком большой. Максимальный размер: ${maxSize / 1024 / 1024 / 1024}GB`);
       }
 
-      // Загружаем файл
-      const response = await this.client.uploadContent(file, {
-        name: file.name,
-        type: file.type,
+      console.log(`📤 Uploading to MEGA: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+
+      // Загружаем файл в MEGA вместо Matrix
+      const userId = this.config.userId || 'anonymous';
+      const fileType = detectFileType(file);
+      
+      const megaResult = await uploadToMega(file, userId, fileType, (progress) => {
+        console.log(`Upload progress: ${progress.percentage}%`);
       });
 
+      console.log(`✅ File uploaded to MEGA: ${megaResult.megaUrl}`);
+
+      // Возвращаем MEGA URL как content_uri
+      // Matrix будет использовать этот URL для отображения файла
       return {
-        content_uri: response.content_uri,
+        content_uri: megaResult.megaUrl || megaResult.url,
         file_size: file.size,
+        mega_url: megaResult.megaUrl,
       };
     } catch (error) {
-      console.error('Failed to upload media to Matrix:', error);
+      console.error('Failed to upload media to MEGA:', error);
       throw error;
     }
   }
@@ -187,7 +198,7 @@ export class MatrixClientManager {
     const content = {
       msgtype: MsgType.Image,
       body: caption || file.name,
-      url: uploadResult.content_uri,
+      url: uploadResult.content_uri, // MEGA URL
       info: {
         size: uploadResult.file_size,
         mimetype: file.type,
@@ -205,7 +216,7 @@ export class MatrixClientManager {
     const content = {
       msgtype: MsgType.Video,
       body: caption || file.name,
-      url: uploadResult.content_uri,
+      url: uploadResult.content_uri, // MEGA URL
       info: {
         size: uploadResult.file_size,
         mimetype: file.type,
@@ -221,7 +232,7 @@ export class MatrixClientManager {
     const content = {
       msgtype: MsgType.Audio,
       body: file.name,
-      url: uploadResult.content_uri,
+      url: uploadResult.content_uri, // MEGA URL
       info: {
         size: uploadResult.file_size,
         mimetype: file.type,
@@ -238,7 +249,7 @@ export class MatrixClientManager {
       msgtype: MsgType.File,
       body: file.name,
       filename: file.name,
-      url: uploadResult.content_uri,
+      url: uploadResult.content_uri, // MEGA URL
       info: {
         size: uploadResult.file_size,
         mimetype: file.type,

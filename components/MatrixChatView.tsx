@@ -133,6 +133,24 @@ export default function MatrixChatView({ roomId, onBack }: MatrixChatViewProps) 
       isOwn: sender === currentUserId,
     };
 
+    // Функция для получения URL (поддержка как Matrix mxc://, так и прямых MEGA URLs)
+    const getFileUrl = (url: string): string => {
+      if (!url) return '';
+      
+      // Если это MEGA URL, возвращаем как есть
+      if (url.startsWith('https://mega.nz/')) {
+        return url;
+      }
+      
+      // Если это Matrix mxc:// URL, конвертируем
+      if (url.startsWith('mxc://')) {
+        return matrixClient?.getClient()?.mxcUrlToHttp(url) || '';
+      }
+      
+      // Иначе возвращаем как есть
+      return url;
+    };
+
     switch (content.msgtype) {
       case MsgType.Text:
         return {
@@ -146,7 +164,7 @@ export default function MatrixChatView({ roomId, onBack }: MatrixChatViewProps) 
           ...baseMessage,
           type: 'image',
           content: content.body || 'Изображение',
-          url: matrixClient?.getClient()?.mxcUrlToHttp(content.url) || '',
+          url: getFileUrl(content.url),
           width: content.info?.w,
           height: content.info?.h,
           filesize: content.info?.size,
@@ -158,7 +176,7 @@ export default function MatrixChatView({ roomId, onBack }: MatrixChatViewProps) 
           ...baseMessage,
           type: 'video',
           content: content.body || 'Видео',
-          url: matrixClient?.getClient()?.mxcUrlToHttp(content.url) || '',
+          url: getFileUrl(content.url),
           filesize: content.info?.size,
           mimetype: content.info?.mimetype,
         };
@@ -168,7 +186,7 @@ export default function MatrixChatView({ roomId, onBack }: MatrixChatViewProps) 
           ...baseMessage,
           type: 'audio',
           content: content.body || 'Аудио',
-          url: matrixClient?.getClient()?.mxcUrlToHttp(content.url) || '',
+          url: getFileUrl(content.url),
           filesize: content.info?.size,
           mimetype: content.info?.mimetype,
         };
@@ -178,7 +196,7 @@ export default function MatrixChatView({ roomId, onBack }: MatrixChatViewProps) 
           ...baseMessage,
           type: 'file',
           content: content.body || 'Файл',
-          url: matrixClient?.getClient()?.mxcUrlToHttp(content.url) || '',
+          url: getFileUrl(content.url),
           filename: content.filename || content.body,
           filesize: content.info?.size,
           mimetype: content.info?.mimetype,
