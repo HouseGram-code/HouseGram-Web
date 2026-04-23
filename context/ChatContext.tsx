@@ -204,67 +204,67 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
                   lastSeen: serverTimestamp() 
                 }); 
               } catch (e) {
-              console.warn('Could not update user status:', e);
-            }
-            
-            // Инициализация push-уведомлений (временно отключено)
-            // TODO: Получить правильный VAPID ключ из Firebase Console
-            // Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
-            /*
-            if (typeof window !== 'undefined' && 'Notification' in window) {
-              setTimeout(async () => {
-                try {
-                  const { initializeNotifications, onForegroundMessage } = await import('@/lib/notifications');
-                  const token = await initializeNotifications(currentUser.uid);
-                  
-                  if (token) {
-                    console.log('Push notifications initialized successfully');
-                    onForegroundMessage((payload) => {
-                      console.log('Received foreground message:', payload);
-                    });
+                console.warn('Could not update user status:', e);
+              }
+              
+              // Инициализация push-уведомлений (временно отключено)
+              // TODO: Получить правильный VAPID ключ из Firebase Console
+              // Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
+              /*
+              if (typeof window !== 'undefined' && 'Notification' in window) {
+                setTimeout(async () => {
+                  try {
+                    const { initializeNotifications, onForegroundMessage } = await import('@/lib/notifications');
+                    const token = await initializeNotifications(currentUser.uid);
+                    
+                    if (token) {
+                      console.log('Push notifications initialized successfully');
+                      onForegroundMessage((payload) => {
+                        console.log('Received foreground message:', payload);
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Failed to initialize notifications:', error);
                   }
-                } catch (error) {
-                  console.error('Failed to initialize notifications:', error);
-                }
-              }, 2000);
+                }, 2000);
+              }
+              */
+            } else {
+              const rawUsername = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
+              const finalUsername = rawUsername.startsWith('@') ? rawUsername : '@' + rawUsername.replace(/@/g, '');
+              try {
+                await setDoc(doc(db, 'users', currentUser.uid), {
+                  uid: currentUser.uid, email: currentUser.email,
+                  name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
+                  username: finalUsername.substring(0, 15), bio: '',
+                  role: isAdminEmail(currentUser.email) ? 'admin' : 'user',
+                  isBanned: false, createdAt: serverTimestamp(), status: 'online', lastSeen: serverTimestamp(),
+                  stars: 0, giftsSent: 0, giftsReceived: 0
+                });
+                setIsAdmin(isAdminEmail(currentUser.email));
+                setUserProfile({
+                  name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
+                  username: finalUsername.substring(0, 15), bio: '', phone: '+7 9XX XXX XX XX',
+                  avatarUrl: '', status: 'online', lastSeen: new Date(),
+                  isOfficial: isAdminEmail(currentUser.email)
+                });
+              } catch (e) { console.error('Failed to create user document', e); }
             }
-            */
-          } else {
-            const rawUsername = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
-            const finalUsername = rawUsername.startsWith('@') ? rawUsername : '@' + rawUsername.replace(/@/g, '');
-            try {
-              await setDoc(doc(db, 'users', currentUser.uid), {
-                uid: currentUser.uid, email: currentUser.email,
-                name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
-                username: finalUsername.substring(0, 15), bio: '',
-                role: isAdminEmail(currentUser.email) ? 'admin' : 'user',
-                isBanned: false, createdAt: serverTimestamp(), status: 'online', lastSeen: serverTimestamp(),
-                stars: 0, giftsSent: 0, giftsReceived: 0
-              });
-              setIsAdmin(isAdminEmail(currentUser.email));
-              setUserProfile({
-                name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
-                username: finalUsername.substring(0, 15), bio: '', phone: '+7 9XX XXX XX XX',
-                avatarUrl: '', status: 'online', lastSeen: new Date(),
-                isOfficial: isAdminEmail(currentUser.email)
-              });
-            } catch (e) { console.error('Failed to create user document', e); }
+            setView('menu');
+          } catch (e) { 
+            console.error('Auth state error:', e); 
+            // Если Firebase недоступен, переходим к авторизации
+            setView('auth'); 
           }
-          setView('menu');
-        } catch (e) { 
-          console.error('Auth state error:', e); 
-          // Если Firebase недоступен, переходим к авторизации
+        } else { 
+          setIsAdmin(false); 
           setView('auth'); 
         }
-      } else { 
-        setIsAdmin(false); 
-        setView('auth'); 
+      } catch (error) {
+        console.error('Firebase auth error:', error);
+        // Если Firebase auth недоступен, все равно показываем интерфейс
+        setView('auth');
       }
-      setAuthReady(true);
-    }, (error) => {
-      console.error('Firebase auth error:', error);
-      // Если Firebase auth недоступен, все равно показываем интерфейс
-      setView('auth');
       setAuthReady(true);
     });
 
