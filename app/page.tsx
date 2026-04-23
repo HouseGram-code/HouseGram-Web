@@ -3,7 +3,7 @@
 import { ChatProvider, useChat } from '@/context/ChatContext';
 import { AnimatePresence } from 'motion/react';
 import dynamic from 'next/dynamic';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, useState, useEffect } from 'react';
 import { isDemoMode } from '@/lib/firebase';
 import { isSupabaseDemoMode } from '@/lib/supabase';
 
@@ -100,6 +100,10 @@ const MyStoriesView = dynamic(() => import('@/components/MyStoriesView'), {
 const NewsView = dynamic(() => import('@/components/NewsView'), {
   loading: () => <LoadingSpinner />
 });
+const ProxyView = dynamic(() => import('@/components/ProxyView'), {
+  loading: () => <LoadingSpinner />
+});
+const ConnectionLoader = dynamic(() => import('@/components/ConnectionLoader'));
 
 function LoadingSpinner() {
   return (
@@ -137,10 +141,28 @@ const viewComponents: Record<string, React.ComponentType> = {
   'buy-stars': BuyStarsView,
   'my-stories': MyStoriesView,
   news: NewsView,
+  proxy: ProxyView,
 };
 
 function AppContent() {
   const { view, isLocked, user, isDarkMode, activeChatId } = useChat();
+  const [showConnectionLoader, setShowConnectionLoader] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
+
+  useEffect(() => {
+    // Показываем лоадер только при первой загрузке
+    const hasShownLoader = sessionStorage.getItem('housegram_loader_shown');
+    if (hasShownLoader) {
+      setShowConnectionLoader(false);
+      setIsAppReady(true);
+    }
+  }, []);
+
+  const handleConnectionComplete = () => {
+    sessionStorage.setItem('housegram_loader_shown', 'true');
+    setShowConnectionLoader(false);
+    setIsAppReady(true);
+  };
 
   // Контейнер-обёртка
   const AppShell = ({ children }: { children: React.ReactNode }) => (
@@ -174,10 +196,18 @@ function AppContent() {
 
   return (
     <AppShell>
+      {/* Connection Loader */}
+      <ConnectionLoader 
+        isVisible={showConnectionLoader} 
+        onComplete={handleConnectionComplete} 
+      />
 
-      <AnimatePresence initial={false} mode="popLayout">
-        {ActiveView && <ActiveView key={`${view}-${activeChatId || 'none'}`} />}
-      </AnimatePresence>
+      {/* Main App Content */}
+      {isAppReady && (
+        <AnimatePresence initial={false} mode="popLayout">
+          {ActiveView && <ActiveView key={`${view}-${activeChatId || 'none'}`} />}
+        </AnimatePresence>
+      )}
       <SideMenu />
     </AppShell>
   );

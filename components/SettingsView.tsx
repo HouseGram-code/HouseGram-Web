@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare, Moon, Sun, Palette } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare, Moon, Sun, Palette, Globe } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { storage, auth, db } from '@/lib/firebase';
@@ -453,6 +453,17 @@ export default function SettingsView() {
               text="Настройки чата" 
               onClick={() => setView('chat-settings')} 
               divider
+              isDarkMode={isDarkMode}
+            />
+          </div>
+
+          {/* Группа: Подключение */}
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+            <SettingsItem 
+              icon={<Globe size={22} className="text-blue-500" />} 
+              text="Прокси" 
+              subtitle="Обход блокировок"
+              onClick={() => setView('proxy')} 
               isDarkMode={isDarkMode}
             />
           </div>
