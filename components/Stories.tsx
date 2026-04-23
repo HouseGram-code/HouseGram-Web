@@ -9,7 +9,7 @@ import { Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { collection, addDoc, query, where, getDocs, orderBy, updateDoc, doc, arrayUnion, getDoc, onSnapshot } from 'firebase/firestore';
-import { uploadFile } from '@/lib/firebase-storage';
+import { uploadFile } from '@/lib/mega-storage';
 import StoryViewer from './StoryViewer';
 
 interface Story {
