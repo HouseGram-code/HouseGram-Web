@@ -745,7 +745,7 @@ export default function ChatView() {
                       onClick={() => { setShowClearModal(true); setIsMenuOpen(false); }} 
                       className="w-full text-left px-4 py-3 hover:bg-gray-100 text-[15px] transition-colors flex items-center gap-3"
                     >
-                      <span className="text-gray-600">🗑️</span>
+                      <Trash2 size={18} className="text-gray-500" />
                       Очистить историю
                     </button>
                     <div className="h-px bg-gray-100 mx-2" />
@@ -753,7 +753,7 @@ export default function ChatView() {
                       onClick={() => { setShowDeleteModal(true); setIsMenuOpen(false); }} 
                       className="w-full text-left px-4 py-3 hover:bg-red-50 text-[15px] text-red-500 transition-colors flex items-center gap-3"
                     >
-                      <span>❌</span>
+                      <X size={18} className="text-red-500" />
                       Удалить чат
                     </button>
                   </motion.div>
