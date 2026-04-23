@@ -151,15 +151,15 @@ export default function ProfileView() {
 
         {/* Founder Badge Section */}
         {userStats.isFounder && (
-          <div className="mx-4 mt-4 bg-gradient-to-r from-purple-50 via-blue-50 to-indigo-50 rounded-xl p-4 border border-purple-200 relative overflow-hidden">
+          <div className="mx-4 mt-4 bg-gradient-to-r from-red-50 via-gray-50 to-black/5 rounded-xl p-4 border border-red-200 relative overflow-hidden">
             {/* Декоративный фон */}
             <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-              <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-500 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+              <div className="absolute top-0 right-0 w-20 h-20 bg-red-600 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+              <div className="absolute bottom-0 left-0 w-16 h-16 bg-black rounded-full translate-y-1/2 -translate-x-1/2"></div>
             </div>
             
             <div className="relative z-10 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shrink-0 shadow-lg">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-600 to-black flex items-center justify-center shrink-0 shadow-lg">
                 <FounderBadge size={32} />
               </div>
               <div className="flex-grow">
@@ -171,18 +171,18 @@ export default function ProfileView() {
             </div>
             
             {/* Дополнительная информация */}
-            <div className="mt-3 pt-3 border-t border-purple-200/50">
+            <div className="mt-3 pt-3 border-t border-red-200/50">
               <div className="flex items-center gap-4 text-[12px] text-gray-600">
                 <div className="flex items-center gap-1">
-                  <span className="text-purple-600">🏗️</span>
+                  <span className="text-red-600">🏗️</span>
                   <span>Архитектор системы</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-blue-600">💡</span>
+                  <span className="text-gray-800">💡</span>
                   <span>Идейный вдохновитель</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-indigo-600">⚡</span>
+                  <span className="text-red-700">⚡</span>
                   <span>Основатель</span>
                 </div>
               </div>

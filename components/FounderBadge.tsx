@@ -18,10 +18,10 @@ export default function FounderBadge({ size = 24, className = '' }: FounderBadge
     >
       {/* Основной круг с градиентом */}
       <div 
-        className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-700 shadow-lg"
+        className="absolute inset-0 rounded-full shadow-lg"
         style={{
-          background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #4F46E5 100%)',
-          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)'
+          background: 'linear-gradient(135deg, #DC2626 0%, #991B1B 50%, #000000 100%)',
+          boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)'
         }}
       />
       
@@ -43,7 +43,7 @@ export default function FounderBadge({ size = 24, className = '' }: FounderBadge
         className="relative z-10 font-bold text-transparent bg-clip-text"
         style={{
           fontSize: size * 0.5,
-          background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #4F46E5 100%)',
+          background: 'linear-gradient(135deg, #DC2626 0%, #991B1B 50%, #000000 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',

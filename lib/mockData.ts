@@ -15,24 +15,6 @@ export const initialContacts: Record<string, Contact> = {
     isTyping: false,
     unread: 0,
   },
-  founder_goh: {
-    id: 'founder_goh',
-    name: 'goh',
-    initial: 'G',
-    avatarColor: '#8B5CF6',
-    statusOnline: 'онлайн',
-    statusOffline: 'был(а) недавно',
-    phone: '',
-    bio: 'Основатель и создатель HouseGram. Спасибо за использование нашего мессенджера! 🚀',
-    username: '@goh',
-    messages: [
-      { id: '1', type: 'received', text: 'Добро пожаловать в HouseGram! 🎉 Надеюсь, вам понравится наш мессенджер.', time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }
-    ],
-    isTyping: false,
-    unread: 1,
-    isFounder: true,
-    isOfficial: true,
-  },
   test_bot: {
     id: 'test_bot',
     name: 'HouseGram AI',
