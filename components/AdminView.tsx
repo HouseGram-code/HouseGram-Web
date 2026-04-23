@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck, CreditCard, Zap, Clock, CheckCheck, X } from 'lucide-react';
+import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck, CreditCard, Zap, Clock, CheckCheck, X, Crown } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 import { supabase } from '@/lib/supabase';
 
-type TabType = 'users' | 'stats' | 'system' | 'database' | 'payments';
+type TabType = 'users' | 'stats' | 'system' | 'database' | 'payments' | 'premium';
 
 export default function AdminView() {
   const { setView, themeColor, isGlassEnabled, isAdmin } = useChat();
@@ -31,6 +31,8 @@ export default function AdminView() {
   const [starsAmount, setStarsAmount] = useState(100);
   const [paymentRequests, setPaymentRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const [premiumRequests, setPremiumRequests] = useState<any[]>([]);
+  const [loadingPremiumRequests, setLoadingPremiumRequests] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -42,6 +44,7 @@ export default function AdminView() {
     fetchUsers();
     fetchStats();
     fetchPaymentRequests();
+    fetchPremiumRequests();
 
     const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
@@ -62,9 +65,23 @@ export default function AdminView() {
       }
     );
 
+    // Подписка на заявки премиума в реальном времени
+    const unsubscribePremiumRequests = onSnapshot(
+      collection(db, 'premium_requests'),
+      (snapshot) => {
+        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+        setPremiumRequests(requests.sort((a, b) => {
+          if (a.status === 'pending' && b.status !== 'pending') return -1;
+          if (a.status !== 'pending' && b.status === 'pending') return 1;
+          return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+        }));
+      }
+    );
+
     return () => {
       unsubscribe();
       unsubscribeRequests();
+      unsubscribePremiumRequests();
     };
   }, [isAdmin, setView]);
 
@@ -105,6 +122,98 @@ export default function AdminView() {
       });
     } catch (err) {
       console.error('Error fetching stats', err);
+    }
+  };
+
+  const fetchPremiumRequests = async () => {
+    try {
+      setLoadingPremiumRequests(true);
+      const snapshot = await getDocs(collection(db, 'premium_requests'));
+      const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      setPremiumRequests(requests.sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      }));
+    } catch (err) {
+      console.error('Error fetching premium requests', err);
+    } finally {
+      setLoadingPremiumRequests(false);
+    }
+  };
+
+  const approvePremium = async (requestId: string, userId: string, days: number = 30) => {
+    try {
+      // Выдаем премиум на указанное количество дней
+      const userRef = doc(db, 'users', userId);
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + days);
+      
+      await updateDoc(userRef, {
+        premium: true,
+        premiumExpiry: expiryDate
+      });
+
+      // Обновляем статус заявки
+      await updateDoc(doc(db, 'premium_requests', requestId), {
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+        premiumDays: days
+      });
+
+      alert(`✅ Premium выдан на ${days} дней!`);
+    } catch (err) {
+      console.error('Error approving premium:', err);
+      alert('Ошибка при выдаче Premium');
+    }
+  };
+
+  const rejectPremium = async (requestId: string) => {
+    try {
+      await updateDoc(doc(db, 'premium_requests', requestId), {
+        status: 'rejected',
+        rejectedAt: new Date().toISOString()
+      });
+      alert('❌ Заявка на Premium отклонена');
+    } catch (err) {
+      console.error('Error rejecting premium:', err);
+      alert('Ошибка при отклонении заявки');
+    }
+  };
+
+  const givePremium = async (userId: string, days: number) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + days);
+      
+      await updateDoc(userRef, {
+        premium: true,
+        premiumExpiry: expiryDate
+      });
+
+      alert(`✅ Premium выдан пользователю ${selectedUser?.name} на ${days} дней`);
+      setShowUserModal(false);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error giving premium:', err);
+      alert('Ошибка при выдаче Premium');
+    }
+  };
+
+  const removePremium = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        premium: false,
+        premiumExpiry: null
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, premium: false, premiumExpiry: null } : u));
+      alert(`✅ Premium убран у ${selectedUser?.name}`);
+      setShowUserModal(false);
+    } catch (err) {
+      console.error('Error removing premium:', err);
+      alert('Ошибка при удалении Premium');
     }
   };
 
@@ -327,6 +436,12 @@ export default function AdminView() {
           onClick={() => setActiveTab('payments')}
           icon={<CreditCard size={18} />}
           label="Пополнения"
+        />
+        <TabButton 
+          active={activeTab === 'premium'} 
+          onClick={() => setActiveTab('premium')}
+          icon={<Crown size={18} />}
+          label="Premium"
         />
         <TabButton 
           active={activeTab === 'stats'} 
@@ -558,6 +673,162 @@ export default function AdminView() {
                   ))}
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {activeTab === 'premium' && (
+            <motion.div
+              key="premium"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4"
+            >
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <Crown size={24} className="text-purple-500" />
+                  Заявки на Premium
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Управление заявками на Premium подписку
+                </p>
+              </div>
+
+              {premiumRequests.length === 0 ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <Crown size={48} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-500">Нет заявок на Premium</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {premiumRequests.map((request: any) => (
+                    <div
+                      key={request.id}
+                      className={`bg-white rounded-xl p-4 border-2 ${
+                        request.status === 'pending'
+                          ? 'border-purple-300 bg-purple-50'
+                          : request.status === 'approved'
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-red-300 bg-red-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">
+                              {request.userName || 'Пользователь'}
+                            </span>
+                            {request.status === 'pending' && (
+                              <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <Clock size={12} />
+                                Ожидает
+                              </span>
+                            )}
+                            {request.status === 'approved' && (
+                              <span className="px-2 py-0.5 bg-green-200 text-green-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <CheckCheck size={12} />
+                                Одобрено
+                              </span>
+                            )}
+                            {request.status === 'rejected' && (
+                              <span className="px-2 py-0.5 bg-red-200 text-red-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <X size={12} />
+                                Отклонено
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">{request.userEmail}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            ID: {request.id.slice(0, 8)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-purple-600 font-bold text-lg">
+                            <Crown size={20} />
+                            Premium
+                          </div>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {request.price} ₽
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500 mb-3">
+                        {request.createdAt && new Date(request.createdAt.seconds * 1000).toLocaleString('ru-RU')}
+                      </div>
+
+                      {request.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => approvePremium(request.id, request.userId, 30)}
+                            className="flex-1 bg-purple-500 text-white py-2 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle size={18} />
+                            Выдать на 30 дней
+                          </button>
+                          <button
+                            onClick={() => rejectPremium(request.id)}
+                            className="flex-1 bg-red-500 text-white py-2 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Ban size={18} />
+                            Отклонить
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Manual Premium Management */}
+              <div className="mt-6 bg-white rounded-xl p-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Crown size={20} className="text-purple-500" />
+                  Ручное управление Premium
+                </h3>
+                
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username пользователя (без @):');
+                      if (username) {
+                        const days = prompt('На сколько дней выдать Premium?', '30');
+                        if (days && !isNaN(Number(days))) {
+                          // Найти пользователя по username и выдать премиум
+                          const user = users.find(u => u.username === '@' + username || u.username === username);
+                          if (user) {
+                            givePremium(user.id, Number(days));
+                          } else {
+                            alert('Пользователь не найден');
+                          }
+                        }
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  >
+                    <Crown size={20} />
+                    Выдать Premium по username
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username пользователя для удаления Premium (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          removePremium(user.id);
+                        } else {
+                          alert('Пользователь не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <X size={20} />
+                    Убрать Premium по username
+                  </button>
+                </div>
+              </div>
             </motion.div>
           )}
 

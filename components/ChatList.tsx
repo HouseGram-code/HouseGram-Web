@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck } from 'lucide-react';
+import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -10,6 +10,8 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import Stories from './Stories';
+import PremiumBadge from './PremiumBadge';
+import PremiumModal from './PremiumModal';
 
 // Генерация цвета аватара на основе ID пользователя
 const getAvatarColor = (userId: string) => {
@@ -33,6 +35,8 @@ export default function ChatList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [selectedPremiumUser, setSelectedPremiumUser] = useState<string>('');
 
   // Debounce поиска (300ms)
   useEffect(() => {
@@ -108,6 +112,7 @@ export default function ChatList() {
       unread: 0,
       isChannel: false,
       isOfficial: user.role === 'admin' || user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL,
+      premium: user.premium === true
     });
     setActiveChatId(user.id);
     setView('chat');
@@ -332,6 +337,16 @@ export default function ChatList() {
                 <div className="font-semibold text-[16px] text-tg-text-primary mb-1 truncate flex items-center gap-1.5">
                   {contact.name}
                   {contact.isOfficial && <BadgeCheck size={17} className="text-blue-500 fill-blue-500 text-white" />}
+                  {contact.premium && (
+                    <PremiumBadge 
+                      size="sm" 
+                      onClick={(e) => {
+                        e?.stopPropagation();
+                        setSelectedPremiumUser(contact.name);
+                        setShowPremiumModal(true);
+                      }}
+                    />
+                  )}
                 </div>
                 <div className="text-[14px] text-tg-secondary-text truncate leading-snug">{previewText}</div>
               </div>
@@ -367,6 +382,17 @@ export default function ChatList() {
       >
         <Edit2 size={24} />
       </motion.button>
+
+      {/* Premium Modal */}
+      <PremiumModal
+        isOpen={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        userName={selectedPremiumUser}
+        onUpgrade={() => {
+          setShowPremiumModal(false);
+          setView('premium');
+        }}
+      />
     </motion.div>
   );
 }

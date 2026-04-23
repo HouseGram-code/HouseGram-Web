@@ -78,6 +78,7 @@ export interface Contact {
   isChannel?: boolean;
   isOfficial?: boolean;
   isFounder?: boolean;
+  premium?: boolean;
 }
 
 export interface Channel {
@@ -106,6 +107,8 @@ export interface UserProfile {
   savedStickers?: string[];
   giftsSent?: number;
   giftsReceived?: number;
+  premium?: boolean;
+  premiumExpiry?: FirestoreTimestamp | null;
 }
 
 export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'privacy-settings' | 'notifications' | 'security' | 'admin' | 'auth' | 'info' | 'faq' | 'terms' | 'create-channel' | 'channel-info' | 'notification-stats' | 'server-status' | 'stars' | 'premium' | 'send-gift' | 'my-gifts' | 'user-gifts' | 'buy-stars' | 'my-stories' | 'news' | 'proxy';

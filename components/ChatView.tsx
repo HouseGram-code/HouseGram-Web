@@ -13,6 +13,8 @@ import { correctText, detectLanguage } from '@/lib/aiCorrection';
 import Message from './Message';
 import ChatInput from './ChatInput';
 import FounderBadge from './FounderBadge';
+import PremiumBadge from './PremiumBadge';
+import PremiumModal from './PremiumModal';
 
 type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 
@@ -36,6 +38,7 @@ export default function ChatView() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const stickerFileInputRef = useRef<HTMLInputElement>(null);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const [contextMenu, setContextMenu] = useState<{ msgId: string; x: number; y: number } | null>(null);
   const [showForwardPicker, setShowForwardPicker] = useState(false);
@@ -697,6 +700,12 @@ export default function ChatView() {
               {contact.name}
               {contact.isFounder && <FounderBadge size={18} />}
               {contact.isOfficial && !contact.isFounder && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
+              {contact.premium && (
+                <PremiumBadge 
+                  size="sm" 
+                  onClick={() => setShowPremiumModal(true)}
+                />
+              )}
             </div>
             <div className="text-[13px] text-[#d1e0ec]">{contact.isChannel ? contact.statusOnline : (contact.isTyping ? 'печатает...' : contact.statusOffline)}</div>
           </div>
@@ -1602,6 +1611,17 @@ export default function ChatView() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Premium Modal */}
+      <PremiumModal
+        isOpen={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        userName={contact?.name || ''}
+        onUpgrade={() => {
+          setShowPremiumModal(false);
+          setView('premium');
+        }}
+      />
     </motion.div>
   );
 }

@@ -90,6 +90,10 @@ interface ChatContextType {
   logout: () => void;
   addContact: (contact: Contact) => void;
   setTypingStatus: (chatId: string, isTyping: boolean) => void;
+  isPremium: boolean;
+  premiumExpiry: Date | null;
+  aiRequestsToday: number;
+  maxAiRequests: number;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -156,6 +160,10 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [premiumExpiry, setPremiumExpiry] = useState<Date | null>(null);
+  const [aiRequestsToday, setAiRequestsToday] = useState(0);
+  const [maxAiRequests, setMaxAiRequests] = useState(1);
 
   const settingsRef = useRef({ soundEnabled, notificationsEnabled });
 
@@ -195,6 +203,37 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
               const data = userDoc.data();
               if (data.isBanned === true) { setView('auth'); setAuthReady(true); return; }
               setIsAdmin(isAdminEmail(currentUser.email) || data.role === 'admin');
+              
+              // Проверяем премиум статус
+              const premium = data.premium || false;
+              const expiry = data.premiumExpiry;
+              let validPremium = premium;
+              
+              if (premium && expiry) {
+                const expiryDate = expiry.toDate ? expiry.toDate() : new Date(expiry);
+                if (expiryDate < new Date()) {
+                  // Премиум истек, убираем его
+                  validPremium = false;
+                  try {
+                    await updateDoc(doc(db, 'users', currentUser.uid), {
+                      premium: false,
+                      premiumExpiry: null
+                    });
+                  } catch (e) {
+                    console.warn('Could not update expired premium:', e);
+                  }
+                } else {
+                  setPremiumExpiry(expiryDate);
+                }
+              }
+              
+              setIsPremium(validPremium);
+              setMaxAiRequests(validPremium ? 5 : 1);
+              
+              // Загружаем количество AI запросов за сегодня
+              const today = new Date().toDateString();
+              const aiRequests = data.aiRequestsToday || {};
+              setAiRequestsToday(aiRequests[today] || 0);
               setUserProfile({
                 name: data.name || 'Ваше Имя', username: data.username || '', bio: data.bio || '',
                 phone: data.phone || '+7 9XX XXX XX XX', avatarUrl: data.avatarUrl || '',
@@ -743,6 +782,12 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
       const ai = getAi();
       if (currentChatId === 'test_bot' && ai) {
+        // Проверяем лимит AI запросов
+        if (aiRequestsToday >= maxAiRequests) {
+          alert(`Достигнут дневной лимит AI запросов (${maxAiRequests}). ${isPremium ? 'Попробуйте завтра.' : 'Купите Premium для увеличения лимита до 5 запросов в день!'}`);
+          return;
+        }
+
         try {
           const response = await ai.models.generateContent({
             model: 'gemini-2.0-flash', contents: text,
@@ -750,6 +795,20 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           });
           const aiText = response.text;
           if (aiText && aiText.trim()) {
+            // Увеличиваем счетчик AI запросов
+            const today = new Date().toDateString();
+            const newCount = aiRequestsToday + 1;
+            setAiRequestsToday(newCount);
+            
+            // Обновляем в Firebase
+            try {
+              await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+                [`aiRequestsToday.${today}`]: newCount
+              });
+            } catch (e) {
+              console.warn('Could not update AI requests count:', e);
+            }
+
             const aiNow = serverTimestamp();
             const aiTime = `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`;
             await addDoc(collection(db, 'chats', chatId, 'messages'), {
@@ -765,7 +824,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Failed to send message', e);
       alert(`Ошибка при отправке сообщения: ${e instanceof Error ? e.message : String(e)}`);
     }
-  }, [playSound, contacts, userProfile]);
+  }, [playSound, contacts, userProfile, aiRequestsToday, maxAiRequests, isPremium]);
 
   const editMessage = useCallback(async (messageId: string, newText: string) => {
     if (!user || !activeChatId) return;
@@ -932,7 +991,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
               avatarColor: getAvatarColor(otherUserId), avatarUrl: userData.avatarUrl || '', statusOnline, statusOffline,
               phone: userData.phone || '', bio: userData.bio || '', username: userData.username || '',
               messages: dummyMessages, isTyping: false, unread: 0, isChannel: false,
-              isOfficial: userData.isOfficial === true || userData.role === 'admin' || isAdminEmail(userData.email)
+              isOfficial: userData.isOfficial === true || userData.role === 'admin' || isAdminEmail(userData.email),
+              premium: userData.premium === true
             };
           }
         } catch (e) { console.error('Error fetching user doc for chat:', otherUserId, e); }
@@ -1126,7 +1186,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       isDarkMode, setIsDarkMode: (val: boolean) => { setIsDarkMode(val); localStorage.setItem('housegram_dark_mode', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode, user, 
       currentUser: user ? { id: user.uid, email: user.email } : null,
-      isAdmin, isMaintenance, logout, setTypingStatus
+      isAdmin, isMaintenance, logout, setTypingStatus,
+      isPremium, premiumExpiry, aiRequestsToday, maxAiRequests
     }}>
       {!authReady ? (
         <div className="absolute inset-0 flex items-center justify-center bg-white z-50">

@@ -25,7 +25,7 @@ const colorThemes = [
 ];
 
 export default function SettingsView() {
-  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile, user, isDarkMode, setIsDarkMode, setThemeColor } = useChat();
+  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile, user, isDarkMode, setIsDarkMode, setThemeColor, isPremium, premiumExpiry, aiRequestsToday, maxAiRequests } = useChat();
   const [isEditing, setIsEditing] = useState(false);
   const [editProfile, setEditProfile] = useState(userProfile);
   const [isUploading, setIsUploading] = useState(false);
@@ -345,6 +345,27 @@ export default function SettingsView() {
                 <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Подарков</div>
               </div>
             </div>
+            
+            {/* AI Usage */}
+            <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-blue-200'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-[12px] font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>ИИ запросы сегодня:</span>
+                <span className={`text-[14px] font-bold ${aiRequestsToday >= maxAiRequests ? 'text-red-500' : isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                  {aiRequestsToday}/{maxAiRequests}
+                </span>
+              </div>
+              <div className={`w-full h-2 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-blue-100'}`}>
+                <div 
+                  className={`h-2 rounded-full transition-all ${aiRequestsToday >= maxAiRequests ? 'bg-red-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'}`}
+                  style={{ width: `${Math.min((aiRequestsToday / maxAiRequests) * 100, 100)}%` }}
+                />
+              </div>
+              {!isPremium && aiRequestsToday >= maxAiRequests && (
+                <p className={`text-[10px] mt-1 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                  Лимит исчерпан. Premium: 5 запросов/день
+                </p>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -388,8 +409,20 @@ export default function SettingsView() {
                 </motion.div>
               </div>
               <div className="flex-grow">
-                <div className={`text-[16px] font-normal ${isDarkMode ? 'text-white' : 'text-black'}`}>HouseGram Premium</div>
-                <div className={`text-[13px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Эксклюзивные возможности</div>
+                <div className={`text-[16px] font-normal ${isDarkMode ? 'text-white' : 'text-black'} flex items-center gap-2`}>
+                  HouseGram Premium
+                  {isPremium && (
+                    <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium rounded-full">
+                      Активен
+                    </span>
+                  )}
+                </div>
+                <div className={`text-[13px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {isPremium && premiumExpiry 
+                    ? `До ${premiumExpiry.toLocaleDateString('ru-RU')}`
+                    : 'Эксклюзивные возможности'
+                  }
+                </div>
               </div>
             </div>
             
