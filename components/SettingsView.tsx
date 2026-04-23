@@ -11,6 +11,7 @@ import { doc, updateDoc, getDoc, collection, query, where, getDocs } from 'fireb
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import imageCompression from 'browser-image-compression';
+import FounderBadge from './FounderBadge';
 
 const colorThemes = [
   { id: 'blue', name: 'Синий', color: '#3B82F6', bg: 'bg-blue-500' },
@@ -231,7 +232,8 @@ export default function SettingsView() {
               ) : (
                 <div className="text-[24px] font-medium leading-tight flex items-center gap-1">
                   {userProfile.name}
-                  {userProfile.isOfficial && <BadgeCheck size={24} className="text-white fill-blue-500" />}
+                  {userProfile.isFounder && <FounderBadge size={28} />}
+                  {userProfile.isOfficial && !userProfile.isFounder && <BadgeCheck size={24} className="text-white fill-blue-500" />}
                 </div>
               )}
               <div className="text-[14px] text-white/70 mt-1">{getStatusText()}</div>

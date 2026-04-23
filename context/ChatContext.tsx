@@ -25,11 +25,16 @@ const getAvatarColor = (userId: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-// Email администратора (вынесен в константу для удобства)
+// Email администратора и основателя (вынесен в константу для удобства)
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || '';
+const FOUNDER_EMAIL = 'goh@gmail.com';
 
 const isAdminEmail = (email: string | null | undefined): boolean => {
   return email === ADMIN_EMAIL;
+};
+
+const isFounderEmail = (email: string | null | undefined): boolean => {
+  return email === FOUNDER_EMAIL;
 };
 
 let aiInstance: GoogleGenAI | null = null;
@@ -194,7 +199,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
                 name: data.name || 'Ваше Имя', username: data.username || '', bio: data.bio || '',
                 phone: data.phone || '+7 9XX XXX XX XX', avatarUrl: data.avatarUrl || '',
                 status: 'online', lastSeen: data.lastSeen,
-                isOfficial: data.isOfficial === true || isAdminEmail(currentUser.email) || data.role === 'admin'
+                isOfficial: data.isOfficial === true || isAdminEmail(currentUser.email) || data.role === 'admin',
+                isFounder: isFounderEmail(currentUser.email) || data.isFounder === true
               });
               
               // Обновляем статус пользователя на "в сети"
@@ -246,7 +252,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
                   name: (currentUser.displayName || currentUser.email?.split('@')[0] || 'User').substring(0, 45),
                   username: finalUsername.substring(0, 15), bio: '', phone: '+7 9XX XXX XX XX',
                   avatarUrl: '', status: 'online', lastSeen: new Date(),
-                  isOfficial: isAdminEmail(currentUser.email)
+                  isOfficial: isAdminEmail(currentUser.email),
+                  isFounder: isFounderEmail(currentUser.email)
                 });
               } catch (e) { console.error('Failed to create user document', e); }
             }

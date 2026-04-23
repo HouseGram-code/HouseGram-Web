@@ -12,6 +12,7 @@ import { stickerPacks, gifCollection } from '@/lib/stickers';
 import { correctText, detectLanguage } from '@/lib/aiCorrection';
 import Message from './Message';
 import ChatInput from './ChatInput';
+import FounderBadge from './FounderBadge';
 
 type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 
@@ -692,7 +693,11 @@ export default function ChatView() {
             </div>
           )}
           <div className="flex-grow leading-tight pointer-events-none">
-            <div className="font-medium text-[16px] flex items-center gap-1">{contact.name}{contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}</div>
+            <div className="font-medium text-[16px] flex items-center gap-1">
+              {contact.name}
+              {contact.isFounder && <FounderBadge size={18} />}
+              {contact.isOfficial && !contact.isFounder && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
+            </div>
             <div className="text-[13px] text-[#d1e0ec]">{contact.isChannel ? contact.statusOnline : (contact.isTyping ? 'печатает...' : contact.statusOffline)}</div>
           </div>
         </motion.div>

@@ -77,6 +77,7 @@ export interface Contact {
   isBot?: boolean;
   isChannel?: boolean;
   isOfficial?: boolean;
+  isFounder?: boolean;
 }
 
 export interface Channel {
@@ -101,6 +102,7 @@ export interface UserProfile {
   status?: 'online' | 'offline';
   lastSeen?: FirestoreTimestamp | null;
   isOfficial?: boolean;
+  isFounder?: boolean;
   savedStickers?: string[];
   giftsSent?: number;
   giftsReceived?: number;

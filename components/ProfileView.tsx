@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import FounderBadge from './FounderBadge';
 
 export default function ProfileView() {
   const { contacts, activeChatId, setView, themeColor, isGlassEnabled, sendMessage, blockContact } = useChat();
@@ -18,7 +19,8 @@ export default function ProfileView() {
     giftsSent: 0,
     giftsReceived: 0,
     stars: 0,
-    joinedDate: null as Date | null
+    joinedDate: null as Date | null,
+    isFounder: false
   });
 
   // Загрузка статистики пользователя
@@ -34,7 +36,8 @@ export default function ProfileView() {
             giftsSent: data.giftsSent || 0,
             giftsReceived: data.giftsReceived || 0,
             stars: data.stars || 0,
-            joinedDate: data.createdAt?.toDate() || null
+            joinedDate: data.createdAt?.toDate() || null,
+            isFounder: data.isFounder === true || data.email === 'goh@gmail.com'
           });
         }
       } catch (error) {
@@ -131,7 +134,8 @@ export default function ProfileView() {
             
             <div className="text-[24px] font-bold text-white mb-1 flex items-center gap-2">
               {contact.name}
-              {contact.isOfficial && <BadgeCheck size={24} className="text-white fill-white" />}
+              {userStats.isFounder && <FounderBadge size={28} />}
+              {contact.isOfficial && !userStats.isFounder && <BadgeCheck size={24} className="text-white fill-white" />}
             </div>
             
             <div className="flex items-center gap-2 text-white/90 text-[14px] mb-2">
@@ -145,8 +149,49 @@ export default function ProfileView() {
           </div>
         </div>
 
+        {/* Founder Badge Section */}
+        {userStats.isFounder && (
+          <div className="mx-4 mt-4 bg-gradient-to-r from-purple-50 via-blue-50 to-indigo-50 rounded-xl p-4 border border-purple-200 relative overflow-hidden">
+            {/* Декоративный фон */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+              <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-500 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+            </div>
+            
+            <div className="relative z-10 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shrink-0 shadow-lg">
+                <FounderBadge size={32} />
+              </div>
+              <div className="flex-grow">
+                <div className="text-[16px] font-bold text-gray-900 mb-1">Основатель HouseGram</div>
+                <div className="text-[13px] text-gray-600 leading-relaxed">
+                  Создатель и разработчик платформы HouseGram. Спасибо за использование нашего мессенджера! 🚀
+                </div>
+              </div>
+            </div>
+            
+            {/* Дополнительная информация */}
+            <div className="mt-3 pt-3 border-t border-purple-200/50">
+              <div className="flex items-center gap-4 text-[12px] text-gray-600">
+                <div className="flex items-center gap-1">
+                  <span className="text-purple-600">🏗️</span>
+                  <span>Архитектор системы</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-blue-600">💡</span>
+                  <span>Идейный вдохновитель</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-indigo-600">⚡</span>
+                  <span>Основатель</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Badges Section */}
-        {contact.isOfficial && (
+        {contact.isOfficial && !userStats.isFounder && (
           <div className="mx-4 mt-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
