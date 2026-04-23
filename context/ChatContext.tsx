@@ -173,31 +173,37 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     // Инициализируем settings/global если его нет
-    initializeFirebaseSettings();
+    try {
+      initializeFirebaseSettings();
+    } catch (error) {
+      console.warn('Failed to initialize Firebase settings:', error);
+      // Продолжаем работу без Firebase настроек
+    }
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            if (data.isBanned === true) { setView('auth'); setAuthReady(true); return; }
-            setIsAdmin(isAdminEmail(currentUser.email) || data.role === 'admin');
-            setUserProfile({
-              name: data.name || 'Ваше Имя', username: data.username || '', bio: data.bio || '',
-              phone: data.phone || '+7 9XX XXX XX XX', avatarUrl: data.avatarUrl || '',
-              status: 'online', lastSeen: data.lastSeen,
-              isOfficial: data.isOfficial === true || isAdminEmail(currentUser.email) || data.role === 'admin'
-            });
-            
-            // Обновляем статус пользователя на "в сети"
-            try { 
-              await updateDoc(doc(db, 'users', currentUser.uid), { 
-                status: 'online', 
-                lastSeen: serverTimestamp() 
-              }); 
-            } catch (e) {
+      try {
+        setUser(currentUser);
+        if (currentUser) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              if (data.isBanned === true) { setView('auth'); setAuthReady(true); return; }
+              setIsAdmin(isAdminEmail(currentUser.email) || data.role === 'admin');
+              setUserProfile({
+                name: data.name || 'Ваше Имя', username: data.username || '', bio: data.bio || '',
+                phone: data.phone || '+7 9XX XXX XX XX', avatarUrl: data.avatarUrl || '',
+                status: 'online', lastSeen: data.lastSeen,
+                isOfficial: data.isOfficial === true || isAdminEmail(currentUser.email) || data.role === 'admin'
+              });
+              
+              // Обновляем статус пользователя на "в сети"
+              try { 
+                await updateDoc(doc(db, 'users', currentUser.uid), { 
+                  status: 'online', 
+                  lastSeen: serverTimestamp() 
+                }); 
+              } catch (e) {
               console.warn('Could not update user status:', e);
             }
             
@@ -245,8 +251,20 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             } catch (e) { console.error('Failed to create user document', e); }
           }
           setView('menu');
-        } catch (e) { console.error('Auth state error:', e); setView('auth'); }
-      } else { setIsAdmin(false); setView('auth'); }
+        } catch (e) { 
+          console.error('Auth state error:', e); 
+          // Если Firebase недоступен, переходим к авторизации
+          setView('auth'); 
+        }
+      } else { 
+        setIsAdmin(false); 
+        setView('auth'); 
+      }
+      setAuthReady(true);
+    }, (error) => {
+      console.error('Firebase auth error:', error);
+      // Если Firebase auth недоступен, все равно показываем интерфейс
+      setView('auth');
       setAuthReady(true);
     });
 

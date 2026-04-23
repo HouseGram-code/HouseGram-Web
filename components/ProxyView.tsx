@@ -353,29 +353,19 @@ export default function ProxyView() {
           </div>
         </div>
 
-        {/* Premium Proxy Ad */}
+        {/* Tips */}
         <div className="px-4 mt-6 mb-6">
-          <div className={`p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 text-white`}>
+          <div className={`p-4 rounded-2xl ${isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
             <div className="flex items-start gap-3">
-              <Zap size={24} className="text-yellow-300 shrink-0 mt-1" />
+              <Shield size={20} className="text-blue-500 shrink-0 mt-1" />
               <div className="flex-grow">
-                <div className="text-[16px] font-bold mb-1">Премиум прокси</div>
-                <div className="text-[13px] text-white/90 mb-3 leading-relaxed">
-                  Получите выделенный IP, гарантию 99.9% аптайма и приоритетную поддержку всего за $3/месяц
+                <div className={`text-[14px] font-medium mb-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Советы по использованию
                 </div>
-                <div className="flex items-center gap-4 text-[12px]">
-                  <div className="flex items-center gap-1">
-                    <CheckCircle size={14} />
-                    <span>Только ваш IP</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle size={14} />
-                    <span>10 Gbps скорость</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle size={14} />
-                    <span>5 регионов</span>
-                  </div>
+                <div className={`text-[13px] leading-relaxed ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  • Выбирайте сервер ближе к вашему местоположению для лучшей скорости
+                  <br />• При проблемах попробуйте другой сервер
+                  <br />• MTProto работает быстрее чем SOCKS5
                 </div>
               </div>
             </div>

@@ -22,13 +22,21 @@ export default function AuthView() {
 
   // Подписка на режим технических работ
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
-      if (docSnap.exists()) {
-        setIsMaintenance(docSnap.data().maintenanceMode || false);
-      }
-    });
+    try {
+      const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+        if (docSnap.exists()) {
+          setIsMaintenance(docSnap.data().maintenanceMode || false);
+        }
+      }, (error) => {
+        console.warn('Failed to load maintenance mode:', error);
+        // Игнорируем ошибку и продолжаем работу
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      console.warn('Failed to setup maintenance mode listener:', error);
+      // Игнорируем ошибку и продолжаем работу
+    }
   }, []);
 
   const checkUsernameTaken = async (username: string) => {
