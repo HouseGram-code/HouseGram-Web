@@ -53,7 +53,10 @@ service cloud.firestore {
              (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp) &&
              (!('stars' in data) || data.stars == null || data.stars is int || data.stars is number) &&
              (!('giftsSent' in data) || data.giftsSent == null || data.giftsSent is int || data.giftsSent is number) &&
-             (!('giftsReceived' in data) || data.giftsReceived == null || data.giftsReceived is int || data.giftsReceived is number);
+             (!('giftsReceived' in data) || data.giftsReceived == null || data.giftsReceived is int || data.giftsReceived is number) &&
+             (!('premium' in data) || data.premium == null || data.premium is bool) &&
+             (!('premiumExpiry' in data) || data.premiumExpiry == null || data.premiumExpiry is timestamp) &&
+             (!('aiRequestsToday' in data) || data.aiRequestsToday == null || data.aiRequestsToday is map);
     }
     
     function isValidChat(data) {
@@ -100,12 +103,14 @@ service cloud.firestore {
       // Admin can update anything without validation
       allow update: if isAdmin();
       
-      // User can update their own profile (name, username, bio, status, lastSeen, stars, gifts) but not role/isBanned/isOfficial
+      // User can update their own profile (name, username, bio, status, lastSeen, stars, gifts, aiRequestsToday) but not role/isBanned/isOfficial/premium
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
         isOwner(userId) && isNotBanned() && 
         (!('role' in resource.data) || request.resource.data.role == resource.data.role) && 
         (!('isBanned' in resource.data) || request.resource.data.isBanned == resource.data.isBanned) &&
         (!('isOfficial' in resource.data) || request.resource.data.isOfficial == resource.data.isOfficial) &&
+        (!('premium' in resource.data) || request.resource.data.premium == resource.data.premium) &&
+        (!('premiumExpiry' in resource.data) || request.resource.data.premiumExpiry == resource.data.premiumExpiry) &&
         (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt);
       
       // Allow any authenticated user to update gift-related fields on other users (for gift receiving)
@@ -249,6 +254,31 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.userId == request.auth.uid &&
                     request.resource.data.stars is int && request.resource.data.stars > 0 &&
+                    request.resource.data.price is number && request.resource.data.price > 0 &&
+                    request.resource.data.status == 'pending' &&
+                    request.resource.data.createdAt is timestamp;
+      
+      // Только админы могут обновлять заявки (одобрять/отклонять)
+      allow update: if isAdmin();
+      
+      // Только админы могут удалять заявки
+      allow delete: if isAdmin();
+    }
+    
+    // ===============================================================
+    // Premium Requests Rules
+    // ===============================================================
+    
+    match /premium_requests/{requestId} {
+      // Пользователи могут читать только свои заявки, админы - все
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+      
+      // Любой авторизованный пользователь может создать заявку на Premium
+      allow create: if isAuthenticated() && isNotBanned() &&
+                    request.resource.data.userId == request.auth.uid &&
                     request.resource.data.price is number && request.resource.data.price > 0 &&
                     request.resource.data.status == 'pending' &&
                     request.resource.data.createdAt is timestamp;

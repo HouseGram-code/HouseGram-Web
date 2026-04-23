@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck, CreditCard, Zap, Clock, CheckCheck, X, Crown } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
-import { supabase } from '@/lib/supabase';
 
 type TabType = 'users' | 'stats' | 'system' | 'database' | 'payments' | 'premium';
 
@@ -25,7 +24,6 @@ export default function AdminView() {
     totalChats: 0,
     bannedUsers: 0
   });
-  const [supabaseConnected, setSupabaseConnected] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [starsAmount, setStarsAmount] = useState(100);
@@ -40,7 +38,7 @@ export default function AdminView() {
       return;
     }
 
-    checkSupabaseConnection();
+    checkFirebaseConnection();
     fetchUsers();
     fetchStats();
     fetchPaymentRequests();
@@ -85,12 +83,13 @@ export default function AdminView() {
     };
   }, [isAdmin, setView]);
 
-  const checkSupabaseConnection = async () => {
+  const checkFirebaseConnection = async () => {
     try {
-      const { data, error } = await supabase.from('users').select('count').limit(1);
-      setSupabaseConnected(!error);
+      // Проверяем подключение к Firebase
+      const testDoc = await getDocs(query(collection(db, 'users'), limit(1)));
+      console.log('Firebase connected successfully');
     } catch (err) {
-      setSupabaseConnected(false);
+      console.error('Firebase connection error:', err);
     }
   };
 
@@ -308,21 +307,6 @@ export default function AdminView() {
         await updateDoc(userRef, {
           stars: currentStars + amount
         });
-      }
-
-      // Обновляем в Supabase если подключен
-      if (supabaseConnected) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('stars')
-          .eq('id', userId)
-          .single();
-        
-        const currentStars = userData?.stars || 0;
-        await supabase
-          .from('users')
-          .update({ stars: currentStars + amount })
-          .eq('id', userId);
       }
 
       alert(`✅ Выдано ${amount} ⚡ пользователю ${selectedUser?.name}`);
@@ -998,36 +982,30 @@ export default function AdminView() {
                     </span>
                   </div>
                   <p className="text-sm text-gray-600">
-                    Основная база данных для хранения пользователей, сообщений и настроек.
+                    Основная база данных для хранения пользователей, сообщений, Premium заявок и настроек.
                   </p>
                 </div>
 
                 <div className="bg-white rounded-xl p-4 border border-gray-200">
                   <div className="flex items-center gap-3 mb-4">
-                    <Database size={24} className="text-emerald-500" />
-                    <h3 className="text-lg font-semibold">Supabase</h3>
-                    <span className={`ml-auto px-3 py-1 rounded-full text-sm font-medium ${
-                      supabaseConnected 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {supabaseConnected ? 'Подключено' : 'Не настроено'}
+                    <Crown size={24} className="text-purple-500" />
+                    <h3 className="text-lg font-semibold">Premium система</h3>
+                    <span className="ml-auto px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                      Активна
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 mb-3">
-                    Альтернативная база данных PostgreSQL для расширенных функций и аналитики.
+                    Полная система Premium подписок с автоматическим управлением лимитами ИИ и значками.
                   </p>
-                  {!supabaseConnected && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
-                      <p className="font-medium mb-1">Настройка Supabase:</p>
-                      <ol className="list-decimal list-inside space-y-1 text-xs">
-                        <li>Создайте проект на supabase.com</li>
-                        <li>Добавьте NEXT_PUBLIC_SUPABASE_URL в .env.local</li>
-                        <li>Добавьте NEXT_PUBLIC_SUPABASE_ANON_KEY в .env.local</li>
-                        <li>Выполните SQL из supabase-schema.sql</li>
-                      </ol>
-                    </div>
-                  )}
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm text-purple-800">
+                    <p className="font-medium mb-1">Возможности Premium:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>Увеличенные лимиты ИИ (5 запросов/день)</li>
+                      <li>Премиум значок как в Telegram</li>
+                      <li>Приоритетная поддержка</li>
+                      <li>Эксклюзивные функции</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </motion.div>
