@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut, BadgeCheck, Info, Radio, PlusCircle, UsersRound, Star, Network } from 'lucide-react';
+import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut, BadgeCheck, Info, Radio, PlusCircle, UsersRound, Star } from 'lucide-react';
 import Image from 'next/image';
 
 export default function SideMenu() {
@@ -78,11 +78,6 @@ export default function SideMenu() {
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Общение</div>
               </li>
               <MenuItem icon={<Users size={22} strokeWidth={2} />} text="Контакты" locked />
-              <MenuItem 
-                icon={<Network size={22} strokeWidth={2} />} 
-                text="Matrix Rooms" 
-                onClick={() => { setView('matrix-rooms'); setSideMenuOpen(false); }}
-              />
               <MenuItem icon={<Phone size={22} strokeWidth={2} />} text="Звонки" locked />
               <MenuItem icon={<MapPin size={22} strokeWidth={2} />} text="Люди рядом" locked />
               

@@ -102,9 +102,6 @@ const NewsView = dynamic(() => import('@/components/NewsView'), {
 const ProxyView = dynamic(() => import('@/components/ProxyView'), {
   loading: () => <LoadingSpinner />
 });
-const MatrixRoomsView = dynamic(() => import('@/components/MatrixRoomsWrapper'), {
-  loading: () => <LoadingSpinner />
-});
 const ConnectionLoader = dynamic(() => import('@/components/ConnectionLoader'));
 
 function LoadingSpinner() {
@@ -144,7 +141,6 @@ const viewComponents: Record<string, React.ComponentType> = {
   'my-stories': MyStoriesView,
   news: NewsView,
   proxy: ProxyView,
-  'matrix-rooms': MatrixRoomsView,
 };
 
 function AppContent() {
