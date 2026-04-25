@@ -266,50 +266,50 @@ export default function ProfileView() {
           {/* Avatar Section */}
           <div className="relative px-6 pb-6 bg-gradient-to-b from-transparent to-gray-50">
             <div className="flex flex-col items-center text-center -mt-12">
-              {contact.id === 'saved_messages' ? (
+              {displayContact.id === 'saved_messages' ? (
                 <div 
                   className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white shrink-0 shadow-xl mb-3 border-4 border-white"
-                  style={{ backgroundColor: contact.avatarColor }}
+                  style={{ backgroundColor: displayContact.avatarColor }}
                 >
                   <Bookmark size={40} fill="currentColor" />
                 </div>
-              ) : contact.avatarUrl ? (
+              ) : displayContact.avatarUrl ? (
                 <div className="relative mb-3">
                   <Image 
-                    src={contact.avatarUrl} 
-                    alt={contact.name} 
+                    src={displayContact.avatarUrl} 
+                    alt={displayContact.name} 
                     width={90} 
                     height={90} 
                     className="rounded-full object-cover shrink-0 shadow-xl border-4 border-white" 
                     referrerPolicy="no-referrer"
                     unoptimized
                   />
-                  {contact.statusOffline === 'в сети' && (
+                  {displayContact.statusOffline === 'в сети' && (
                     <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white"></div>
                   )}
                 </div>
               ) : (
                 <div 
                   className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white font-medium text-[36px] shrink-0 shadow-xl mb-3 border-4 border-white"
-                  style={{ backgroundColor: contact.avatarColor }}
+                  style={{ backgroundColor: displayContact.avatarColor }}
                 >
-                  {contact.initial}
+                  {displayContact.initial}
                 </div>
               )}
               
               <div className="text-[24px] font-bold text-gray-900 mb-1 flex items-center gap-2">
-                {contact.name}
+                {displayContact.name}
                 {userStats.isFounder && <FounderBadge size={28} />}
-                {contact.isOfficial && !userStats.isFounder && <BadgeCheck size={24} className="text-blue-500 fill-blue-500" />}
+                {displayContact.isOfficial && !userStats.isFounder && <BadgeCheck size={24} className="text-blue-500 fill-blue-500" />}
               </div>
               
               <div className="flex items-center gap-2 text-gray-600 text-[14px] mb-2">
                 <Clock size={14} />
-                {contact.statusOffline}
+                {displayContact.statusOffline}
               </div>
               
-              {contact.username && (
-                <div className="text-gray-500 text-[14px]">{contact.username}</div>
+              {displayContact.username && (
+                <div className="text-gray-500 text-[14px]">{displayContact.username}</div>
               )}
             </div>
           </div>
@@ -357,7 +357,7 @@ export default function ProfileView() {
         )}
 
         {/* Badges Section */}
-        {contact.isOfficial && !userStats.isFounder && (
+        {displayContact.isOfficial && !userStats.isFounder && (
           <div className="mx-4 mt-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
@@ -372,7 +372,7 @@ export default function ProfileView() {
         )}
         
         {/* Security Warning for Bots */}
-        {contact.id === 'test_bot' && (
+        {displayContact.id === 'test_bot' && (
           <div className="mx-4 mt-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center shrink-0 text-white text-xl">
@@ -389,7 +389,7 @@ export default function ProfileView() {
         )}
 
         {/* User Stats - только для обычных пользователей */}
-        {!contact.isChannel && contact.id !== 'saved_messages' && contact.id !== 'test_bot' && (
+        {!displayContact.isChannel && displayContact.id !== 'saved_messages' && displayContact.id !== 'test_bot' && (
           <div className="mx-4 mt-4 bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
               <h3 className="text-[15px] font-semibold text-gray-900">Статистика</h3>
@@ -417,37 +417,37 @@ export default function ProfileView() {
             <h3 className="text-[15px] font-semibold text-gray-900">Информация</h3>
           </div>
           
-          {contact.bio && (
+          {displayContact.bio && (
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-start gap-3">
                 <User size={20} className="text-gray-400 shrink-0 mt-0.5" />
                 <div>
                   <div className="text-[13px] text-gray-500 mb-1">О себе</div>
-                  <div className="text-[15px] text-gray-900 leading-relaxed">{contact.bio}</div>
+                  <div className="text-[15px] text-gray-900 leading-relaxed">{displayContact.bio}</div>
                 </div>
               </div>
             </div>
           )}
           
-          {contact.username && !contact.isChannel && (
+          {displayContact.username && !displayContact.isChannel && (
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-start gap-3">
                 <MessageCircle size={20} className="text-gray-400 shrink-0 mt-0.5" />
                 <div>
                   <div className="text-[13px] text-gray-500 mb-1">Имя пользователя</div>
-                  <div className="text-[15px] font-medium" style={{ color: themeColor }}>{contact.username}</div>
+                  <div className="text-[15px] font-medium" style={{ color: themeColor }}>{displayContact.username}</div>
                 </div>
               </div>
             </div>
           )}
           
-          {contact.phone && contact.phone !== '+7 9XX XXX XX XX' && (
+          {displayContact.phone && displayContact.phone !== '+7 9XX XXX XX XX' && (
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-start gap-3">
                 <Phone size={20} className="text-gray-400 shrink-0 mt-0.5" />
                 <div>
                   <div className="text-[13px] text-gray-500 mb-1">Телефон</div>
-                  <div className="text-[15px] text-gray-900">{contact.phone}</div>
+                  <div className="text-[15px] text-gray-900">{displayContact.phone}</div>
                 </div>
               </div>
             </div>
@@ -474,7 +474,7 @@ export default function ProfileView() {
 
         {/* Actions Section */}
         <div className="mx-4 mt-4 mb-6 bg-white rounded-xl shadow-sm overflow-hidden">
-          {!contact.isChannel && (
+          {!displayContact.isChannel && (
             <ActionButton 
               text="Отправить сообщение" 
               icon={<MessageCircle size={20} />}
@@ -482,7 +482,7 @@ export default function ProfileView() {
               color={themeColor} 
             />
           )}
-          {!contact.isChannel && contact.id !== 'saved_messages' && contact.id !== 'test_bot' && (
+          {!displayContact.isChannel && displayContact.id !== 'saved_messages' && displayContact.id !== 'test_bot' && (
             <ActionButton 
               text="Посмотреть подарки" 
               icon={<Gift size={20} />}
@@ -490,7 +490,7 @@ export default function ProfileView() {
               color={themeColor} 
             />
           )}
-          {!contact.isChannel && contact.id !== 'saved_messages' && (
+          {!displayContact.isChannel && displayContact.id !== 'saved_messages' && (
             <>
               <ActionButton 
                 text="Поделиться контактом" 
@@ -524,9 +524,9 @@ export default function ProfileView() {
               <div className="p-5">
                 <h3 className="text-[18px] font-medium text-black mb-2">Поделиться контактом</h3>
                 <p className="text-[15px] text-gray-600">
-                  {contact.id === 'test_bot' 
-                    ? `Отправить бота ${contact.name}? Будет отправлен его юзернейм.` 
-                    : `Отправить контакт ${contact.name} в текущий чат?`}
+                  {displayContact.id === 'test_bot' 
+                    ? `Отправить бота ${displayContact.name}? Будет отправлен его юзернейм.` 
+                    : `Отправить контакт ${displayContact.name} в текущий чат?`}
                 </p>
               </div>
               <div className="flex border-t border-gray-200">
@@ -563,7 +563,7 @@ export default function ProfileView() {
             >
               <div className="p-5">
                 <h3 className="text-[18px] font-medium text-black mb-2">Заблокировать</h3>
-                <p className="text-[15px] text-gray-600">Вы уверены, что хотите заблокировать пользователя {contact.name}? Он больше не сможет писать вам.</p>
+                <p className="text-[15px] text-gray-600">Вы уверены, что хотите заблокировать пользователя {displayContact.name}? Он больше не сможет писать вам.</p>
               </div>
               <div className="flex border-t border-gray-200">
                 <button 
