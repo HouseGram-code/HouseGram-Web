@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const userId = formData.get('userId') as string;
-    const fileType = formData.get('fileType') as string || 'images';
+    const fileType = formData.get('fileType') as string || 'avatars';
 
     if (!file || !userId) {
       return NextResponse.json(
@@ -14,6 +14,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('📤 Upload request:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: fileType,
+      userId: userId
+    });
+
     // Конвертируем File в ArrayBuffer
     const bytes = await file.arrayBuffer();
 
@@ -21,8 +28,12 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 50);
-    const fileName = `${userId}_${timestamp}_${random}_${cleanName}`;
-    const filePath = `${fileType}/${fileName}`;
+    const fileName = `${timestamp}_${random}_${cleanName}`;
+    
+    // Используем правильный путь согласно storage.rules
+    const filePath = `${fileType}/${userId}/${fileName}`;
+
+    console.log('📂 File path:', filePath);
 
     // Загружаем в Firebase Storage через REST API
     let bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '';
@@ -32,8 +43,7 @@ export async function POST(request: NextRequest) {
       bucket = bucket.replace('.firebasestorage.app', '.appspot.com');
     }
     
-    console.log('📤 Uploading to bucket:', bucket);
-    console.log('📂 File path:', filePath);
+    console.log('🪣 Bucket:', bucket);
 
     const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(filePath)}`;
 
