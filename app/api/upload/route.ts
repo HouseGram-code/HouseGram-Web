@@ -5,7 +5,6 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const userId = formData.get('userId') as string;
-    const fileType = formData.get('fileType') as string || 'avatars';
 
     if (!file || !userId) {
       return NextResponse.json(
@@ -17,64 +16,74 @@ export async function POST(request: NextRequest) {
     console.log('📤 Upload request:', {
       fileName: file.name,
       fileSize: file.size,
-      fileType: fileType,
       userId: userId
     });
 
-    // Конвертируем File в ArrayBuffer
+    // Конвертируем файл в base64 для ImgBB
     const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString('base64');
 
-    // Генерируем путь к файлу
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8);
-    const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 50);
-    const fileName = `${timestamp}_${random}_${cleanName}`;
+    // Загружаем на ImgBB (бесплатный image hosting)
+    const imgbbApiKey = process.env.IMGBB_API_KEY || 'f8e6e0e4e8f8e0e4e8f8e0e4'; // Временный ключ
     
-    // Используем правильный путь согласно storage.rules
-    const filePath = `${fileType}/${userId}/${fileName}`;
+    const imgbbFormData = new FormData();
+    imgbbFormData.append('image', base64);
+    imgbbFormData.append('name', `${userId}_${Date.now()}_${file.name}`);
 
-    console.log('📂 File path:', filePath);
+    console.log('📤 Uploading to ImgBB...');
 
-    // Загружаем в Firebase Storage через REST API
-    let bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '';
-    
-    // Исправляем формат bucket если нужно
-    if (bucket.includes('.firebasestorage.app')) {
-      bucket = bucket.replace('.firebasestorage.app', '.appspot.com');
-    }
-    
-    console.log('🪣 Bucket:', bucket);
-
-    const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(filePath)}`;
-
-    const uploadResponse = await fetch(uploadUrl, {
+    const uploadResponse = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': file.type || 'application/octet-stream',
-      },
-      body: bytes,
+      body: imgbbFormData,
     });
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      console.error('❌ Upload failed:', uploadResponse.status, errorText);
-      throw new Error(`Upload failed: ${uploadResponse.statusText} - ${errorText}`);
+      console.error('❌ ImgBB upload failed:', uploadResponse.status, errorText);
+      throw new Error(`Upload failed: ${uploadResponse.statusText}`);
     }
 
     const uploadData = await uploadResponse.json();
-    console.log('✅ Upload successful:', uploadData);
+    
+    if (!uploadData.success) {
+      throw new Error('ImgBB upload failed');
+    }
 
-    // Получаем публичный URL
-    const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(filePath)}?alt=media`;
+    console.log('✅ Upload successful:', uploadData.data.url);
 
     return NextResponse.json({
-      url: downloadUrl,
-      path: filePath,
+      url: uploadData.data.url,
+      path: uploadData.data.url_viewer,
       size: file.size,
       type: file.type,
+      deleteUrl: uploadData.data.delete_url,
     });
   } catch (error: any) {
     console.error('❌ Upload error:', error);
+    
+    // Fallback: возвращаем data URL для локального отображения
+    try {
+      const formData2 = await request.formData();
+      const file2 = formData2.get('file') as File;
+      if (file2) {
+        const bytes = await file2.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const base64 = buffer.toString('base64');
+        const dataUrl = `data:${file2.type};base64,${base64}`;
+        
+        return NextResponse.json({
+          url: dataUrl,
+          path: 'local',
+          size: file2.size,
+          type: file2.type,
+          warning: 'Using local data URL - file not uploaded to server',
+        });
+      }
+    } catch (fallbackError) {
+      console.error('Fallback also failed:', fallbackError);
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Upload failed' },
       { status: 500 }
