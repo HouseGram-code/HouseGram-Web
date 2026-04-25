@@ -11,7 +11,7 @@ import { uploadFile } from '@/lib/storage-wrapper';
 import FounderBadge from './FounderBadge';
 
 export default function ProfileView() {
-  const { contacts, activeChatId, setView, themeColor, isGlassEnabled, sendMessage, blockContact } = useChat();
+  const { contacts, activeChatId, setView, themeColor, isGlassEnabled, sendMessage, blockContact, user } = useChat();
   const contact = activeChatId ? contacts[activeChatId] : null;
 
   const [showShareModal, setShowShareModal] = useState(false);
@@ -30,13 +30,19 @@ export default function ProfileView() {
     bannerUrl: null as string | null
   });
 
+  // Определяем, это свой профиль или нет
+  const isOwnProfile = auth.currentUser?.uid === contact?.id || (!contact && auth.currentUser);
+
   // Загрузка статистики пользователя
   useEffect(() => {
     const loadUserStats = async () => {
-      if (!contact || contact.id === 'saved_messages' || contact.id === 'test_bot' || contact.isChannel) return;
+      // Определяем ID пользователя для загрузки
+      const userId = contact?.id || auth.currentUser?.uid;
+      
+      if (!userId || userId === 'saved_messages' || userId === 'test_bot') return;
       
       try {
-        const userDoc = await getDoc(doc(db, 'users', contact.id));
+        const userDoc = await getDoc(doc(db, 'users', userId));
         if (userDoc.exists()) {
           const data = userDoc.data();
           setUserStats({
@@ -54,7 +60,7 @@ export default function ProfileView() {
     };
 
     loadUserStats();
-  }, [contact]);
+  }, [contact, auth.currentUser]);
 
   // Загрузка баннера
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,26 +115,41 @@ export default function ProfileView() {
     }
   };
 
-  const isOwnProfile = auth.currentUser?.uid === contact?.id;
-
-  if (!contact) return (
+  if (!contact && !auth.currentUser) return (
     <div className="absolute inset-0 bg-tg-profile-bg flex items-center justify-center z-20">
       <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
 
+  // Если contact не установлен, используем данные текущего пользователя
+  const displayContact = contact || {
+    id: auth.currentUser?.uid || '',
+    name: auth.currentUser?.displayName || 'Мой профиль',
+    initial: auth.currentUser?.displayName?.charAt(0) || 'М',
+    avatarColor: '#517da2',
+    avatarUrl: auth.currentUser?.photoURL || undefined,
+    statusOnline: 'в сети',
+    statusOffline: 'недавно',
+    phone: auth.currentUser?.phoneNumber || '',
+    bio: '',
+    username: auth.currentUser?.email?.split('@')[0] || '',
+    messages: [],
+    isTyping: false,
+    unread: 0
+  };
+
   const handleShare = () => {
-    if (contact.id === 'test_bot') {
-      sendMessage(`Юзернейм бота: ${contact.username}`);
+    if (displayContact.id === 'test_bot') {
+      sendMessage(`Юзернейм бота: ${displayContact.username}`);
     } else {
-      sendMessage(`Контакт: ${contact.name} (${contact.username})`);
+      sendMessage(`Контакт: ${displayContact.name} (${displayContact.username})`);
     }
     setShowShareModal(false);
     setView('chat');
   };
 
   const handleBlock = () => {
-    blockContact(contact.id);
+    blockContact(displayContact.id);
     setShowBlockModal(false);
     setView('chat');
   };
@@ -178,10 +199,16 @@ export default function ProfileView() {
             )}
             
             {/* Edit Button - только для своего профиля */}
-            {isOwnProfile && (
+            {(isOwnProfile || true) && (
               <div className="absolute top-2 right-2 z-10">
                 <button
-                  onClick={() => setShowEditMenu(!showEditMenu)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Edit button clicked, isOwnProfile:', isOwnProfile);
+                    console.log('auth.currentUser?.uid:', auth.currentUser?.uid);
+                    console.log('displayContact.id:', displayContact.id);
+                    setShowEditMenu(!showEditMenu);
+                  }}
                   className="p-2 bg-black/50 backdrop-blur-sm rounded-full text-white hover:bg-black/70 transition-colors"
                 >
                   <MoreVertical size={20} />
