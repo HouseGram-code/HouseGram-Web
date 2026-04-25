@@ -1,7 +1,7 @@
 'use client';
 
 import { createClient, MatrixClient, Room, MatrixEvent, EventType, MsgType, IContent, Visibility, Preset } from 'matrix-js-sdk';
-import { uploadFile as uploadToMega, detectFileType } from '@/lib/mega-storage';
+import { uploadFile as uploadToStorage, detectFileType } from '@/lib/storage-wrapper';
 
 export interface MatrixConfig {
   homeserverUrl: string;
@@ -142,24 +142,24 @@ export class MatrixClientManager {
         throw new Error(`Файл слишком большой. Максимальный размер: ${maxSize / 1024 / 1024 / 1024}GB`);
       }
 
-      console.log(`📤 Uploading to MEGA: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+      console.log(`📤 Uploading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
-      // Загружаем файл в MEGA вместо Matrix
+      // Загружаем файл через storage wrapper (MEGA или Firebase)
       const userId = this.config.userId || 'anonymous';
       const fileType = detectFileType(file);
       
-      const megaResult = await uploadToMega(file, userId, fileType, (progress) => {
+      const storageResult = await uploadToStorage(file, userId, fileType, (progress) => {
         console.log(`Upload progress: ${progress.percentage}%`);
       });
 
-      console.log(`✅ File uploaded to MEGA: ${megaResult.megaUrl}`);
+      console.log(`✅ File uploaded: ${storageResult.megaUrl || storageResult.url}`);
 
-      // Возвращаем MEGA URL как content_uri
+      // Возвращаем URL как content_uri
       // Matrix будет использовать этот URL для отображения файла
       return {
-        content_uri: megaResult.megaUrl || megaResult.url,
+        content_uri: storageResult.megaUrl || storageResult.url,
         file_size: file.size,
-        mega_url: megaResult.megaUrl,
+        mega_url: storageResult.megaUrl,
       };
     } catch (error) {
       console.error('Failed to upload media to MEGA:', error);

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { uploadFile, uploadMultipleFiles, deleteFile, UploadProgress, UploadResult, FileType } from '@/lib/mega-storage';
+import { uploadFile, uploadMultipleFiles, deleteFile, UploadProgress, UploadResult, FileType } from '@/lib/storage-wrapper';
 
 export interface UploadState {
   uploading: boolean;

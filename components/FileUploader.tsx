@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Upload, X, File, Image, Video, Music, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { formatFileSize, detectFileType } from '@/lib/mega-storage';
+import { formatFileSize, detectFileType } from '@/lib/storage-wrapper';
 
 interface FileUploaderProps {
   userId: string;
