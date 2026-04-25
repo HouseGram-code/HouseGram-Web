@@ -135,7 +135,12 @@ export default function ProfileView() {
     username: auth.currentUser?.email?.split('@')[0] || '',
     messages: [],
     isTyping: false,
-    unread: 0
+    unread: 0,
+    isOfficial: false,
+    isFounder: false,
+    isChannel: false,
+    isBot: false,
+    premium: false
   };
 
   const handleShare = () => {
