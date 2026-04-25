@@ -2,11 +2,12 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle, Gift, Phone, Mail, Calendar, MessageCircle, User, Shield, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle, Gift, Phone, Mail, Calendar, MessageCircle, User, Shield, Clock, MapPin, Camera, MoreVertical, Edit } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useState, useEffect, useRef } from 'react';
+import { db, auth } from '@/lib/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { uploadFile } from '@/lib/storage-wrapper';
 import FounderBadge from './FounderBadge';
 
 export default function ProfileView() {
@@ -15,12 +16,18 @@ export default function ProfileView() {
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
+  const [showEditMenu, setShowEditMenu] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [userStats, setUserStats] = useState({
     giftsSent: 0,
     giftsReceived: 0,
     stars: 0,
     joinedDate: null as Date | null,
-    isFounder: false
+    isFounder: false,
+    bannerUrl: null as string | null
   });
 
   // Загрузка статистики пользователя
@@ -37,7 +44,8 @@ export default function ProfileView() {
             giftsReceived: data.giftsReceived || 0,
             stars: data.stars || 0,
             joinedDate: data.createdAt?.toDate() || null,
-            isFounder: data.isFounder === true || data.email === 'goh@gmail.com'
+            isFounder: data.isFounder === true || data.email === 'goh@gmail.com',
+            bannerUrl: data.bannerUrl || null
           });
         }
       } catch (error) {
@@ -47,6 +55,61 @@ export default function ProfileView() {
 
     loadUserStats();
   }, [contact]);
+
+  // Загрузка баннера
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !auth.currentUser) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Пожалуйста, выберите изображение');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Файл слишком большой. Максимум 10MB');
+      return;
+    }
+
+    setIsUploadingBanner(true);
+    try {
+      const result = await uploadFile(file, auth.currentUser.uid, 'image');
+      
+      // Обновляем в Firestore
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        bannerUrl: result.url
+      });
+
+      // Обновляем локальное состояние
+      setUserStats(prev => ({ ...prev, bannerUrl: result.url }));
+      setShowEditMenu(false);
+    } catch (error: any) {
+      console.error('Error uploading banner:', error);
+      alert(error.message || 'Ошибка при загрузке баннера');
+    } finally {
+      setIsUploadingBanner(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Удаление баннера
+  const handleRemoveBanner = async () => {
+    if (!auth.currentUser) return;
+
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        bannerUrl: null
+      });
+
+      setUserStats(prev => ({ ...prev, bannerUrl: null }));
+      setShowEditMenu(false);
+    } catch (error) {
+      console.error('Error removing banner:', error);
+      alert('Ошибка при удалении баннера');
+    }
+  };
+
+  const isOwnProfile = auth.currentUser?.uid === contact?.id;
 
   if (!contact) return (
     <div className="absolute inset-0 bg-tg-profile-bg flex items-center justify-center z-20">
@@ -92,60 +155,136 @@ export default function ProfileView() {
       </div>
 
       <div className="flex-grow overflow-y-auto pt-14 no-scrollbar bg-gray-50">
-        {/* Header Card with Avatar */}
-        <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-6 relative overflow-hidden">
-          {/* Decorative Background */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+        {/* Header Card with Banner and Avatar */}
+        <div className="relative">
+          {/* Banner */}
+          <div className="relative h-32 overflow-hidden">
+            {userStats.bannerUrl ? (
+              <Image
+                src={userStats.bannerUrl}
+                alt="Banner"
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600">
+                {/* Decorative Background */}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                </div>
+              </div>
+            )}
+            
+            {/* Edit Button - только для своего профиля */}
+            {isOwnProfile && (
+              <div className="absolute top-2 right-2 z-10">
+                <button
+                  onClick={() => setShowEditMenu(!showEditMenu)}
+                  className="p-2 bg-black/50 backdrop-blur-sm rounded-full text-white hover:bg-black/70 transition-colors"
+                >
+                  <MoreVertical size={20} />
+                </button>
+                
+                {/* Edit Menu */}
+                <AnimatePresence>
+                  {showEditMenu && (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowEditMenu(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl py-1 z-50 min-w-[200px] overflow-hidden"
+                      >
+                        <input
+                          ref={bannerInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerUpload}
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => bannerInputRef.current?.click()}
+                          disabled={isUploadingBanner}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left text-[15px] text-gray-700 transition-colors disabled:opacity-50"
+                        >
+                          <Camera size={18} className="text-gray-500" />
+                          {isUploadingBanner ? 'Загрузка...' : userStats.bannerUrl ? 'Изменить баннер' : 'Установить баннер'}
+                        </button>
+                        {userStats.bannerUrl && (
+                          <button
+                            onClick={handleRemoveBanner}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 text-left text-[15px] text-red-500 transition-colors"
+                          >
+                            <ArrowLeft size={18} />
+                            Удалить баннер
+                          </button>
+                        )}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
           
-          <div className="relative z-10 flex flex-col items-center text-center">
-            {contact.id === 'saved_messages' ? (
-              <div 
-                className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white shrink-0 shadow-xl mb-3"
-                style={{ backgroundColor: contact.avatarColor }}
-              >
-                <Bookmark size={40} fill="currentColor" />
+          {/* Avatar Section */}
+          <div className="relative px-6 pb-6 bg-gradient-to-b from-transparent to-gray-50">
+            <div className="flex flex-col items-center text-center -mt-12">
+              {contact.id === 'saved_messages' ? (
+                <div 
+                  className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white shrink-0 shadow-xl mb-3 border-4 border-white"
+                  style={{ backgroundColor: contact.avatarColor }}
+                >
+                  <Bookmark size={40} fill="currentColor" />
+                </div>
+              ) : contact.avatarUrl ? (
+                <div className="relative mb-3">
+                  <Image 
+                    src={contact.avatarUrl} 
+                    alt={contact.name} 
+                    width={90} 
+                    height={90} 
+                    className="rounded-full object-cover shrink-0 shadow-xl border-4 border-white" 
+                    referrerPolicy="no-referrer"
+                    unoptimized
+                  />
+                  {contact.statusOffline === 'в сети' && (
+                    <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white"></div>
+                  )}
+                </div>
+              ) : (
+                <div 
+                  className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white font-medium text-[36px] shrink-0 shadow-xl mb-3 border-4 border-white"
+                  style={{ backgroundColor: contact.avatarColor }}
+                >
+                  {contact.initial}
+                </div>
+              )}
+              
+              <div className="text-[24px] font-bold text-gray-900 mb-1 flex items-center gap-2">
+                {contact.name}
+                {userStats.isFounder && <FounderBadge size={28} />}
+                {contact.isOfficial && !userStats.isFounder && <BadgeCheck size={24} className="text-blue-500 fill-blue-500" />}
               </div>
-            ) : contact.avatarUrl ? (
-              <div className="relative mb-3">
-                <Image 
-                  src={contact.avatarUrl} 
-                  alt={contact.name} 
-                  width={90} 
-                  height={90} 
-                  className="rounded-full object-cover shrink-0 shadow-xl border-4 border-white/20" 
-                  referrerPolicy="no-referrer"
-                  unoptimized
-                />
-                {contact.statusOffline === 'в сети' && (
-                  <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white"></div>
-                )}
+              
+              <div className="flex items-center gap-2 text-gray-600 text-[14px] mb-2">
+                <Clock size={14} />
+                {contact.statusOffline}
               </div>
-            ) : (
-              <div 
-                className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white font-medium text-[36px] shrink-0 shadow-xl mb-3 border-4 border-white/20"
-                style={{ backgroundColor: contact.avatarColor }}
-              >
-                {contact.initial}
-              </div>
-            )}
-            
-            <div className="text-[24px] font-bold text-white mb-1 flex items-center gap-2">
-              {contact.name}
-              {userStats.isFounder && <FounderBadge size={28} />}
-              {contact.isOfficial && !userStats.isFounder && <BadgeCheck size={24} className="text-white fill-white" />}
+              
+              {contact.username && (
+                <div className="text-gray-500 text-[14px]">{contact.username}</div>
+              )}
             </div>
-            
-            <div className="flex items-center gap-2 text-white/90 text-[14px] mb-2">
-              <Clock size={14} />
-              {contact.statusOffline}
-            </div>
-            
-            {contact.username && (
-              <div className="text-white/80 text-[14px]">{contact.username}</div>
-            )}
           </div>
         </div>
 

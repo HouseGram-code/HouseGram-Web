@@ -44,6 +44,7 @@ service cloud.firestore {
              (!('username' in data) || data.username == null || (data.username is string && data.username.size() <= 50)) &&
              (!('bio' in data) || data.bio == null || (data.bio is string && data.bio.size() <= 200)) &&
              (!('avatarUrl' in data) || data.avatarUrl == null || (data.avatarUrl is string && data.avatarUrl.size() <= 1000000)) &&
+             (!('bannerUrl' in data) || data.bannerUrl == null || (data.bannerUrl is string && data.bannerUrl.size() <= 1000000)) &&
              (!('phone' in data) || data.phone == null || (data.phone is string && data.phone.size() <= 20)) &&
              (!('status' in data) || data.status == null || (data.status is string && data.status in ['online', 'offline'])) &&
              (!('lastSeen' in data) || data.lastSeen == null || data.lastSeen is timestamp) &&
