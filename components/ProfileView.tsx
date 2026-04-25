@@ -31,7 +31,10 @@ export default function ProfileView() {
   });
 
   // Определяем, это свой профиль или нет
-  const isOwnProfile = auth.currentUser?.uid === contact?.id || (!contact && auth.currentUser);
+  // Проверяем либо по contact.id, либо если мы смотрим профиль из настроек (activeChatId === user?.uid)
+  const isOwnProfile = auth.currentUser?.uid === contact?.id || 
+                       auth.currentUser?.uid === activeChatId ||
+                       (!contact && auth.currentUser);
 
   // Загрузка статистики пользователя
   useEffect(() => {

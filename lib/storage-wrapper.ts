@@ -1,10 +1,10 @@
 /**
- * Storage Wrapper - автоматически выбирает между MEGA и Firebase Storage
+ * Storage Wrapper - автоматически выбирает между MEGA и API Storage
  */
 
 import { getMegaStorage } from './mega-storage';
 import * as MegaStorage from './mega-storage';
-import * as FirebaseStorage from './firebase-storage';
+import * as ApiStorage from './api-storage';
 
 export type FileType = 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif';
 
@@ -47,14 +47,14 @@ export const uploadFile = async (
       console.log('📤 Uploading via MEGA Storage...');
       return await MegaStorage.uploadFile(file, userId, fileType, onProgress);
     } catch (error) {
-      console.error('MEGA upload failed, falling back to Firebase:', error);
-      // Fallback на Firebase
+      console.error('MEGA upload failed, falling back to API Storage:', error);
+      // Fallback на API Storage
     }
   }
   
-  // Используем Firebase Storage как fallback
-  console.log('📤 Uploading via Firebase Storage (fallback)...');
-  return await FirebaseStorage.uploadFile(file, userId, fileType, onProgress);
+  // Используем API Storage как fallback (обход CORS)
+  console.log('📤 Uploading via API Storage (CORS bypass)...');
+  return await ApiStorage.uploadFile(file, userId, fileType, onProgress);
 };
 
 // Загрузка нескольких файлов
@@ -88,10 +88,10 @@ export const deleteFile = async (filePath: string): Promise<boolean> => {
     try {
       return await MegaStorage.deleteFile(filePath);
     } catch (error) {
-      console.error('MEGA delete failed, trying Firebase:', error);
+      console.error('MEGA delete failed:', error);
     }
   }
   
-  // Fallback на Firebase
-  return await FirebaseStorage.deleteFile(filePath);
+  // API Storage не поддерживает удаление
+  return false;
 };
