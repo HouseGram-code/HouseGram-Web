@@ -25,22 +25,34 @@ export async function POST(request: NextRequest) {
     const filePath = `${fileType}/${fileName}`;
 
     // Загружаем в Firebase Storage через REST API
-    const bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    let bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '';
+    
+    // Исправляем формат bucket если нужно
+    if (bucket.includes('.firebasestorage.app')) {
+      bucket = bucket.replace('.firebasestorage.app', '.appspot.com');
+    }
+    
+    console.log('📤 Uploading to bucket:', bucket);
+    console.log('📂 File path:', filePath);
+
     const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(filePath)}`;
 
     const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': file.type,
+        'Content-Type': file.type || 'application/octet-stream',
       },
       body: bytes,
     });
 
     if (!uploadResponse.ok) {
-      throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+      const errorText = await uploadResponse.text();
+      console.error('❌ Upload failed:', uploadResponse.status, errorText);
+      throw new Error(`Upload failed: ${uploadResponse.statusText} - ${errorText}`);
     }
 
     const uploadData = await uploadResponse.json();
+    console.log('✅ Upload successful:', uploadData);
 
     // Получаем публичный URL
     const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(filePath)}?alt=media`;
@@ -52,7 +64,7 @@ export async function POST(request: NextRequest) {
       type: file.type,
     });
   } catch (error: any) {
-    console.error('Upload error:', error);
+    console.error('❌ Upload error:', error);
     return NextResponse.json(
       { error: error.message || 'Upload failed' },
       { status: 500 }
