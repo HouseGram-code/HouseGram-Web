@@ -95,31 +95,6 @@ export default function MegaStorageProvider({ children }: MegaStorageProviderPro
   return (
     <>
       {children}
-      
-      {/* Storage Info Badge */}
-      {useFallback ? (
-        <div className="fixed bottom-4 right-4 bg-yellow-50 border border-yellow-200 rounded-lg shadow-lg p-3 z-40 hidden md:block">
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={20} className="text-yellow-600" />
-            <div className="text-xs">
-              <div className="font-medium text-yellow-800">Firebase Storage</div>
-              <div className="text-yellow-600">MEGA недоступен</div>
-            </div>
-          </div>
-        </div>
-      ) : accountInfo ? (
-        <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-3 border border-gray-200 z-40 hidden md:block">
-          <div className="flex items-center gap-2">
-            <CheckCircle size={20} className="text-green-500" />
-            <div className="text-xs">
-              <div className="font-medium text-gray-800">MEGA Storage</div>
-              <div className="text-gray-600">
-                {formatFileSize(accountInfo.spaceAvailable)} доступно
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }
