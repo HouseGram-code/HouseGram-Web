@@ -19,7 +19,7 @@ import PremiumModal from './PremiumModal';
 type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 
 export default function ChatView() {
-  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus } = useChat();
+  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus, isDarkMode } = useChat();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
