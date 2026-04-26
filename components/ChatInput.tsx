@@ -1,8 +1,9 @@
 'use client';
 
-import { memo, useState, useRef, useCallback } from 'react';
-import { motion } from 'motion/react';
-import { Paperclip, Send, Mic, Smile, Square, X } from 'lucide-react';
+import { memo, useState, useRef, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Paperclip, Send, Mic, Smile, Square, X, MoreVertical } from 'lucide-react';
+import TextFormattingMenu from './TextFormattingMenu';
 
 interface ChatInputProps {
   isRecording: boolean;
@@ -42,6 +43,51 @@ const ChatInput = memo(function ChatInput({
   showAttachMenu
 }: ChatInputProps) {
   const [inputText, setInputText] = useState(editingMsg?.text || '');
+  const [showFormatMenu, setShowFormatMenu] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
+  const [selectionPosition, setSelectionPosition] = useState({ x: 0, y: 0 });
+  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Обработка выделения текста
+  useEffect(() => {
+    const handleSelection = () => {
+      if (!inputRef.current) return;
+      
+      const start = inputRef.current.selectionStart;
+      const end = inputRef.current.selectionEnd;
+      const text = inputRef.current.value.substring(start, end);
+      
+      if (text.length > 0) {
+        setSelectedText(text);
+        setSelectionRange({ start, end });
+        
+        // Получаем позицию выделения
+        const rect = inputRef.current.getBoundingClientRect();
+        setSelectionPosition({
+          x: rect.left + (rect.width / 2),
+          y: rect.top - 10
+        });
+      } else {
+        setShowFormatMenu(false);
+      }
+    };
+
+    const input = inputRef.current;
+    if (input) {
+      input.addEventListener('mouseup', handleSelection);
+      input.addEventListener('touchend', handleSelection);
+      input.addEventListener('keyup', handleSelection);
+    }
+
+    return () => {
+      if (input) {
+        input.removeEventListener('mouseup', handleSelection);
+        input.removeEventListener('touchend', handleSelection);
+        input.removeEventListener('keyup', handleSelection);
+      }
+    };
+  }, []);
 
   const handleChange = useCallback((text: string) => {
     setInputText(text);
@@ -54,6 +100,28 @@ const ChatInput = memo(function ChatInput({
       setInputText('');
     }
   }, [inputText, onSend]);
+
+  const handleFormat = useCallback((formattedText: string) => {
+    if (!inputRef.current || !selectionRange) return;
+    
+    const { start, end } = selectionRange;
+    const newText = 
+      inputText.substring(0, start) + 
+      formattedText + 
+      inputText.substring(end);
+    
+    setInputText(newText);
+    onInputChange(newText);
+    
+    // Восстанавливаем фокус
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const newCursorPos = start + formattedText.length;
+        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  }, [inputText, selectionRange, onInputChange]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -71,6 +139,18 @@ const ChatInput = memo(function ChatInput({
 
   return (
     <div className={`flex items-end px-2.5 py-2 border-t border-tg-divider shrink-0 gap-1.5 z-30 transition-colors relative ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
+      {/* Text Formatting Menu */}
+      <AnimatePresence>
+        {showFormatMenu && selectedText && (
+          <TextFormattingMenu
+            selectedText={selectedText}
+            position={selectionPosition}
+            onFormat={handleFormat}
+            onClose={() => setShowFormatMenu(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <button 
         onClick={onShowAttachMenu} 
         className="p-1.5 mb-0.5 text-tg-secondary-text hover:text-gray-600 transition-colors"
@@ -88,20 +168,44 @@ const ChatInput = memo(function ChatInput({
             <button onClick={onCancelReply} className="text-gray-400 hover:text-gray-600 shrink-0"><X size={16} /></button>
           </div>
         )}
-        <div className="flex items-center">
-          <input
+        <div className="flex items-center relative">
+          <textarea
+            ref={inputRef}
             id="message-input"
             name="message"
-            type="text"
             value={inputText}
             onChange={(e) => handleChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
             disabled={isRecording}
             autoComplete="off"
+            rows={1}
             className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50 focus:placeholder-opacity-50 transition-all"
+            style={{
+              minHeight: '40px',
+              maxHeight: '100px',
+              overflowY: 'auto'
+            }}
           />
-          {!isRecording && (
+          {!isRecording && selectedText && (
+            <motion.button
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: 180 }}
+              onClick={() => setShowFormatMenu(!showFormatMenu)}
+              className="p-1.5 text-blue-500 hover:text-blue-600 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <MoreVertical size={20} />
+            </motion.button>
+          )}
+          {!isRecording && !selectedText && (
             <button onClick={onShowPicker} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
               <Smile size={24} />
             </button>

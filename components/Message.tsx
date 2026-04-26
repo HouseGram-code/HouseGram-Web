@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import NextImage from 'next/image';
 import { FileIcon, Eye, Check, CheckCheck, Clock, Download, Play } from 'lucide-react';
+import { parseFormattedText, hasFormatting } from '@/lib/textFormatter';
 
 interface MessageProps {
   msg: any;
@@ -250,14 +251,18 @@ const Message = memo(function Message({
         </motion.span>
       ) : (
         /* Text Message */
-        <motion.span 
-          className="mb-0.5 text-tg-text-primary"
+        <motion.div 
+          className="mb-0.5 text-tg-text-primary break-words"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
         >
-          {msg.text}
-        </motion.span>
+          {hasFormatting(msg.text) ? (
+            <span className="whitespace-pre-wrap">{parseFormattedText(msg.text)}</span>
+          ) : (
+            <span className="whitespace-pre-wrap">{msg.text}</span>
+          )}
+        </motion.div>
       )}
 
       {/* Message Footer (Time + Status) */}
