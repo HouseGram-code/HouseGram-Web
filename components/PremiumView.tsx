@@ -6,6 +6,7 @@ import { ArrowLeft, Star, Zap, Check, Crown, MessageSquare, Bot, Sparkles, Shiel
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import ShinyButton from './ShinyButton';
 
 interface PremiumFeature {
   icon: React.ReactNode;
@@ -314,27 +315,24 @@ export default function PremiumView() {
       {/* Bottom Button */}
       {!isPremium && (
         <div className="p-4 bg-white border-t border-gray-100">
-          <button
+          <ShinyButton
             onClick={purchasePremium}
-            disabled={purchasing}
-            className={`w-full py-4 rounded-xl font-medium text-[16px] transition-all ${
-              purchasing
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 active:scale-[0.98]'
-            }`}
+            variant="premium"
+            className="w-full rounded-2xl"
           >
             {purchasing ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                Обработка...
-              </div>
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Обработка...</span>
+              </>
             ) : (
-              <div className="flex items-center justify-center gap-2">
+              <>
                 <Crown size={20} />
-                Купить Premium за 299 ₽
-              </div>
+                <span>Купить Premium за 299 ₽</span>
+                <Sparkles size={18} />
+              </>
             )}
-          </button>
+          </ShinyButton>
         </div>
       )}
     </motion.div>

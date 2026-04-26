@@ -19,6 +19,7 @@ function DemoBanner() {
 
 // Динамический импорт компонентов для быстрой загрузки
 const DesktopLayout = dynamic(() => import('@/components/DesktopLayout'));
+const ModeToggleButton = dynamic(() => import('@/components/ModeToggleButton'));
 const ChatList = dynamic(() => import('@/components/ChatList'), {
   loading: () => <LoadingSpinner />
 });
@@ -159,6 +160,12 @@ function AppContent() {
       console.log('Desktop mode:', shouldBeDesktop, 'Width:', window.innerWidth);
     };
     
+    // Слушаем событие переключения режима
+    const handleToggle = () => {
+      setForceDesktop(!forceDesktop);
+    };
+    
+    window.addEventListener('toggleDesktopMode', handleToggle);
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
     
@@ -169,7 +176,10 @@ function AppContent() {
       setIsAppReady(true);
     }
     
-    return () => window.removeEventListener('resize', checkDesktop);
+    return () => {
+      window.removeEventListener('resize', checkDesktop);
+      window.removeEventListener('toggleDesktopMode', handleToggle);
+    };
   }, [forceDesktop]);
 
   const handleConnectionComplete = () => {
@@ -232,15 +242,6 @@ function AppContent() {
   if (isDesktop) {
     return (
       <DesktopLayout>
-        {/* Desktop Mode Toggle Button */}
-        <button
-          onClick={() => setForceDesktop(false)}
-          className="fixed bottom-4 right-4 z-50 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600 transition-colors text-sm font-medium"
-          title="Переключить режим"
-        >
-          📱 Мобильный режим
-        </button>
-
         {/* Connection Loader */}
         <ConnectionLoader 
           isVisible={showConnectionLoader} 
@@ -260,15 +261,6 @@ function AppContent() {
   // Mobile Layout
   return (
     <MobileShell>
-      {/* Desktop Mode Toggle Button */}
-      <button
-        onClick={() => setForceDesktop(!forceDesktop)}
-        className="fixed bottom-4 right-4 z-50 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600 transition-colors text-sm font-medium"
-        title="Переключить режим"
-      >
-        {forceDesktop ? '📱 Мобильный' : '💻 Desktop'}
-      </button>
-
       {/* Connection Loader */}
       <ConnectionLoader 
         isVisible={showConnectionLoader} 
@@ -287,11 +279,24 @@ function AppContent() {
 }
 
 export default function Page() {
+  const [isDesktopMode, setIsDesktopMode] = useState(false);
+
   return (
     <>
       <DemoBanner />
       <ChatProvider>
         <AppContent />
+        
+        {/* Mode Toggle Button - Fixed Position */}
+        <div className="fixed bottom-6 right-6 z-[200]">
+          <ModeToggleButton 
+            isDesktop={isDesktopMode}
+            onToggle={() => {
+              setIsDesktopMode(!isDesktopMode);
+              window.dispatchEvent(new CustomEvent('toggleDesktopMode'));
+            }}
+          />
+        </div>
       </ChatProvider>
     </>
   );
