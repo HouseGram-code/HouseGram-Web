@@ -164,10 +164,13 @@ export default function WalletView() {
 
         {/* Coming Soon Section */}
         <motion.div 
-          className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl p-6 mb-4"
+          className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl p-6 mb-4 cursor-pointer"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
+          onClick={() => setView('mini-games')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
           <div className="flex items-start gap-4 mb-4">
             <motion.div
@@ -185,11 +188,12 @@ export default function WalletView() {
               <Gamepad2 size={24} className="text-white" />
             </motion.div>
             <div className="flex-grow">
-              <h3 className="text-[17px] font-bold text-gray-900 mb-1">Скоро появятся мини-игры!</h3>
+              <h3 className="text-[17px] font-bold text-gray-900 mb-1">Мини-игры уже доступны!</h3>
               <p className="text-[14px] text-gray-600 leading-relaxed">
                 Играйте в увлекательные игры и зарабатывайте HouseCoin
               </p>
             </div>
+            <ArrowLeft size={20} className="text-indigo-500 rotate-180 shrink-0 mt-1" />
           </div>
 
           <div className="space-y-3">

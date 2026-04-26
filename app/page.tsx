@@ -98,6 +98,9 @@ const BuyStarsView = dynamic(() => import('@/components/BuyStarsView'), {
 const WalletView = dynamic(() => import('@/components/WalletView'), {
   loading: () => <LoadingSpinner />
 });
+const MiniGamesView = dynamic(() => import('@/components/MiniGamesView'), {
+  loading: () => <LoadingSpinner />
+});
 const MyStoriesView = dynamic(() => import('@/components/MyStoriesView'), {
   loading: () => <LoadingSpinner />
 });
@@ -144,6 +147,7 @@ const viewComponents: Record<string, React.ComponentType> = {
   'user-gifts': UserGiftsView,
   'buy-stars': BuyStarsView,
   wallet: WalletView,
+  'mini-games': MiniGamesView,
   'my-stories': MyStoriesView,
   news: NewsView,
   proxy: ProxyView,

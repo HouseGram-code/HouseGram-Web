@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut, BadgeCheck, Info, Radio, PlusCircle, UsersRound, Star, Wallet } from 'lucide-react';
+import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut, BadgeCheck, Info, Radio, PlusCircle, UsersRound, Star, Wallet, Gamepad2 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function SideMenu() {
@@ -90,6 +90,12 @@ export default function SideMenu() {
                 icon={<Wallet size={22} strokeWidth={2} />} 
                 text="Кошелёк" 
                 onClick={() => { setView('wallet'); setSideMenuOpen(false); }}
+                accent
+              />
+              <MenuItem 
+                icon={<Gamepad2 size={22} strokeWidth={2} />} 
+                text="Мини-игры" 
+                onClick={() => { setView('mini-games'); setSideMenuOpen(false); }}
                 accent
               />
               <MenuItem 
