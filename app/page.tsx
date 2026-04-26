@@ -149,11 +149,14 @@ function AppContent() {
   const [showConnectionLoader, setShowConnectionLoader] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [forceDesktop, setForceDesktop] = useState(false);
 
   useEffect(() => {
     // Определяем desktop режим
     const checkDesktop = () => {
-      setIsDesktop(window.innerWidth >= 1024);
+      const shouldBeDesktop = window.innerWidth >= 1024 || forceDesktop;
+      setIsDesktop(shouldBeDesktop);
+      console.log('Desktop mode:', shouldBeDesktop, 'Width:', window.innerWidth);
     };
     
     checkDesktop();
@@ -167,7 +170,7 @@ function AppContent() {
     }
     
     return () => window.removeEventListener('resize', checkDesktop);
-  }, []);
+  }, [forceDesktop]);
 
   const handleConnectionComplete = () => {
     sessionStorage.setItem('housegram_loader_shown', 'true');
@@ -229,6 +232,15 @@ function AppContent() {
   if (isDesktop) {
     return (
       <DesktopLayout>
+        {/* Desktop Mode Toggle Button */}
+        <button
+          onClick={() => setForceDesktop(false)}
+          className="fixed bottom-4 right-4 z-50 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+          title="Переключить режим"
+        >
+          📱 Мобильный режим
+        </button>
+
         {/* Connection Loader */}
         <ConnectionLoader 
           isVisible={showConnectionLoader} 
@@ -248,6 +260,15 @@ function AppContent() {
   // Mobile Layout
   return (
     <MobileShell>
+      {/* Desktop Mode Toggle Button */}
+      <button
+        onClick={() => setForceDesktop(!forceDesktop)}
+        className="fixed bottom-4 right-4 z-50 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+        title="Переключить режим"
+      >
+        {forceDesktop ? '📱 Мобильный' : '💻 Desktop'}
+      </button>
+
       {/* Connection Loader */}
       <ConnectionLoader 
         isVisible={showConnectionLoader} 
