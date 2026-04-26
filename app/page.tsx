@@ -18,6 +18,7 @@ function DemoBanner() {
 }
 
 // Динамический импорт компонентов для быстрой загрузки
+const DesktopLayout = dynamic(() => import('@/components/DesktopLayout'));
 const ChatList = dynamic(() => import('@/components/ChatList'), {
   loading: () => <LoadingSpinner />
 });
@@ -147,14 +148,25 @@ function AppContent() {
   const { view, isLocked, user, isDarkMode, activeChatId } = useChat();
   const [showConnectionLoader, setShowConnectionLoader] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
+    // Определяем desktop режим
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    
     // Показываем лоадер только при первой загрузке
     const hasShownLoader = sessionStorage.getItem('housegram_loader_shown');
     if (hasShownLoader) {
       setShowConnectionLoader(false);
       setIsAppReady(true);
     }
+    
+    return () => window.removeEventListener('resize', checkDesktop);
   }, []);
 
   const handleConnectionComplete = () => {
@@ -163,38 +175,79 @@ function AppContent() {
     setIsAppReady(true);
   };
 
-  // Контейнер-обёртка
-  const AppShell = ({ children }: { children: React.ReactNode }) => (
+  // Контейнер-обёртка для мобильной версии
+  const MobileShell = ({ children }: { children: React.ReactNode }) => (
     <div className={`relative w-full h-[100dvh] overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh] ${isDarkMode ? 'bg-[#0f0f0f] dark' : 'bg-tg-bg-light'}`}>
       {children}
     </div>
   );
 
   if (view === 'auth' || !user) {
+    if (isDesktop) {
+      return (
+        <DesktopLayout>
+          <Suspense fallback={<LoadingSpinner />}>
+            <AuthView />
+          </Suspense>
+        </DesktopLayout>
+      );
+    }
+    
     return (
-      <AppShell>
+      <MobileShell>
         <Suspense fallback={<LoadingSpinner />}>
           <AuthView />
         </Suspense>
-      </AppShell>
+      </MobileShell>
     );
   }
 
   if (isLocked) {
+    if (isDesktop) {
+      return (
+        <DesktopLayout>
+          <Suspense fallback={<LoadingSpinner />}>
+            <PasscodeScreen />
+          </Suspense>
+        </DesktopLayout>
+      );
+    }
+    
     return (
-      <AppShell>
+      <MobileShell>
         <Suspense fallback={<LoadingSpinner />}>
           <PasscodeScreen />
         </Suspense>
-      </AppShell>
+      </MobileShell>
     );
   }
 
   // Рендерим активный view через маппинг
   const ActiveView = viewComponents[view];
 
+  // Desktop Layout
+  if (isDesktop) {
+    return (
+      <DesktopLayout>
+        {/* Connection Loader */}
+        <ConnectionLoader 
+          isVisible={showConnectionLoader} 
+          onComplete={handleConnectionComplete} 
+        />
+
+        {/* Main App Content */}
+        {isAppReady && (
+          <AnimatePresence initial={false} mode="popLayout">
+            {ActiveView && <ActiveView key={`${view}-${activeChatId || 'none'}`} />}
+          </AnimatePresence>
+        )}
+      </DesktopLayout>
+    );
+  }
+
+  // Mobile Layout
   return (
-    <AppShell>
+    <MobileShell>
       {/* Connection Loader */}
       <ConnectionLoader 
         isVisible={showConnectionLoader} 
@@ -208,7 +261,7 @@ function AppContent() {
         </AnimatePresence>
       )}
       <SideMenu />
-    </AppShell>
+    </MobileShell>
   );
 }
 
