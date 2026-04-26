@@ -1,8 +1,8 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { motion } from 'motion/react';
-import { ArrowLeft, Zap, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Zap, Check, Sparkles, Star } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { 
   sendGift, 
@@ -402,17 +402,26 @@ export default function SendGiftView() {
           </div>
         )}
 
-        {/* Select Gift */}
+        {/* Select Gift with Enhanced Animations */}
         {step === 'select-gift' && (
-          <div>
-            <div className="mb-4 text-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="mb-4 text-center"
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+            >
               <h3 className="text-[17px] font-medium text-gray-900 mb-1">Выберите подарок</h3>
               <p className="text-[14px] text-gray-500">
                 {sendToSelf ? 'Для себя' : `Для ${selectedContact?.name}`}
               </p>
-            </div>
+            </motion.div>
+            
             <div className="grid grid-cols-2 gap-3">
-              {GIFTS.map(gift => {
+              {GIFTS.map((gift, index) => {
                 const available = isGiftAvailable(gift);
                 const timeUntilUnlock = getTimeUntilUnlock(gift);
                 const isLocked = !available;
@@ -426,7 +435,7 @@ export default function SendGiftView() {
                                  gift.id === 'cosmonaut' ? cosmonautRemaining : 0;
                 
                 return (
-                  <button
+                  <motion.button
                     key={gift.id}
                     onClick={() => {
                       if (!isLocked && !isSoldOut && canAfford) {
@@ -439,17 +448,89 @@ export default function SendGiftView() {
                         ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black'
                         : gift.special 
                         ? 'bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100' 
-                        : 'bg-white'
-                    } ${
-                      !isLocked && !isSoldOut && canAfford ? 'hover:bg-gray-50 hover:scale-105' : ''
-                    } ${
-                      (isLocked || isSoldOut || !canAfford) && !gift.special && !gift.spaceTheme ? 'opacity-60' : ''
+                        : 'bg-white shadow-sm'
                     }`}
+                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={!isLocked && !isSoldOut && canAfford ? { 
+                      scale: 1.05,
+                      rotate: [0, -2, 2, -2, 0],
+                      transition: { duration: 0.3 }
+                    } : {}}
+                    whileTap={!isLocked && !isSoldOut && canAfford ? { scale: 0.95 } : {}}
                   >
-                    <div className="relative z-10">
-                      <div className="text-[60px] mb-2 text-center">
-                        {gift.emoji}
+                    {/* Background Animation for Special Gifts */}
+                    {gift.special && !isLocked && (
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        {[...Array(8)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="absolute"
+                            style={{
+                              left: `${Math.random() * 100}%`,
+                              top: `${Math.random() * 100}%`,
+                            }}
+                            animate={{
+                              scale: [0, 1, 0],
+                              opacity: [0, 0.6, 0],
+                              rotate: [0, 360],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                              delay: i * 0.3,
+                            }}
+                          >
+                            <Sparkles size={12} className={gift.spaceTheme ? "text-cyan-300" : "text-purple-400"} />
+                          </motion.div>
+                        ))}
                       </div>
+                    )}
+
+                    {/* Space Theme Stars */}
+                    {gift.spaceTheme && !isLocked && (
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        {[...Array(10)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="absolute"
+                            style={{
+                              left: `${Math.random() * 100}%`,
+                              top: `${Math.random() * 100}%`,
+                            }}
+                            animate={{
+                              scale: [0, 1, 0],
+                              opacity: [0, 1, 0],
+                            }}
+                            transition={{
+                              duration: 2 + Math.random(),
+                              repeat: Infinity,
+                              delay: i * 0.2,
+                            }}
+                          >
+                            <Star size={8} className="text-cyan-300" fill="currentColor" />
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="relative z-10">
+                      <motion.div 
+                        className="text-[60px] mb-2 text-center"
+                        animate={!isLocked && !isSoldOut && canAfford ? {
+                          scale: [1, 1.1, 1],
+                          rotate: [0, -5, 5, -5, 0],
+                        } : {}}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          repeatDelay: 1,
+                        }}
+                      >
+                        {gift.emoji}
+                      </motion.div>
+                      
                       <div className={`text-[15px] font-medium mb-1 text-center truncate ${
                         gift.spaceTheme ? 'text-white' : 'text-gray-900'
                       }`}>
@@ -457,15 +538,29 @@ export default function SendGiftView() {
                       </div>
                       
                       {isSoldOut ? (
-                        <div className="text-center">
+                        <motion.div 
+                          className="text-center"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                        >
                           <div className="text-[20px] mb-1">🔒</div>
                           <div className="text-[11px] text-red-600 font-medium">
                             Распродано
                           </div>
-                        </div>
+                        </motion.div>
                       ) : isLocked ? (
-                        <div className="text-center">
-                          <div className="text-[20px] mb-1">🔒</div>
+                        <motion.div 
+                          className="text-center"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                        >
+                          <motion.div 
+                            className="text-[20px] mb-1"
+                            animate={{ rotate: [0, -10, 10, -10, 0] }}
+                            transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
+                          >
+                            🔒
+                          </motion.div>
                           <div className="text-[11px] text-purple-600 font-medium">
                             {timeUntilUnlock}
                           </div>
@@ -474,95 +569,341 @@ export default function SendGiftView() {
                               {remaining} из {gift.totalLimit}
                             </div>
                           )}
-                        </div>
+                        </motion.div>
                       ) : (
                         <>
-                          <div className="flex items-center justify-center gap-1 text-yellow-600 font-semibold text-[14px]">
-                            <Zap size={14} fill="currentColor" />
+                          <motion.div 
+                            className="flex items-center justify-center gap-1 text-yellow-600 font-semibold text-[14px]"
+                            whileHover={{ scale: 1.1 }}
+                          >
+                            <motion.div
+                              animate={{ rotate: [0, -15, 15, -15, 0] }}
+                              transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
+                            >
+                              <Zap size={14} fill="currentColor" />
+                            </motion.div>
                             {gift.cost}
-                          </div>
+                          </motion.div>
                           {!canAfford && (
-                            <div className="text-[11px] text-red-500 mt-1 text-center">Недостаточно</div>
+                            <motion.div 
+                              className="text-[11px] text-red-500 mt-1 text-center"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                            >
+                              Недостаточно
+                            </motion.div>
                           )}
                           {gift.limited && (
-                            <div className={`text-[10px] mt-1 text-center ${gift.spaceTheme ? 'text-cyan-300' : 'text-purple-600'}`}>
+                            <motion.div 
+                              className={`text-[10px] mt-1 text-center ${gift.spaceTheme ? 'text-cyan-300' : 'text-purple-600'}`}
+                              animate={{ opacity: [0.5, 1, 0.5] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                            >
                               {remaining} из {gift.totalLimit}
-                            </div>
+                            </motion.div>
                           )}
                         </>
                       )}
                     </div>
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
-            <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+            
+            <motion.div 
+              className="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-3 text-center"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
               <p className="text-[13px] text-gray-600">
-                Ваш баланс: <span className="font-semibold text-gray-900">{userStars}</span> <Zap size={12} className="inline text-yellow-500" fill="currentColor" />
+                Ваш баланс: <span className="font-semibold text-gray-900">{userStars}</span>{' '}
+                <Zap size={12} className="inline text-yellow-500" fill="currentColor" />
               </p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
 
-        {/* Confirm */}
+        {/* Confirm with Enhanced Animation */}
         {step === 'confirm' && selectedContact && selectedGift && (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-6 text-white text-center">
-              <div className="text-[100px] mb-4">{selectedGift.emoji}</div>
-              <h3 className="text-[20px] font-bold mb-2">{selectedGift.name}</h3>
-              <p className="text-white/90 text-[14px] mb-4">
-                Для: {selectedContact.name}
-              </p>
-              <div className="flex items-center justify-center gap-2 text-[18px] font-bold">
-                <Zap size={20} fill="currentColor" />
-                {selectedGift.cost}
+          <motion.div 
+            className="space-y-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <motion.div 
+              className="relative bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-6 text-white text-center overflow-hidden"
+              initial={{ y: -50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 200 }}
+            >
+              {/* Animated Background Stars */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {[...Array(15)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                    }}
+                    animate={{
+                      scale: [0, 1, 0],
+                      opacity: [0, 0.6, 0],
+                      rotate: [0, 360],
+                    }}
+                    transition={{
+                      duration: 2 + Math.random(),
+                      repeat: Infinity,
+                      delay: i * 0.2,
+                    }}
+                  >
+                    <Star size={12} className="text-white/40" fill="white" />
+                  </motion.div>
+                ))}
               </div>
-            </div>
 
-            <button
+              <motion.div 
+                className="text-[100px] mb-4 relative z-10"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 200,
+                  delay: 0.2 
+                }}
+                whileHover={{
+                  scale: 1.1,
+                  rotate: [0, -10, 10, -10, 0],
+                  transition: { duration: 0.5 }
+                }}
+              >
+                {selectedGift.emoji}
+              </motion.div>
+              
+              <motion.h3 
+                className="text-[20px] font-bold mb-2 relative z-10"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                {selectedGift.name}
+              </motion.h3>
+              
+              <motion.p 
+                className="text-white/90 text-[14px] mb-4 relative z-10"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                Для: {selectedContact.name}
+              </motion.p>
+              
+              <motion.div 
+                className="flex items-center justify-center gap-2 text-[18px] font-bold relative z-10"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.5, type: "spring" }}
+              >
+                <motion.div
+                  animate={{ 
+                    rotate: [0, -15, 15, -15, 0],
+                    scale: [1, 1.2, 1]
+                  }}
+                  transition={{ 
+                    duration: 1.5,
+                    repeat: Infinity
+                  }}
+                >
+                  <Zap size={20} fill="currentColor" />
+                </motion.div>
+                {selectedGift.cost}
+              </motion.div>
+            </motion.div>
+
+            <motion.button
               onClick={handleSendGift}
               disabled={sending}
-              className="w-full bg-blue-500 text-white rounded-xl p-4 font-medium text-[16px] hover:bg-blue-600 active:bg-blue-700 transition-colors disabled:opacity-50"
+              className="w-full bg-blue-500 text-white rounded-xl p-4 font-medium text-[16px] relative overflow-hidden disabled:opacity-50"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              whileHover={!sending ? { scale: 1.02 } : {}}
+              whileTap={!sending ? { scale: 0.98 } : {}}
             >
-              {sending ? 'Отправка...' : 'Отправить подарок'}
-            </button>
+              {sending ? (
+                <motion.span
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  Отправка...
+                </motion.span>
+              ) : (
+                'Отправить подарок'
+              )}
+              
+              {/* Shimmer Effect */}
+              {!sending && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '200%' }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatDelay: 1,
+                  }}
+                />
+              )}
+            </motion.button>
 
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
+            <motion.div 
+              className="bg-gray-50 rounded-xl p-4 text-center"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.7 }}
+            >
               <p className="text-[13px] text-gray-600">
                 После отправки с вашего баланса будет списано {selectedGift.cost} ⚡
               </p>
               <p className="text-[13px] text-gray-600 mt-1">
                 Текущий баланс: {userStars} ⚡
               </p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
       </div>
 
-      {/* Success Animation */}
-      {showSuccess && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="absolute inset-0 flex items-center justify-center bg-black/50 z-20"
-        >
-          <div className="bg-white rounded-3xl p-8 text-center">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring' }}
+      {/* Enhanced Success Animation - Telegram Style */}
+      <AnimatePresence>
+        {showSuccess && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20"
+          >
+            {/* Confetti Effect */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(30)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute text-2xl"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                  }}
+                  initial={{ 
+                    x: 0, 
+                    y: 0, 
+                    scale: 0,
+                    opacity: 1 
+                  }}
+                  animate={{
+                    x: (Math.random() - 0.5) * 400,
+                    y: (Math.random() - 0.5) * 400,
+                    scale: [0, 1, 0.8],
+                    opacity: [1, 1, 0],
+                    rotate: Math.random() * 720,
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    ease: "easeOut",
+                    delay: i * 0.02,
+                  }}
+                >
+                  {['🎉', '✨', '⭐', '💫', '🎊'][Math.floor(Math.random() * 5)]}
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div 
+              className="bg-white rounded-3xl p-8 text-center relative z-10 shadow-2xl"
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 200,
+                damping: 15
+              }}
             >
-              <Check size={64} className="text-green-500 mx-auto mb-4" />
+              {/* Success Icon with Pulse */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ 
+                  delay: 0.3, 
+                  type: 'spring',
+                  stiffness: 200 
+                }}
+              >
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    repeat: 2,
+                    delay: 0.5
+                  }}
+                >
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check size={48} className="text-green-500" strokeWidth={3} />
+                  </div>
+                </motion.div>
+              </motion.div>
+
+              <motion.h3 
+                className="text-[24px] font-bold text-gray-900 mb-2"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+              >
+                Подарок отправлен!
+              </motion.h3>
+              
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.7, type: "spring" }}
+              >
+                <p className="text-[16px] text-gray-600 mb-2">
+                  {selectedGift?.emoji} {selectedGift?.name}
+                </p>
+                <p className="text-[14px] text-gray-500">
+                  для {selectedContact?.name}
+                </p>
+              </motion.div>
+
+              {/* Sparkles around */}
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute text-2xl"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                  }}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{
+                    x: Math.cos((i / 8) * Math.PI * 2) * 100,
+                    y: Math.sin((i / 8) * Math.PI * 2) * 100,
+                    scale: [0, 1, 0],
+                    opacity: [0, 1, 0],
+                    rotate: 360,
+                  }}
+                  transition={{
+                    duration: 1,
+                    delay: 0.4 + i * 0.05,
+                  }}
+                >
+                  ✨
+                </motion.div>
+              ))}
             </motion.div>
-            <h3 className="text-[20px] font-bold text-gray-900 mb-2">
-              Подарок отправлен!
-            </h3>
-            <p className="text-[14px] text-gray-600">
-              {selectedGift?.emoji} {selectedGift?.name}
-            </p>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
