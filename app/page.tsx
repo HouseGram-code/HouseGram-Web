@@ -279,24 +279,11 @@ function AppContent() {
 }
 
 export default function Page() {
-  const [isDesktopMode, setIsDesktopMode] = useState(false);
-
   return (
     <>
       <DemoBanner />
       <ChatProvider>
         <AppContent />
-        
-        {/* Mode Toggle Button - Fixed Position */}
-        <div className="fixed bottom-6 right-6 z-[200]">
-          <ModeToggleButton 
-            isDesktop={isDesktopMode}
-            onToggle={() => {
-              setIsDesktopMode(!isDesktopMode);
-              window.dispatchEvent(new CustomEvent('toggleDesktopMode'));
-            }}
-          />
-        </div>
       </ChatProvider>
     </>
   );

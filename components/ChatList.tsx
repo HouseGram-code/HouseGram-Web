@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck, Star } from 'lucide-react';
+import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck, Star, Monitor, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -37,6 +37,22 @@ export default function ChatList() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [selectedPremiumUser, setSelectedPremiumUser] = useState<string>('');
+  const [isDesktopMode, setIsDesktopMode] = useState(false);
+
+  // Check if desktop mode on mount
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktopMode(window.innerWidth >= 1024);
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
+  const toggleDesktopMode = () => {
+    window.dispatchEvent(new CustomEvent('toggleDesktopMode'));
+    setIsDesktopMode(!isDesktopMode);
+  };
 
   // Debounce поиска (300ms)
   useEffect(() => {
@@ -198,6 +214,13 @@ export default function ChatList() {
               <div className="flex-grow text-[19px] font-semibold tracking-tight">
                 HouseGram
               </div>
+              <button 
+                onClick={toggleDesktopMode}
+                className="p-2 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
+                title={isDesktopMode ? "Мобильный режим" : "Desktop режим"}
+              >
+                {isDesktopMode ? <Smartphone size={22} /> : <Monitor size={22} />}
+              </button>
               <button 
                 onClick={() => setView('news')}
                 className="p-2 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
