@@ -15,6 +15,7 @@ import ChatInput from './ChatInput';
 import FounderBadge from './FounderBadge';
 import PremiumBadge from './PremiumBadge';
 import PremiumModal from './PremiumModal';
+import { getGiftAnimatedUrl } from './SendGiftView';
 
 type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 
@@ -957,9 +958,20 @@ export default function ChatView() {
                     ease: "easeInOut",
                     repeat: (msg.gift.id === 'easter_bunny' || msg.gift.id === 'cosmonaut') ? Infinity : 0
                   }}
-                  className="text-[80px] mb-2 relative z-10"
+                  className="mb-2 relative z-10 flex items-center justify-center"
                 >
-                  {msg.gift.emoji}
+                  {getGiftAnimatedUrl(msg.gift.id) ? (
+                    <NextImage
+                      src={getGiftAnimatedUrl(msg.gift.id)!}
+                      alt={msg.gift.name}
+                      width={80}
+                      height={80}
+                      className="object-contain"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-[80px]">{msg.gift.emoji}</span>
+                  )}
                 </motion.div>
                 <div className="text-[16px] font-bold mb-1 relative z-10">{msg.gift.name}</div>
                 <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10">

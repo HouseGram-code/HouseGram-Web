@@ -4,6 +4,8 @@ import { memo } from 'react';
 import { motion } from 'motion/react';
 import { Bookmark } from 'lucide-react';
 import Message from './Message';
+import { getGiftAnimatedUrl } from './SendGiftView';
+import Image from 'next/image';
 
 interface MessagesContainerProps {
   contact: any;
@@ -105,9 +107,20 @@ const MessagesContainer = memo(function MessagesContainer({
                   ease: "easeInOut",
                   repeat: (msg.gift.id === 'easter_bunny' || msg.gift.id === 'cosmonaut') ? Infinity : 0
                 }}
-                className="text-[80px] mb-2 relative z-10"
+                className="mb-2 relative z-10 flex items-center justify-center"
               >
-                {msg.gift.emoji}
+                {getGiftAnimatedUrl(msg.gift.id) ? (
+                  <Image
+                    src={getGiftAnimatedUrl(msg.gift.id)!}
+                    alt={msg.gift.name}
+                    width={80}
+                    height={80}
+                    className="object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="text-[80px]">{msg.gift.emoji}</span>
+                )}
               </motion.div>
               <div className="text-[16px] font-bold mb-1 relative z-10">{msg.gift.name}</div>
               <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10">

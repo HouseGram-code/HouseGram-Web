@@ -20,70 +20,87 @@ const GIFTS = [
     id: 'teddy_bear',
     name: 'Плюшевый мишка',
     emoji: '🧸',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Bear.webp',
     cost: 15,
     animation: 'bounce',
-    available: true
+    available: true,
+    animated: true
   },
   {
     id: 'red_heart',
     name: 'Красное сердце',
     emoji: '❤️',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Red%20Heart.webp',
     cost: 10,
     animation: 'pulse',
-    available: true
+    available: true,
+    animated: true
   },
   {
     id: 'rose',
     name: 'Роза',
     emoji: '🌹',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Rose.webp',
     cost: 12,
     animation: 'bounce',
-    available: true
+    available: true,
+    animated: true
   },
   {
     id: 'cake',
     name: 'Торт',
     emoji: '🎂',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Food%20and%20Drink/Birthday%20Cake.webp',
     cost: 18,
     animation: 'bounce',
-    available: true
+    available: true,
+    animated: true
   },
   {
     id: 'star',
     name: 'Звезда',
     emoji: '⭐',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Glowing%20Star.webp',
     cost: 20,
     animation: 'spin',
-    available: true
+    available: true,
+    animated: true
   },
   {
     id: 'gift_box',
     name: 'Подарочная коробка',
     emoji: '🎁',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Activity/Wrapped%20Gift.webp',
     cost: 25,
     animation: 'bounce',
-    available: true
+    available: true,
+    animated: true
   },
   {
     id: 'diamond',
     name: 'Бриллиант',
     emoji: '💎',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Gem%20Stone.webp',
     cost: 50,
     animation: 'sparkle',
-    available: true
+    available: true,
+    animated: true
   },
   {
     id: 'crown',
     name: 'Корона',
     emoji: '👑',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Crown.webp',
     cost: 100,
     animation: 'bounce',
-    available: true
+    available: true,
+    animated: true
   },
   {
     id: 'easter_bunny',
     name: 'Пасхальный заяц',
     emoji: '🐰🥚',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Rabbit%20Face.webp',
     cost: 50,
     animation: 'easter',
     available: false,
@@ -91,12 +108,14 @@ const GIFTS = [
     special: true,
     description: 'Эксклюзивный пасхальный подарок',
     limited: true,
-    totalLimit: 15
+    totalLimit: 15,
+    animated: true
   },
   {
     id: 'cosmonaut',
     name: 'Космонавт',
     emoji: '👨‍🚀🚀',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Travel%20and%20Places/Rocket.webp',
     cost: 50,
     animation: 'space',
     available: false,
@@ -105,9 +124,16 @@ const GIFTS = [
     description: 'День космонавтики! Полетели в космос!',
     limited: true,
     totalLimit: 20,
-    spaceTheme: true
+    spaceTheme: true,
+    animated: true
   }
 ];
+
+// Функция для получения анимированного URL подарка по ID
+export function getGiftAnimatedUrl(giftId: string): string | null {
+  const gift = GIFTS.find(g => g.id === giftId);
+  return gift?.animatedUrl || null;
+}
 
 export default function SendGiftView() {
   const { setView, themeColor, contacts, currentUser, setActiveChatId } = useChat();
@@ -517,7 +543,7 @@ export default function SendGiftView() {
 
                     <div className="relative z-10">
                       <motion.div 
-                        className="text-[60px] mb-2 text-center"
+                        className="mb-2 text-center flex items-center justify-center"
                         animate={!isLocked && !isSoldOut && canAfford ? {
                           scale: [1, 1.1, 1],
                           rotate: [0, -5, 5, -5, 0],
@@ -528,7 +554,18 @@ export default function SendGiftView() {
                           repeatDelay: 1,
                         }}
                       >
-                        {gift.emoji}
+                        {gift.animated && gift.animatedUrl ? (
+                          <Image
+                            src={gift.animatedUrl}
+                            alt={gift.name}
+                            width={60}
+                            height={60}
+                            className="object-contain"
+                            unoptimized
+                          />
+                        ) : (
+                          <span className="text-[60px]">{gift.emoji}</span>
+                        )}
                       </motion.div>
                       
                       <div className={`text-[15px] font-medium mb-1 text-center truncate ${
@@ -664,7 +701,7 @@ export default function SendGiftView() {
               </div>
 
               <motion.div 
-                className="text-[100px] mb-4 relative z-10"
+                className="mb-4 relative z-10 flex items-center justify-center"
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ 
@@ -678,7 +715,18 @@ export default function SendGiftView() {
                   transition: { duration: 0.5 }
                 }}
               >
-                {selectedGift.emoji}
+                {selectedGift.animated && selectedGift.animatedUrl ? (
+                  <Image
+                    src={selectedGift.animatedUrl}
+                    alt={selectedGift.name}
+                    width={100}
+                    height={100}
+                    className="object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="text-[100px]">{selectedGift.emoji}</span>
+                )}
               </motion.div>
               
               <motion.h3 
