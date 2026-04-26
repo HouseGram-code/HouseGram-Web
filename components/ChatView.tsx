@@ -753,19 +753,31 @@ export default function ChatView() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="absolute right-2 top-full mt-1 w-48 bg-white rounded-xl shadow-2xl py-1 z-50 text-black overflow-hidden"
+                    className={`absolute right-2 top-full mt-1 w-48 rounded-xl shadow-2xl py-1 z-50 overflow-hidden ${
+                      isDarkMode 
+                        ? 'bg-[#1a1a1a] border border-gray-800' 
+                        : 'bg-white'
+                    }`}
                   >
                     <button 
                       onClick={() => { setShowClearModal(true); setIsMenuOpen(false); }} 
-                      className="w-full text-left px-4 py-3 hover:bg-gray-100 text-[15px] transition-colors flex items-center gap-3"
+                      className={`w-full text-left px-4 py-3 text-[15px] transition-colors flex items-center gap-3 ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-800 text-gray-200' 
+                          : 'hover:bg-gray-100 text-black'
+                      }`}
                     >
-                      <Trash2 size={18} className="text-gray-500" />
+                      <Trash2 size={18} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
                       Очистить историю
                     </button>
-                    <div className="h-px bg-gray-100 mx-2" />
+                    <div className={`h-px mx-2 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`} />
                     <button 
                       onClick={() => { setShowDeleteModal(true); setIsMenuOpen(false); }} 
-                      className="w-full text-left px-4 py-3 hover:bg-red-50 text-[15px] text-red-500 transition-colors flex items-center gap-3"
+                      className={`w-full text-left px-4 py-3 text-[15px] text-red-500 transition-colors flex items-center gap-3 ${
+                        isDarkMode 
+                          ? 'hover:bg-red-500/10' 
+                          : 'hover:bg-red-50'
+                      }`}
                     >
                       <X size={18} className="text-red-500" />
                       Удалить чат
