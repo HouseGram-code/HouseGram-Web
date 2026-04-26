@@ -95,6 +95,9 @@ const PremiumView = dynamic(() => import('@/components/PremiumView'), {
 const BuyStarsView = dynamic(() => import('@/components/BuyStarsView'), {
   loading: () => <LoadingSpinner />
 });
+const WalletView = dynamic(() => import('@/components/WalletView'), {
+  loading: () => <LoadingSpinner />
+});
 const MyStoriesView = dynamic(() => import('@/components/MyStoriesView'), {
   loading: () => <LoadingSpinner />
 });
@@ -140,6 +143,7 @@ const viewComponents: Record<string, React.ComponentType> = {
   'my-gifts': MyGiftsView,
   'user-gifts': UserGiftsView,
   'buy-stars': BuyStarsView,
+  wallet: WalletView,
   'my-stories': MyStoriesView,
   news: NewsView,
   proxy: ProxyView,

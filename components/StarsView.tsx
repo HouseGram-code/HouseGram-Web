@@ -80,13 +80,11 @@ export default function StarsView() {
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="absolute inset-0 bg-tg-bg-light flex flex-col z-10"
+      className="absolute inset-0 bg-tg-bg-light flex flex-col z-10 overflow-hidden"
     >
-
-      
       {/* Header */}
       <div
-        className="text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0"
+        className="text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0 relative z-20"
         style={{ backgroundColor: themeColor }}
       >
         <button
@@ -99,16 +97,21 @@ export default function StarsView() {
       </div>
 
       {/* Content */}
-      <div className="flex-grow overflow-y-auto p-4">
+      <div className="flex-grow overflow-y-auto p-4 pb-safe"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain'
+        }}
+      >
         {/* Balance Card with Enhanced Stars Animation */}
         <motion.div 
           className="relative bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 rounded-3xl p-6 mb-4 overflow-hidden shadow-2xl"
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300 }}
         >
-          {/* Animated Stars Background - Telegram Style */}
+          {/* Animated Stars Background - Optimized for Mobile */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-            {[...Array(20)].map((_, i) => {
+            {[...Array(10)].map((_, i) => {
               const randomX = Math.random() * 100;
               const randomY = Math.random() * 100;
               const randomDelay = Math.random() * 3;
@@ -117,7 +120,7 @@ export default function StarsView() {
               return (
                 <motion.div
                   key={i}
-                  className="absolute"
+                  className="absolute will-change-transform"
                   style={{
                     left: `${randomX}%`,
                     top: `${randomY}%`,
@@ -146,11 +149,11 @@ export default function StarsView() {
               );
             })}
             
-            {/* Floating Sparkles */}
-            {[...Array(10)].map((_, i) => (
+            {/* Floating Sparkles - Reduced for Mobile */}
+            {[...Array(5)].map((_, i) => (
               <motion.div
                 key={`sparkle-${i}`}
-                className="absolute text-white/50"
+                className="absolute text-white/50 will-change-transform"
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `${Math.random() * 100}%`,
