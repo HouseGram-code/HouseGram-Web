@@ -1,3 +1,5 @@
+import React from 'react';
+
 // Функция для парсинга и рендеринга форматированного текста
 export function parseFormattedText(text: string): React.ReactNode[] {
   const elements: React.ReactNode[] = [];
@@ -10,11 +12,11 @@ export function parseFormattedText(text: string): React.ReactNode[] {
     { regex: /`(.+?)`/g, tag: 'code', className: 'bg-gray-100 px-1 py-0.5 rounded text-sm font-mono' },
     { regex: /~~(.+?)~~/g, tag: 'del', className: 'line-through' },
     { regex: /__(.+?)__/g, tag: 'u', className: 'underline' },
-    { regex: /\[(.+?)\]\((.+?)\)/g, tag: 'a', className: 'text-blue-500 underline hover:text-blue-600' },
+    { regex: /\[(.+?)\]\((.+?)\)/g, tag: 'a', className: 'text-blue-500 underline hover:text-blue-600', isLink: true },
   ];
 
   // Находим все совпадения
-  const matches: Array<{ start: number; end: number; content: string; format: any }> = [];
+  const matches: Array<{ start: number; end: number; content: string; url?: string; format: any }> = [];
   
   patterns.forEach(pattern => {
     const regex = new RegExp(pattern.regex.source, 'g');
@@ -25,6 +27,7 @@ export function parseFormattedText(text: string): React.ReactNode[] {
         start: match.index,
         end: match.index + match[0].length,
         content: match[1],
+        url: pattern.isLink ? match[2] : undefined,
         format: pattern
       });
     }
@@ -41,11 +44,23 @@ export function parseFormattedText(text: string): React.ReactNode[] {
     }
 
     // Добавляем форматированный элемент
-    const Tag = match.format.tag as any;
+    const props: any = {
+      key: index,
+      className: match.format.className
+    };
+    
+    if (match.format.isLink && match.url) {
+      props.href = match.url;
+      props.target = '_blank';
+      props.rel = 'noopener noreferrer';
+    }
+
     elements.push(
-      <Tag key={index} className={match.format.className}>
-        {match.content}
-      </Tag>
+      React.createElement(
+        match.format.tag,
+        props,
+        match.content
+      )
     );
 
     currentIndex = match.end;
