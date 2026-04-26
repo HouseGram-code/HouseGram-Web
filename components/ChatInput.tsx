@@ -69,6 +69,8 @@ const ChatInput = memo(function ChatInput({
           y: rect.top - 10
         });
       } else {
+        setSelectedText('');
+        setSelectionRange(null);
         setShowFormatMenu(false);
       }
     };
@@ -78,6 +80,7 @@ const ChatInput = memo(function ChatInput({
       input.addEventListener('mouseup', handleSelection);
       input.addEventListener('touchend', handleSelection);
       input.addEventListener('keyup', handleSelection);
+      input.addEventListener('select', handleSelection);
     }
 
     return () => {
@@ -85,6 +88,7 @@ const ChatInput = memo(function ChatInput({
         input.removeEventListener('mouseup', handleSelection);
         input.removeEventListener('touchend', handleSelection);
         input.removeEventListener('keyup', handleSelection);
+        input.removeEventListener('select', handleSelection);
       }
     };
   }, []);
@@ -192,21 +196,40 @@ const ChatInput = memo(function ChatInput({
               overflowY: 'auto'
             }}
           />
-          {!isRecording && selectedText && (
-            <motion.button
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 180 }}
-              onClick={() => setShowFormatMenu(!showFormatMenu)}
-              className="p-1.5 text-blue-500 hover:text-blue-600 transition-colors"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+          
+          {/* Format Button - показывается когда текст выделен */}
+          <AnimatePresence>
+            {!isRecording && selectedText.length > 0 && (
+              <motion.button
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 180 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowFormatMenu(!showFormatMenu);
+                }}
+                className={`p-2 rounded-full transition-all ${
+                  showFormatMenu 
+                    ? 'bg-blue-500 text-white' 
+                    : 'text-blue-500 hover:bg-blue-50'
+                }`}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                title="Форматирование текста"
+              >
+                <MoreVertical size={20} />
+              </motion.button>
+            )}
+          </AnimatePresence>
+          
+          {/* Emoji Button - показывается когда текст НЕ выделен */}
+          {!isRecording && selectedText.length === 0 && (
+            <button 
+              onClick={onShowPicker} 
+              className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors"
             >
-              <MoreVertical size={20} />
-            </motion.button>
-          )}
-          {!isRecording && !selectedText && (
-            <button onClick={onShowPicker} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
               <Smile size={24} />
             </button>
           )}
