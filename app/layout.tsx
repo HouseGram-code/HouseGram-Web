@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Roboto } from 'next/font/google';
 import './globals.css';
-import MegaStorageProvider from '@/components/MegaStorageProvider';
+// import MegaStorageProvider from '@/components/MegaStorageProvider'; // Отключено: MEGA требует платный аккаунт
 
 const roboto = Roboto({
   weight: ['400', '500'],
@@ -39,9 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" className={roboto.variable} suppressHydrationWarning>
       <body className="font-roboto antialiased bg-white text-black dark:bg-[#0f0f0f] dark:text-white" suppressHydrationWarning>
-        <MegaStorageProvider>
-          {children}
-        </MegaStorageProvider>
+        {children}
       </body>
     </html>
   );
