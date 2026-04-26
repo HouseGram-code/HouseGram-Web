@@ -956,7 +956,7 @@ export default function AdminView() {
 
               <div className="px-4">
                 <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-4 text-white">
-                  <h3 className="text-lg font-semibold mb-2">HouseGram v2.1 Beta</h3>
+                  <h3 className="text-lg font-semibold mb-2">HouseGram v2.2 Beta</h3>
                   <p className="text-sm opacity-90">
                     Система работает стабильно. Все сервисы доступны.
                   </p>

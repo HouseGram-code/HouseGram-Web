@@ -143,7 +143,7 @@ export default function SideMenu() {
             {/* Footer */}
             <div className="p-4 text-center text-gray-400 text-xs border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30">
               <div className="font-semibold text-gray-600 dark:text-gray-300">HouseGram Web</div>
-              <div className="mt-1 text-[10px] text-gray-400">v2.1 beta • Быстро. Безопасно. Удобно.</div>
+              <div className="mt-1 text-[10px] text-gray-400">v2.2 beta • Быстро. Безопасно. Удобно.</div>
             </div>
           </motion.div>
         </>
