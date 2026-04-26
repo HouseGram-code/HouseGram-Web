@@ -733,8 +733,12 @@ export default function ChatView() {
                 stiffness: 260, 
                 damping: 20 
               }}
-              onClick={() => setIsMenuOpen(!isMenuOpen)} 
-              className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+                console.log('Menu button clicked, isMenuOpen:', !isMenuOpen);
+              }} 
+              className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200 relative z-50"
             >
               <MoreVertical size={24} />
             </motion.button>
@@ -745,15 +749,18 @@ export default function ChatView() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsMenuOpen(false)} 
+                    className="fixed inset-0 z-[100]" 
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      console.log('Backdrop clicked, closing menu');
+                    }} 
                   />
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.95, y: -10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className={`absolute right-2 top-full mt-1 w-48 rounded-xl shadow-2xl py-1 z-50 overflow-hidden ${
+                    className={`absolute right-2 top-full mt-1 w-48 rounded-xl shadow-2xl py-1 z-[110] overflow-hidden ${
                       isDarkMode 
                         ? 'bg-[#1a1a1a] border border-gray-800' 
                         : 'bg-white'

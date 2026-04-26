@@ -41,7 +41,7 @@ export default function DesktopLayout({ children }: DesktopLayoutProps) {
   return (
     <div className={`fixed inset-0 w-full h-screen flex flex-col ${isDarkMode ? 'bg-[#0f0f0f] text-white' : 'bg-gray-100 text-gray-900'}`}>
       {/* Window Title Bar */}
-      <div className={`h-12 flex items-center justify-between px-4 select-none ${isDarkMode ? 'bg-[#1a1a1a] border-b border-gray-800' : 'bg-white border-b border-gray-200'}`}
+      <div className={`h-12 flex items-center justify-between px-4 select-none relative z-10 ${isDarkMode ? 'bg-[#1a1a1a] border-b border-gray-800' : 'bg-white border-b border-gray-200'}`}
            style={{ WebkitAppRegion: 'drag' } as any}>
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -74,9 +74,9 @@ export default function DesktopLayout({ children }: DesktopLayoutProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Sidebar Navigation */}
-        <div className={`w-20 flex flex-col items-center py-4 space-y-2 ${isDarkMode ? 'bg-[#1a1a1a] border-r border-gray-800' : 'bg-white border-r border-gray-200'}`}>
+        <div className={`w-20 flex flex-col items-center py-4 space-y-2 relative z-10 ${isDarkMode ? 'bg-[#1a1a1a] border-r border-gray-800' : 'bg-white border-r border-gray-200'}`}>
           {/* User Avatar */}
           <div className="mb-4">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
@@ -103,7 +103,7 @@ export default function DesktopLayout({ children }: DesktopLayoutProps) {
         </div>
 
         {/* Content Area - Full Screen */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden relative z-0">
           {children}
         </div>
       </div>
