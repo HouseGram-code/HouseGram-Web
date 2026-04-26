@@ -50,6 +50,7 @@ export default function ChatList() {
   }, []);
 
   const toggleDesktopMode = () => {
+    console.log('Toggle button clicked, current isDesktopMode:', isDesktopMode);
     window.dispatchEvent(new CustomEvent('toggleDesktopMode'));
     setIsDesktopMode(!isDesktopMode);
   };

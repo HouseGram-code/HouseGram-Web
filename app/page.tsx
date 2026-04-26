@@ -157,17 +157,29 @@ function AppContent() {
     const checkDesktop = () => {
       const shouldBeDesktop = window.innerWidth >= 1024 || forceDesktop;
       setIsDesktop(shouldBeDesktop);
-      console.log('Desktop mode:', shouldBeDesktop, 'Width:', window.innerWidth);
+      console.log('Desktop mode:', shouldBeDesktop, 'Width:', window.innerWidth, 'Force:', forceDesktop);
     };
     
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    
+    return () => {
+      window.removeEventListener('resize', checkDesktop);
+    };
+  }, [forceDesktop]);
+
+  useEffect(() => {
     // Слушаем событие переключения режима
     const handleToggle = () => {
-      setForceDesktop(!forceDesktop);
+      console.log('Toggle event received, current forceDesktop:', forceDesktop);
+      setForceDesktop(prev => {
+        const newValue = !prev;
+        console.log('Setting forceDesktop to:', newValue);
+        return newValue;
+      });
     };
     
     window.addEventListener('toggleDesktopMode', handleToggle);
-    checkDesktop();
-    window.addEventListener('resize', checkDesktop);
     
     // Показываем лоадер только при первой загрузке
     const hasShownLoader = sessionStorage.getItem('housegram_loader_shown');
@@ -177,10 +189,9 @@ function AppContent() {
     }
     
     return () => {
-      window.removeEventListener('resize', checkDesktop);
       window.removeEventListener('toggleDesktopMode', handleToggle);
     };
-  }, [forceDesktop]);
+  }, []);
 
   const handleConnectionComplete = () => {
     sessionStorage.setItem('housegram_loader_shown', 'true');
