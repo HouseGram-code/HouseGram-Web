@@ -1,12 +1,15 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { motion } from 'motion/react';
-import { ArrowLeft, Star, Zap, Check, Crown, MessageSquare, Bot, Sparkles, Shield, Clock, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Star, Zap, Check, Crown, MessageSquare, Bot, Sparkles, Shield, Clock, X, Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import ShinyButton from './ShinyButton';
+import { premiumEmojiPacks, searchPremiumEmojis } from '@/lib/premiumEmojis';
+import Image from 'next/image';
+import PremiumEmojisSection from './PremiumEmojisSection';
 
 interface PremiumFeature {
   icon: React.ReactNode;
@@ -51,6 +54,8 @@ export default function PremiumView() {
   const [premiumExpiry, setPremiumExpiry] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
+  const [selectedEmojiPack, setSelectedEmojiPack] = useState<string | null>(null);
+  const [emojiSearch, setEmojiSearch] = useState('');
 
   useEffect(() => {
     loadPremiumStatus();
@@ -252,6 +257,9 @@ export default function PremiumView() {
             ))}
           </div>
         </div>
+
+        {/* Animated Emojis Section */}
+        <PremiumEmojisSection isPremium={isPremium} />
 
         {/* AI Usage Info */}
         <div className="px-4 mb-6">
