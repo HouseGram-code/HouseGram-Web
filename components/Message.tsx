@@ -362,9 +362,12 @@ const Message = memo(function Message({
 
       {/* Message Footer (Time + Status) */}
       <motion.div 
-        className={`text-[11px] select-none relative z-10 pl-2 self-end mt-auto -mb-0.5 flex items-center gap-1 ${
-          isSticker || isGif || isJumbo ? 'bg-black/20 text-white px-1.5 py-0.5 rounded-full backdrop-blur-sm mt-1' :
-          isOwn ? 'text-[#70a050]' : 'text-tg-secondary-text'
+        className={`text-[11px] select-none flex items-center gap-1 mt-1 ${
+          isSticker || isGif || isJumbo 
+            ? 'bg-black/30 text-white px-2 py-0.5 rounded-full backdrop-blur-sm self-end' 
+            : isOwn 
+              ? 'text-green-600 self-end' 
+              : 'text-gray-500 self-end'
         }`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -379,17 +382,17 @@ const Message = memo(function Message({
             ред.
           </motion.span>
         )}
-        <span>{msg.time}</span>
+        <span className="font-medium">{msg.time}</span>
         
         {/* Channel Views */}
         {isChannel && msg.views !== undefined && (
           <motion.div 
-            className="flex items-center gap-0.5"
+            className="flex items-center gap-0.5 ml-1"
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <Eye size={12} />
+            <Eye size={13} />
             <span>{msg.views}</span>
           </motion.div>
         )}
@@ -404,12 +407,13 @@ const Message = memo(function Message({
                 animate={{ scale: 1, rotate: 0 }}
                 exit={{ scale: 0, rotate: 180 }}
                 transition={{ type: "spring", stiffness: 300 }}
+                className="ml-0.5"
               >
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 >
-                  <Clock size={12} />
+                  <Clock size={13} />
                 </motion.div>
               </motion.div>
             ) : msg.status === 'read' ? (
@@ -419,6 +423,7 @@ const Message = memo(function Message({
                 animate={{ scale: 1, rotate: 0 }}
                 exit={{ scale: 0, rotate: 180 }}
                 transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                className="ml-0.5"
               >
                 <motion.div
                   animate={{ 
@@ -429,7 +434,7 @@ const Message = memo(function Message({
                     times: [0, 0.5, 1]
                   }}
                 >
-                  <CheckCheck size={14} className="text-blue-500" />
+                  <CheckCheck size={15} className="text-blue-500" />
                 </motion.div>
               </motion.div>
             ) : (
@@ -439,8 +444,9 @@ const Message = memo(function Message({
                 animate={{ scale: 1, rotate: 0 }}
                 exit={{ scale: 0, rotate: 180 }}
                 transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                className="ml-0.5"
               >
-                <Check size={14} />
+                <Check size={15} />
               </motion.div>
             )}
           </AnimatePresence>

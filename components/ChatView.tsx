@@ -802,7 +802,7 @@ export default function ChatView() {
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-grow overflow-y-auto p-2.5 pt-14 flex flex-col no-scrollbar relative z-10"
+        className="flex-grow overflow-y-auto p-2.5 pt-14 flex flex-col gap-0.5 no-scrollbar relative z-10"
         style={{
           backgroundImage: wallpaper && !wallpaper.startsWith('linear') ? `url('${wallpaper}')` : 'none',
           background: wallpaper || 'var(--tg-bg-dark)',
@@ -1003,23 +1003,25 @@ export default function ChatView() {
                 damping: 30,
                 mass: 0.5
               }}
-              className={`${marginTop} ${isOwn ? 'self-end' : 'self-start'} max-w-[75%]`}
+              className={`flex ${isOwn ? 'justify-end' : 'justify-start'} w-full`}
             >
-              <Message
-                msg={msg}
-                isOwn={isOwn}
-                themeColor={themeColor}
-                isChannel={contact.isChannel || false}
-                onContextMenu={handleContextMenu}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-                onTouchMove={handleTouchMove}
-                onSaveSticker={saveSticker}
-                onReply={handleReply}
-                showAvatar={showAvatar}
-                isFirstInGroup={isFirstInGroup}
-                isLastInGroup={isLastInGroup}
-              />
+              <div className={`max-w-[75%] ${marginTop}`}>
+                <Message
+                  msg={msg}
+                  isOwn={isOwn}
+                  themeColor={themeColor}
+                  isChannel={contact.isChannel || false}
+                  onContextMenu={handleContextMenu}
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchMove={handleTouchMove}
+                  onSaveSticker={saveSticker}
+                  onReply={handleReply}
+                  showAvatar={showAvatar}
+                  isFirstInGroup={isFirstInGroup}
+                  isLastInGroup={isLastInGroup}
+                />
+              </div>
             </motion.div>
           );
         })}
@@ -1341,35 +1343,75 @@ export default function ChatView() {
           {/* Attach Menu Popup */}
           <AnimatePresence>
             {showAttachMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                animate={{ opacity: 1, y: 0, scale: 1 }} 
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="fixed bottom-20 left-4 bg-white rounded-xl shadow-2xl border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[180px]"
-              >
-                <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
-                <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
-                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+              <>
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/20 z-40"
+                  onClick={() => setShowAttachMenu(false)}
+                />
                 
-                <button onClick={() => { imageInputRef.current?.click(); setShowAttachMenu(false); }} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-lg text-left transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                    <ImageIcon size={20} />
+                {/* Menu */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }} 
+                  animate={{ opacity: 1, y: 0, scale: 1 }} 
+                  exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                  className="fixed bottom-24 left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-w-sm mx-auto"
+                >
+                  <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
+                  <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
+                  <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                  
+                  <div className="p-3">
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => { imageInputRef.current?.click(); setShowAttachMenu(false); }} 
+                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-blue-50 rounded-xl text-left transition-colors"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0">
+                        <ImageIcon size={22} />
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <div className="text-gray-900 font-medium text-[15px]">Фото / Видео</div>
+                        <div className="text-gray-500 text-[13px]">Отправить изображение или видео</div>
+                      </div>
+                    </motion.button>
+                    
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => { audioInputRef.current?.click(); setShowAttachMenu(false); }} 
+                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-orange-50 rounded-xl text-left transition-colors mt-1"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-white shrink-0">
+                        <Music size={22} />
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <div className="text-gray-900 font-medium text-[15px]">Музыка</div>
+                        <div className="text-gray-500 text-[13px]">Отправить аудио файл</div>
+                      </div>
+                    </motion.button>
+                    
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} 
+                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-purple-50 rounded-xl text-left transition-colors mt-1"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center text-white shrink-0">
+                        <FileIcon size={22} />
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <div className="text-gray-900 font-medium text-[15px]">Файл</div>
+                        <div className="text-gray-500 text-[13px]">Отправить документ</div>
+                      </div>
+                    </motion.button>
                   </div>
-                  <span className="text-gray-900 font-medium">Фото / Видео</span>
-                </button>
-                <button onClick={() => { audioInputRef.current?.click(); setShowAttachMenu(false); }} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-lg text-left transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white">
-                    <Music size={20} />
-                  </div>
-                  <span className="text-gray-900 font-medium">Музыка</span>
-                </button>
-                <button onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-lg text-left transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white">
-                    <FileIcon size={20} />
-                  </div>
-                  <span className="text-gray-900 font-medium">Файл</span>
-                </button>
-              </motion.div>
+                </motion.div>
+              </>
             )}
           </AnimatePresence>
         </>
