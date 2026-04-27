@@ -3,7 +3,9 @@
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Gamepad2, Coins, Zap, TrendingUp, Star, Crown, Gift } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function MiniGamesView() {
   const { setView, themeColor } = useChat();
@@ -252,16 +254,72 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
   const [autoUpgradeLevel, setAutoUpgradeLevel] = useState(0);
   const [clickAnimations, setClickAnimations] = useState<Array<{ id: number; x: number; y: number }>>([]);
   const [showUpgrades, setShowUpgrades] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load game progress from Firestore
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    
+    const loadProgress = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.id));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data.gameProgress?.cryptoClicker) {
+            const progress = data.gameProgress.cryptoClicker;
+            setCoins(progress.coins || 0);
+            setCoinsPerClick(progress.coinsPerClick || 0.0001);
+            setCoinsPerSecond(progress.coinsPerSecond || 0);
+            setClickUpgradeLevel(progress.clickUpgradeLevel || 0);
+            setAutoUpgradeLevel(progress.autoUpgradeLevel || 0);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading game progress:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProgress();
+  }, [currentUser]);
+
+  // Save game progress to Firestore
+  useEffect(() => {
+    if (!currentUser?.id || loading) return;
+    
+    const saveProgress = async () => {
+      try {
+        await updateDoc(doc(db, 'users', currentUser.id), {
+          'gameProgress.cryptoClicker': {
+            coins,
+            coinsPerClick,
+            coinsPerSecond,
+            clickUpgradeLevel,
+            autoUpgradeLevel,
+            lastSaved: serverTimestamp()
+          }
+        });
+      } catch (error) {
+        console.error('Error saving game progress:', error);
+      }
+    };
+    
+    // Debounce save - save every 2 seconds
+    const timer = setTimeout(saveProgress, 2000);
+    return () => clearTimeout(timer);
+  }, [coins, coinsPerClick, coinsPerSecond, clickUpgradeLevel, autoUpgradeLevel, currentUser, loading]);
 
   // Auto-earn coins
-  useState(() => {
+  useEffect(() => {
+    if (coinsPerSecond <= 0) return;
+    
     const interval = setInterval(() => {
-      if (coinsPerSecond > 0) {
-        setCoins(prev => prev + coinsPerSecond / 10);
-      }
+      setCoins(prev => prev + coinsPerSecond / 10);
     }, 100);
+    
     return () => clearInterval(interval);
-  });
+  }, [coinsPerSecond]);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -298,6 +356,21 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
 
   const getClickUpgradeCost = () => Math.pow(1.5, clickUpgradeLevel) * 0.001;
   const getAutoUpgradeCost = () => Math.pow(2, autoUpgradeLevel) * 0.01;
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="absolute inset-0 bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 flex items-center justify-center z-20"
+      >
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка игры...</p>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

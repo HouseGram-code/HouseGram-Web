@@ -397,5 +397,69 @@ service cloud.firestore {
       // Только админы могут удалять
       allow delete: if isAdmin();
     }
+    
+    // ===============================================================
+    // Bots Rules (Bot API)
+    // ===============================================================
+    
+    match /bots/{botId} {
+      // Все авторизованные пользователи могут читать информацию о ботах
+      allow read: if isAuthenticated();
+      
+      // Пользователи могут создавать своих ботов
+      allow create: if isAuthenticated() && isNotBanned() &&
+                    request.resource.data.ownerId == request.auth.uid &&
+                    request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100 &&
+                    request.resource.data.username is string && request.resource.data.username.size() > 0 && request.resource.data.username.size() <= 50 &&
+                    request.resource.data.username.matches('.*bot$') && // Username должен заканчиваться на 'bot'
+                    request.resource.data.token is string &&
+                    request.resource.data.isActive is bool &&
+                    request.resource.data.createdAt is timestamp;
+      
+      // Владелец бота может обновлять его настройки
+      allow update: if isAuthenticated() && isNotBanned() &&
+                    resource.data.ownerId == request.auth.uid &&
+                    request.resource.data.ownerId == resource.data.ownerId; // Нельзя изменить владельца
+      
+      // Владелец или админ могут удалить бота
+      allow delete: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+    
+    // Обновления для ботов (long polling)
+    match /bot_updates/{botId}/updates/{updateId} {
+      // Только владелец бота может читать обновления
+      allow read: if isAuthenticated() &&
+                  exists(/databases/$(database)/documents/bots/$(botId)) &&
+                  get(/databases/$(database)/documents/bots/$(botId)).data.ownerId == request.auth.uid;
+      
+      // Система может создавать обновления
+      allow create: if isAuthenticated();
+      
+      // Никто не может обновлять (immutable)
+      allow update: if false;
+      
+      // Владелец бота может удалять старые обновления
+      allow delete: if isAuthenticated() &&
+                    exists(/databases/$(database)/documents/bots/$(botId)) &&
+                    get(/databases/$(database)/documents/bots/$(botId)).data.ownerId == request.auth.uid;
+    }
+    
+    // Ответы на callback queries
+    match /callback_answers/{callbackId} {
+      // Бот может читать ответы
+      allow read: if isAuthenticated();
+      
+      // Бот может создавать ответы
+      allow create: if isAuthenticated();
+      
+      // Никто не может обновлять
+      allow update: if false;
+      
+      // Автоматическое удаление через TTL
+      allow delete: if isAuthenticated();
+    }
   }
 }
