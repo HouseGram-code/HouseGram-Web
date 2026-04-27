@@ -121,6 +121,30 @@
 
 </td>
 </tr>
+<tr>
+<td width="50%">
+
+### 🤖 **Bot API** ✨ NEW!
+- 🔧 Create bots with BotMaster
+- 📡 Send/receive messages
+- 🎨 Inline keyboards
+- 🔔 Webhook support
+- 💬 Commands handling
+- 📊 Bot analytics
+
+</td>
+<td width="50%">
+
+### 🎯 **More Features**
+- 🌐 Multi-language support
+- 📱 PWA support
+- 🔍 Search functionality
+- 📌 Pinned messages
+- 🔕 Mute notifications
+- ⚡ Lightning fast
+
+</td>
+</tr>
 </table>
 
 ---
@@ -358,6 +382,7 @@ gantt
 - [x] Mini-games (Crypto Clicker)
 - [x] Animated emojis
 - [x] Channels
+- [x] **Bot API 0.1** 🤖 NEW!
 
 ### 🚧 In Progress
 
@@ -373,7 +398,7 @@ gantt
 - [ ] Screen sharing
 - [ ] Stories
 - [ ] Polls
-- [ ] Bots API
+- [x] **Bots API** ✨ NEW!
 - [ ] Desktop app
 - [ ] Mobile apps
 

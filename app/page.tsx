@@ -110,6 +110,9 @@ const NewsView = dynamic(() => import('@/components/NewsView'), {
 const ProxyView = dynamic(() => import('@/components/ProxyView'), {
   loading: () => <LoadingSpinner />
 });
+const BotMasterView = dynamic(() => import('@/components/BotMasterView'), {
+  loading: () => <LoadingSpinner />
+});
 const ConnectionLoader = dynamic(() => import('@/components/ConnectionLoader'));
 
 function LoadingSpinner() {
@@ -151,6 +154,7 @@ const viewComponents: Record<string, React.ComponentType> = {
   'my-stories': MyStoriesView,
   news: NewsView,
   proxy: ProxyView,
+  botfather: BotMasterView,
 };
 
 function AppContent() {
