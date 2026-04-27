@@ -71,13 +71,30 @@ export default function ChatList() {
         // Try searching by username (with or without @)
         const usernameQuery = queryText.startsWith('@') ? queryText : `@${queryText}`;
 
-        const q = query(collection(db, 'users'), where('username', '>=', usernameQuery), where('username', '<=', usernameQuery + '\uf8ff'));
-        const snapshot = await getDocs(q);
+        // Search users
+        const usersQuery = query(collection(db, 'users'), where('username', '>=', usernameQuery), where('username', '<=', usernameQuery + '\uf8ff'));
+        const usersSnapshot = await getDocs(usersQuery);
+        
+        // Search bots
+        const botsQuery = query(collection(db, 'bots'), where('username', '>=', queryText), where('username', '<=', queryText + '\uf8ff'));
+        const botsSnapshot = await getDocs(botsQuery);
+        
         if (!isMounted) return;
-        const results = snapshot.docs
+        
+        const userResults = usersSnapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(user => user.id !== auth.currentUser?.uid);
-        setSearchResults(results);
+        
+        const botResults = botsSnapshot.docs
+          .map(doc => ({ 
+            id: doc.id, 
+            ...doc.data(),
+            isBot: true,
+            username: '@' + doc.data().username,
+            status: 'online'
+          }));
+        
+        setSearchResults([...userResults, ...botResults]);
       };
       searchUsers();
     } else {

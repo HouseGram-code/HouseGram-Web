@@ -189,7 +189,7 @@ export default function BotMasterView() {
 
               {/* Documentation Button */}
               <button
-                onClick={() => window.open('/docs/bot-api.md', '_blank')}
+                onClick={() => window.open('/docs/bot-api', '_blank')}
                 className="w-full bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-4 flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
               >
                 <Book size={20} />
@@ -382,7 +382,7 @@ export default function BotMasterView() {
 
               <div className="space-y-2">
                 <button
-                  onClick={() => window.open('/docs/bot-api.md', '_blank')}
+                  onClick={() => window.open('/docs/bot-api', '_blank')}
                   className="w-full bg-blue-500 text-white rounded-lg py-3 font-semibold hover:bg-blue-600 transition flex items-center justify-center gap-2"
                 >
                   <Book size={20} />
@@ -454,7 +454,7 @@ export default function BotMasterView() {
                 </button>
 
                 <button
-                  onClick={() => window.open('/docs/bot-api.md', '_blank')}
+                  onClick={() => window.open('/docs/bot-api', '_blank')}
                   className="w-full bg-blue-500 text-white rounded-lg py-3 font-semibold hover:bg-blue-600 transition flex items-center justify-center gap-2"
                 >
                   <Terminal size={20} />
