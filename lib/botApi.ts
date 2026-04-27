@@ -97,15 +97,30 @@ export interface Chat {
 export function generateBotToken(botId: string): string {
   // Generate random token using Web Crypto API (works in browser and Node.js)
   const array = new Uint8Array(32);
+  
   if (typeof window !== 'undefined' && window.crypto) {
+    // Browser environment
     window.crypto.getRandomValues(array);
-  } else {
+  } else if (typeof global !== 'undefined') {
     // Node.js environment
-    const crypto = require('crypto');
-    crypto.randomFillSync(array);
+    try {
+      const crypto = require('crypto');
+      crypto.randomFillSync(array);
+    } catch (e) {
+      // Fallback
+      for (let i = 0; i < array.length; i++) {
+        array[i] = Math.floor(Math.random() * 256);
+      }
+    }
   }
   
-  const randomPart = Buffer.from(array).toString('base64')
+  // Convert to base64 without Buffer (browser-compatible)
+  let binary = '';
+  for (let i = 0; i < array.length; i++) {
+    binary += String.fromCharCode(array[i]);
+  }
+  
+  const randomPart = btoa(binary)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
