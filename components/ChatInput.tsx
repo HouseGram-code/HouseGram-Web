@@ -2,8 +2,7 @@
 
 import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Paperclip, Send, Mic, Smile, Square, X, MoreVertical } from 'lucide-react';
-import TextFormattingMenu from './TextFormattingMenu';
+import { Paperclip, Send, Mic, Smile, Square, X, Image as ImageIcon, File as FileIcon } from 'lucide-react';
 
 interface ChatInputProps {
   isRecording: boolean;
@@ -43,89 +42,36 @@ const ChatInput = memo(function ChatInput({
   showAttachMenu
 }: ChatInputProps) {
   const [inputText, setInputText] = useState(editingMsg?.text || '');
-  const [showFormatMenu, setShowFormatMenu] = useState(false);
-  const [selectedText, setSelectedText] = useState('');
-  const [selectionPosition, setSelectionPosition] = useState({ x: 0, y: 0 });
-  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Обработка выделения текста
+  // Синхронизация с editingMsg
   useEffect(() => {
-    const handleSelection = () => {
-      if (!inputRef.current) return;
-      
-      const start = inputRef.current.selectionStart;
-      const end = inputRef.current.selectionEnd;
-      const text = inputRef.current.value.substring(start, end);
-      
-      if (text.length > 0) {
-        setSelectedText(text);
-        setSelectionRange({ start, end });
-        
-        // Получаем позицию выделения
-        const rect = inputRef.current.getBoundingClientRect();
-        setSelectionPosition({
-          x: rect.left + (rect.width / 2),
-          y: rect.top - 10
-        });
-      } else {
-        setSelectedText('');
-        setSelectionRange(null);
-        setShowFormatMenu(false);
-      }
-    };
-
-    const input = inputRef.current;
-    if (input) {
-      input.addEventListener('mouseup', handleSelection);
-      input.addEventListener('touchend', handleSelection);
-      input.addEventListener('keyup', handleSelection);
-      input.addEventListener('select', handleSelection);
+    if (editingMsg) {
+      setInputText(editingMsg.text);
     }
-
-    return () => {
-      if (input) {
-        input.removeEventListener('mouseup', handleSelection);
-        input.removeEventListener('touchend', handleSelection);
-        input.removeEventListener('keyup', handleSelection);
-        input.removeEventListener('select', handleSelection);
-      }
-    };
-  }, []);
+  }, [editingMsg]);
 
   const handleChange = useCallback((text: string) => {
     setInputText(text);
     onInputChange(text);
+    
+    // Автоматическая высота textarea
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + 'px';
+    }
   }, [onInputChange]);
 
   const handleSend = useCallback(() => {
     if (inputText.trim()) {
       onSend(inputText.trim());
       setInputText('');
+      // Сброс высоты
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto';
+      }
     }
   }, [inputText, onSend]);
-
-  const handleFormat = useCallback((formattedText: string) => {
-    if (!inputRef.current || !selectionRange) return;
-    
-    const { start, end } = selectionRange;
-    const newText = 
-      inputText.substring(0, start) + 
-      formattedText + 
-      inputText.substring(end);
-    
-    setInputText(newText);
-    onInputChange(newText);
-    
-    // Восстанавливаем фокус
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-        const newCursorPos = start + formattedText.length;
-        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
-      }
-    }, 0);
-  }, [inputText, selectionRange, onInputChange]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -135,48 +81,85 @@ const ChatInput = memo(function ChatInput({
 
   if (isBlocked) {
     return (
-      <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
-        <span className="text-tg-secondary-text text-[15px]">Вы заблокировали этого пользователя</span>
+      <div className={`flex items-center justify-center px-4 py-3 border-t border-gray-200 shrink-0 ${isGlassEnabled ? 'backdrop-blur-xl bg-white/80' : 'bg-white'}`}>
+        <span className="text-gray-500 text-[15px]">Вы заблокировали этого пользователя</span>
       </div>
     );
   }
 
   return (
-    <div className={`flex items-end px-2.5 py-2 border-t border-tg-divider shrink-0 gap-1.5 z-30 transition-colors relative ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
-      {/* Text Formatting Menu */}
+    <div className={`shrink-0 border-t border-gray-200 ${isGlassEnabled ? 'backdrop-blur-xl bg-white/80' : 'bg-white'}`}>
+      {/* Reply Preview */}
       <AnimatePresence>
-        {showFormatMenu && selectedText && (
-          <TextFormattingMenu
-            selectedText={selectedText}
-            position={selectionPosition}
-            onFormat={handleFormat}
-            onClose={() => setShowFormatMenu(false)}
-          />
+        {replyingTo && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-b border-gray-100"
+          >
+            <div className="flex items-start gap-2 px-4 py-2">
+              <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: themeColor }}></div>
+              <div className="flex-grow min-w-0">
+                <div className="text-[13px] font-medium mb-0.5" style={{ color: themeColor }}>
+                  {replyingTo.senderName}
+                </div>
+                <div className="text-[13px] text-gray-500 truncate">
+                  {replyingTo.text || 'Медиа'}
+                </div>
+              </div>
+              <button 
+                onClick={onCancelReply} 
+                className="text-gray-400 hover:text-gray-600 transition-colors shrink-0 p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      <button 
-        onClick={onShowAttachMenu} 
-        className="p-1.5 mb-0.5 text-tg-secondary-text hover:text-gray-600 transition-colors"
-      >
-        <Paperclip size={24} />
-      </button>
-
-      <div className="flex-grow flex flex-col bg-transparent relative">
-        {replyingTo && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-t-lg border-l-2" style={{ borderColor: themeColor }}>
-            <div className="flex-grow min-w-0">
-              <div className="text-[13px] font-medium" style={{ color: themeColor }}>{replyingTo.senderName}</div>
-              <div className="text-[13px] text-gray-500 truncate">{replyingTo.text}</div>
+      {/* Edit Mode Banner */}
+      <AnimatePresence>
+        {editingMsg && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden bg-blue-50 border-b border-blue-100"
+          >
+            <div className="flex items-center gap-2 px-4 py-2">
+              <div className="text-[13px] text-blue-600 font-medium">Редактирование сообщения</div>
+              <div className="flex-grow"></div>
+              <button 
+                onClick={onCancelEdit} 
+                className="text-blue-600 hover:text-blue-700 transition-colors text-[13px] font-medium"
+              >
+                Отмена
+              </button>
             </div>
-            <button onClick={onCancelReply} className="text-gray-400 hover:text-gray-600 shrink-0"><X size={16} /></button>
-          </div>
+          </motion.div>
         )}
-        <div className="flex items-center relative">
+      </AnimatePresence>
+
+      {/* Main Input Area */}
+      <div className="flex items-end gap-2 px-3 py-3">
+        {/* Attach Button */}
+        {!isRecording && (
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 45 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onShowAttachMenu}
+            className="p-2 text-gray-500 hover:text-gray-700 transition-colors shrink-0 mb-1"
+          >
+            <Paperclip size={24} />
+          </motion.button>
+        )}
+
+        {/* Input Container */}
+        <div className="flex-grow flex items-end bg-gray-100 rounded-[20px] px-3 py-2 min-h-[44px]">
           <textarea
             ref={inputRef}
-            id="message-input"
-            name="message"
             value={inputText}
             onChange={(e) => handleChange(e.target.value)}
             onKeyDown={(e) => {
@@ -185,81 +168,108 @@ const ChatInput = memo(function ChatInput({
                 handleSend();
               }
             }}
-            placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : "Сообщение"}
+            placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать сообщение..." : "Сообщение"}
             disabled={isRecording}
-            autoComplete="off"
             rows={1}
-            className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent resize-none max-h-[100px] leading-snug m-0 self-stretch placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50 focus:placeholder-opacity-50 transition-all"
+            className="flex-grow bg-transparent border-none outline-none resize-none text-[16px] text-gray-900 placeholder-gray-400 leading-[22px] max-h-[120px] overflow-y-auto"
             style={{
-              minHeight: '40px',
-              maxHeight: '100px',
-              overflowY: 'auto'
+              minHeight: '22px',
             }}
           />
           
-          {/* Format Button - показывается когда текст выделен */}
-          <AnimatePresence>
-            {!isRecording && selectedText.length > 0 && (
-              <motion.button
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0, rotate: 180 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowFormatMenu(!showFormatMenu);
-                }}
-                className={`p-2 rounded-full transition-all ${
-                  showFormatMenu 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-blue-500 hover:bg-blue-50'
-                }`}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                title="Форматирование текста"
-              >
-                <MoreVertical size={20} />
-              </motion.button>
-            )}
-          </AnimatePresence>
-          
-          {/* Emoji Button - показывается когда текст НЕ выделен */}
-          {!isRecording && selectedText.length === 0 && (
-            <button 
-              onClick={onShowPicker} 
-              className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors"
+          {/* Emoji Button */}
+          {!isRecording && (
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onShowPicker}
+              className="p-1 text-gray-500 hover:text-gray-700 transition-colors shrink-0 ml-1"
             >
               <Smile size={24} />
-            </button>
+            </motion.button>
           )}
         </div>
+
+        {/* Send/Mic Button */}
+        {isRecording ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-red-50 rounded-full">
+              <motion.div 
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+                className="w-2 h-2 rounded-full bg-red-500"
+              />
+              <span className="text-red-500 font-medium text-[14px]">{formatTime(recordingTime)}</span>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onStopRecording}
+              className="w-11 h-11 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow"
+            >
+              <Square size={18} fill="currentColor" />
+            </motion.button>
+          </div>
+        ) : inputText.trim() ? (
+          <motion.button
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: 180 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleSend}
+            className="w-11 h-11 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow shrink-0"
+            style={{ backgroundColor: themeColor }}
+          >
+            <Send size={20} className="ml-0.5" />
+          </motion.button>
+        ) : (
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onStartRecording}
+            className="w-11 h-11 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
+          >
+            <Mic size={24} />
+          </motion.button>
+        )}
       </div>
 
-      {isRecording ? (
-        <div className="flex items-center gap-2 mb-0.5">
-          <div className="flex items-center gap-1.5 px-2 text-red-500 font-medium">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />{formatTime(recordingTime)}
-          </div>
-          <button onClick={onStopRecording} className="w-10 h-10 p-2 rounded-full flex items-center justify-center text-white bg-red-500 hover:brightness-110 active:scale-90 transition-all">
-            <Square size={16} fill="currentColor" />
-          </button>
-        </div>
-      ) : inputText.trim() ? (
-        <motion.button 
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={handleSend} 
-          className="w-10 h-10 p-2 rounded-full mb-0.5 flex items-center justify-center text-white hover:brightness-110 active:scale-90 transition-all shadow-lg" 
-          style={{ backgroundColor: themeColor }}
-        >
-          <Send size={20} className="ml-0.5" />
-        </motion.button>
-      ) : (
-        <button onClick={onStartRecording} className="p-1.5 mb-0.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
-          <Mic size={24} />
-        </button>
-      )}
+      {/* Attach Menu */}
+      <AnimatePresence>
+        {showAttachMenu && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-t border-gray-100"
+          >
+            <div className="grid grid-cols-4 gap-3 p-4">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                  <ImageIcon size={24} />
+                </div>
+                <span className="text-[12px] text-gray-600">Фото</span>
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center text-white">
+                  <FileIcon size={24} />
+                </div>
+                <span className="text-[12px] text-gray-600">Файл</span>
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 });

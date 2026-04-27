@@ -1312,127 +1312,67 @@ export default function ChatView() {
         )}
       </AnimatePresence>
 
-      {/* Input Area - Classic Style */}
-      {contact.isBlocked ? (
-        <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
-          <span className="text-tg-secondary-text text-[15px]">Вы заблокировали этого пользователя</span>
-        </div>
-      ) : contact.isChannel && channelOwnerId && user?.uid !== channelOwnerId ? (
-        <div className={`flex items-center justify-center px-2.5 py-3 border-t border-tg-divider shrink-0 gap-1.5 z-20 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
-          <span className="text-tg-secondary-text text-[15px]">Только владелец канала может отправлять сообщения</span>
+      {/* Input Area - New Telegram Style */}
+      {contact.isChannel && channelOwnerId && user?.uid !== channelOwnerId ? (
+        <div className={`flex items-center justify-center px-4 py-3 border-t border-gray-200 shrink-0 ${isGlassEnabled ? 'backdrop-blur-xl bg-white/80' : 'bg-white'}`}>
+          <span className="text-gray-500 text-[15px]">Только владелец канала может отправлять сообщения</span>
         </div>
       ) : (
-        <div className={`shrink-0 z-30 transition-colors ${isGlassEnabled ? 'backdrop-blur-xl bg-white/60' : 'bg-tg-input-bg'}`}>
-          {/* Reply Preview - Telegram Style */}
+        <>
+          <ChatInput
+            isRecording={isRecording}
+            recordingTime={recordingTime}
+            isBlocked={contact.isBlocked}
+            editingMsg={editingMsg}
+            replyingTo={replyingTo}
+            themeColor={themeColor}
+            isGlassEnabled={isGlassEnabled}
+            onSend={handleSend}
+            onInputChange={handleInputChange}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
+            onCancelEdit={cancelEdit}
+            onCancelReply={cancelReply}
+            onShowPicker={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }}
+            onShowAttachMenu={() => setShowAttachMenu(!showAttachMenu)}
+            showAttachMenu={showAttachMenu}
+          />
+          
+          {/* Attach Menu Popup */}
           <AnimatePresence>
-            {replyingTo && (
+            {showAttachMenu && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-                className="overflow-hidden"
+                initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                animate={{ opacity: 1, y: 0, scale: 1 }} 
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="fixed bottom-20 left-4 bg-white rounded-xl shadow-2xl border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[180px]"
               >
-                <div className="flex items-start gap-2 px-3 py-2 border-t border-gray-200">
-                  <div className="flex-grow min-w-0 flex items-start gap-2">
-                    <div className="w-1 h-10 rounded-full shrink-0 mt-0.5" style={{ backgroundColor: themeColor }}></div>
-                    <div className="flex-grow min-w-0">
-                      <div className="text-[13px] font-medium mb-0.5" style={{ color: themeColor }}>
-                        {replyingTo.senderName}
-                      </div>
-                      <div className="text-[13px] text-gray-500 truncate">
-                        {replyingTo.text || 'Медиа'}
-                      </div>
-                    </div>
+                <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
+                <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
+                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                
+                <button onClick={() => { imageInputRef.current?.click(); setShowAttachMenu(false); }} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-lg text-left transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                    <ImageIcon size={20} />
                   </div>
-                  <button 
-                    onClick={cancelReply} 
-                    className="text-gray-400 hover:text-gray-600 transition-colors shrink-0 mt-0.5"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
+                  <span className="text-gray-900 font-medium">Фото / Видео</span>
+                </button>
+                <button onClick={() => { audioInputRef.current?.click(); setShowAttachMenu(false); }} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-lg text-left transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white">
+                    <Music size={20} />
+                  </div>
+                  <span className="text-gray-900 font-medium">Музыка</span>
+                </button>
+                <button onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-lg text-left transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white">
+                    <FileIcon size={20} />
+                  </div>
+                  <span className="text-gray-900 font-medium">Файл</span>
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Input Area */}
-          <div className="flex items-center px-2.5 py-2 gap-1.5 relative">
-            <AnimatePresence>
-              {showAttachMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                  animate={{ opacity: 1, y: 0, scale: 1 }} 
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute bottom-14 left-2 bg-white rounded-xl shadow-lg border border-gray-100 p-2 flex flex-col gap-1 z-50 min-w-[160px]"
-                >
-                  <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
-                  <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleFileUpload} />
-                  <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
-                  
-                  <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
-                    <div className="text-blue-500"><ImageIcon size={20} /></div><span className="text-gray-900">Фото / Видео</span>
-                  </button>
-                  <button onClick={() => audioInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
-                    <div className="text-orange-500"><Music size={20} /></div><span className="text-gray-900">Музыка</span>
-                  </button>
-                  <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left text-[15px]">
-                    <div className="text-green-500"><FileIcon size={20} /></div><span className="text-gray-900">Файл</span>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <button onClick={() => setShowAttachMenu(!showAttachMenu)} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
-              <Paperclip size={24} />
-            </button>
-
-            <input
-              ref={inputRef}
-              id="message-input"
-              name="message"
-              type="text"
-              defaultValue=""
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={isRecording ? "Запись..." : editingMsg ? "Редактировать..." : replyingTo ? "Ответить..." : "Сообщение"}
-              disabled={isRecording}
-              autoComplete="off"
-              className="flex-grow border-none outline-none py-2 px-1 text-[16px] bg-transparent placeholder-tg-placeholder-text text-tg-text-primary disabled:opacity-50 focus:placeholder-opacity-50 transition-all"
-            />
-
-            {!isRecording && (
-              <button onClick={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
-                <Smile size={24} />
-              </button>
-            )}
-
-            {isRecording ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2 text-red-500 font-medium text-[14px]">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />{formatTime(recordingTime)}
-                </div>
-                <button onClick={stopRecording} className="w-9 h-9 p-2 rounded-full flex items-center justify-center text-white bg-red-500 hover:brightness-110 active:scale-90 transition-all">
-                  <Square size={14} fill="currentColor" />
-                </button>
-              </div>
-            ) : inputRef.current?.value.trim() ? (
-              <motion.button 
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleSend} 
-                className="w-9 h-9 p-2 rounded-full flex items-center justify-center text-white hover:brightness-110 active:scale-90 transition-all shadow-lg" 
-                style={{ backgroundColor: themeColor }}
-              >
-                <Send size={18} className="ml-0.5" />
-              </motion.button>
-            ) : (
-              <button onClick={startRecording} className="p-1.5 text-tg-secondary-text hover:text-gray-600 transition-colors">
-                <Mic size={24} />
-              </button>
-            )}
-          </div>
-        </div>
+        </>
       )}
 
       {/* Sticker Creator Modal */}
