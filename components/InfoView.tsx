@@ -409,7 +409,7 @@ export default function InfoView() {
           transition={{ delay: 1.4 }}
           className="p-6 text-center text-gray-400 text-[13px]"
         >
-          © 2026 HouseGram. Все права защищены.
+          © 2024 HouseGram. Все права защищены.
         </motion.div>
       </div>
     </motion.div>

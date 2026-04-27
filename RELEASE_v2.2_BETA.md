@@ -1,6 +1,6 @@
 # 🎮 ОБНОВЛЕНИЕ HouseGram Web v2.2 Beta 🔥
 
-## Дата релиза: 27 апреля 2026
+## Дата релиза: 27 апреля 2024
 
 Привет, друзья! 👋
 
@@ -133,9 +133,7 @@
 ## 💬 ОБРАТНАЯ СВЯЗЬ
 
 Нашли баг или есть идея? Напишите нам:
-- 📧 Email: support@housegram.com
-- 💬 Telegram: @HouseGramSupport
-- 🌐 GitHub: [HouseGram-code/HouseGram-Web](https://github.com/HouseGram-code/HouseGram-Web)
+- 💬 Telegram Bot: @HouseGramBot - Официальная поддержка
 
 ---
 
@@ -172,7 +170,7 @@
 
 ## 📝 CHANGELOG
 
-### v2.2.0-beta (27.04.2026)
+### v2.2.0-beta (27.04.2024)
 **Добавлено:**
 - 🎮 Мини-игра Crypto Clicker
 - 🎁 Анимированные эмодзи для подарков
@@ -210,7 +208,7 @@
 
 # 🎮 HouseGram Web v2.2 Beta UPDATE 🔥
 
-## Release Date: April 27, 2026
+## Release Date: April 27, 2024
 
 Hello, friends! 👋
 
@@ -343,9 +341,7 @@ Now you can fully manage your gifts!
 ## 💬 FEEDBACK
 
 Found a bug or have an idea? Contact us:
-- 📧 Email: support@housegram.com
-- 💬 Telegram: @HouseGramSupport
-- 🌐 GitHub: [HouseGram-code/HouseGram-Web](https://github.com/HouseGram-code/HouseGram-Web)
+- 💬 Telegram Bot: @HouseGramBot - Official Support
 
 ---
 
@@ -382,7 +378,7 @@ Thanks to everyone who tests HouseGram and helps us improve! ❤️
 
 ## 📝 CHANGELOG
 
-### v2.2.0-beta (27.04.2026)
+### v2.2.0-beta (27.04.2024)
 **Added:**
 - 🎮 Crypto Clicker mini-game
 - 🎁 Animated emojis for gifts
