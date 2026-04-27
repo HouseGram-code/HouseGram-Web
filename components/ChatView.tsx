@@ -1015,6 +1015,7 @@ export default function ChatView() {
                 onTouchEnd={handleTouchEnd}
                 onTouchMove={handleTouchMove}
                 onSaveSticker={saveSticker}
+                onReply={handleReply}
                 showAvatar={showAvatar}
                 isFirstInGroup={isFirstInGroup}
                 isLastInGroup={isLastInGroup}

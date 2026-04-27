@@ -1,9 +1,9 @@
 'use client';
 
-import { memo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { memo, useState, useRef, useCallback } from 'react';
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'motion/react';
 import NextImage from 'next/image';
-import { FileIcon, Eye, Check, CheckCheck, Clock, Download, Play } from 'lucide-react';
+import { FileIcon, Eye, Check, CheckCheck, Clock, Download, Play, Reply, Heart } from 'lucide-react';
 import { parseFormattedText, hasFormatting } from '@/lib/textFormatter';
 
 interface MessageProps {
@@ -16,6 +16,8 @@ interface MessageProps {
   onTouchEnd: () => void;
   onTouchMove: (e: React.TouchEvent) => void;
   onSaveSticker: (url: string) => void;
+  onReply?: (msgId: string, senderName: string, text: string) => void;
+  onReaction?: (msgId: string, reaction: string) => void;
   showAvatar?: boolean;
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
@@ -37,6 +39,8 @@ const Message = memo(function Message({
   onTouchEnd,
   onTouchMove,
   onSaveSticker,
+  onReply,
+  onReaction,
   showAvatar = false,
   isFirstInGroup = true,
   isLastInGroup = true
@@ -47,6 +51,45 @@ const Message = memo(function Message({
   const isSticker = !!msg.stickerUrl;
   const isGif = !!msg.gifUrl;
   
+  // Swipe to reply
+  const x = useMotionValue(0);
+  const [showReplyIcon, setShowReplyIcon] = useState(false);
+  const opacity = useTransform(x, [0, isOwn ? -80 : 80], [0, 1]);
+  const scale = useTransform(x, [0, isOwn ? -80 : 80], [0.5, 1]);
+  
+  // Double tap for reaction
+  const lastTapRef = useRef(0);
+  const [showReactionAnimation, setShowReactionAnimation] = useState(false);
+  
+  const handleDoubleTap = useCallback(() => {
+    const now = Date.now();
+    const timeSince = now - lastTapRef.current;
+    
+    if (timeSince < 300 && timeSince > 0) {
+      // Double tap detected
+      setShowReactionAnimation(true);
+      if (onReaction) {
+        onReaction(msg.id, '❤️');
+      }
+      setTimeout(() => setShowReactionAnimation(false), 1000);
+    }
+    
+    lastTapRef.current = now;
+  }, [msg.id, onReaction]);
+  
+  const handleDragEnd = useCallback((event: any, info: PanInfo) => {
+    const threshold = 80;
+    const velocity = info.velocity.x;
+    const offset = info.offset.x;
+    
+    if ((isOwn && offset < -threshold) || (!isOwn && offset > threshold)) {
+      // Trigger reply
+      if (onReply) {
+        onReply(msg.id, isOwn ? 'Вы' : 'Собеседник', msg.text || 'Медиа');
+      }
+    }
+  }, [isOwn, msg.id, msg.text, onReply]);
+  
   // Динамические радиусы для группировки - Telegram Style
   const borderRadius = isSticker || isGif || isJumbo ? 'rounded-[18px]' : 
     isOwn ? 
@@ -54,29 +97,81 @@ const Message = memo(function Message({
       `${isFirstInGroup ? 'rounded-t-[18px]' : 'rounded-tl-[18px]'} ${isLastInGroup ? 'rounded-b-[18px] rounded-bl-[5px]' : 'rounded-bl-[18px]'}`;
 
   return (
-    <motion.div
-      onContextMenu={(e) => onContextMenu(e, msg.id)}
-      onTouchStart={(e) => onTouchStart(e, msg.id)}
-      onTouchEnd={onTouchEnd}
-      onTouchMove={onTouchMove}
-      className={`message w-full px-3 py-1.5 ${borderRadius} relative break-words flex flex-col cursor-pointer select-none ${
-        isSticker || isGif
-          ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
-          : isJumbo
+    <div className="relative flex items-center gap-2">
+      {/* Swipe Reply Icon */}
+      <AnimatePresence>
+        {showReplyIcon && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0 }}
+            className={`absolute ${isOwn ? 'right-full mr-2' : 'left-full ml-2'} z-10`}
+          >
+            <motion.div
+              style={{ opacity, scale }}
+              className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg"
+            >
+              <Reply size={16} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Double Tap Reaction Animation */}
+      <AnimatePresence>
+        {showReactionAnimation && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0, y: 0 }}
+            animate={{ 
+              scale: [0, 1.5, 1],
+              opacity: [0, 1, 0],
+              y: [0, -50, -100]
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl pointer-events-none z-20"
+          >
+            ❤️
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: isOwn ? -100 : 0, right: isOwn ? 0 : 100 }}
+        dragElastic={0.2}
+        onDragStart={() => setShowReplyIcon(true)}
+        onDragEnd={(e, info) => {
+          setShowReplyIcon(false);
+          handleDragEnd(e, info);
+        }}
+        style={{ x }}
+        onContextMenu={(e) => onContextMenu(e, msg.id)}
+        onTouchStart={(e) => {
+          onTouchStart(e, msg.id);
+          handleDoubleTap();
+        }}
+        onTouchEnd={onTouchEnd}
+        onTouchMove={onTouchMove}
+        onClick={handleDoubleTap}
+        className={`message w-full px-3 py-1.5 ${borderRadius} relative break-words flex flex-col cursor-pointer select-none ${
+          isSticker || isGif
             ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
-            : isOwn
-              ? `bg-tg-sent-bubble self-end ${isLastInGroup ? 'message-tail-sent' : ''} shadow-md text-[15px] leading-snug`
-              : `bg-tg-received-bubble self-start ${isLastInGroup ? 'message-tail-received' : ''} shadow-md text-[15px] leading-snug`
-      }`}
-      whileHover={!isSticker && !isGif ? { 
-        scale: 1.01,
-        boxShadow: isOwn 
-          ? '0 4px 12px rgba(0, 0, 0, 0.15)' 
-          : '0 4px 12px rgba(0, 0, 0, 0.1)',
-        transition: { duration: 0.2 }
-      } : {}}
-      whileTap={{ scale: 0.98 }}
-    >
+            : isJumbo
+              ? `bg-transparent ${isOwn ? 'self-end' : 'self-start'}`
+              : isOwn
+                ? `bg-tg-sent-bubble self-end ${isLastInGroup ? 'message-tail-sent' : ''} shadow-md text-[15px] leading-snug`
+                : `bg-tg-received-bubble self-start ${isLastInGroup ? 'message-tail-received' : ''} shadow-md text-[15px] leading-snug`
+        }`}
+        whileHover={!isSticker && !isGif ? { 
+          scale: 1.01,
+          boxShadow: isOwn 
+            ? '0 4px 12px rgba(0, 0, 0, 0.15)' 
+            : '0 4px 12px rgba(0, 0, 0, 0.1)',
+          transition: { duration: 0.2 }
+        } : {}}
+        whileTap={{ scale: 0.98 }}
+      >
       {/* Forwarded Label */}
       <AnimatePresence>
         {msg.forwardedFrom && (
@@ -351,7 +446,29 @@ const Message = memo(function Message({
           </AnimatePresence>
         )}
       </motion.div>
-    </motion.div>
+
+      {/* Message Reactions */}
+      {msg.reactions && msg.reactions.length > 0 && (
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className={`absolute -bottom-2 ${isOwn ? 'right-2' : 'left-2'} flex gap-1 bg-white rounded-full px-2 py-0.5 shadow-md border border-gray-100`}
+        >
+          {msg.reactions.map((reaction: any, idx: number) => (
+            <motion.span
+              key={idx}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: idx * 0.05 }}
+              className="text-sm"
+            >
+              {reaction.emoji}
+            </motion.span>
+          ))}
+        </motion.div>
+      )}
+      </motion.div>
+    </div>
   );
 });
 
