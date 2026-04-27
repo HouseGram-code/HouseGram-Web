@@ -13,7 +13,6 @@ import {
   serverTimestamp,
   deleteDoc
 } from 'firebase/firestore';
-import crypto from 'crypto';
 
 // Types
 export interface Bot {
@@ -96,7 +95,17 @@ export interface Chat {
 
 // Bot Token Generation
 export function generateBotToken(botId: string): string {
-  const randomPart = crypto.randomBytes(32).toString('base64')
+  // Generate random token using Web Crypto API (works in browser and Node.js)
+  const array = new Uint8Array(32);
+  if (typeof window !== 'undefined' && window.crypto) {
+    window.crypto.getRandomValues(array);
+  } else {
+    // Node.js environment
+    const crypto = require('crypto');
+    crypto.randomFillSync(array);
+  }
+  
+  const randomPart = Buffer.from(array).toString('base64')
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
