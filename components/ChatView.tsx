@@ -1322,7 +1322,7 @@ export default function ChatView() {
           <ChatInput
             isRecording={isRecording}
             recordingTime={recordingTime}
-            isBlocked={contact.isBlocked}
+            isBlocked={contact.isBlocked || false}
             editingMsg={editingMsg}
             replyingTo={replyingTo}
             themeColor={themeColor}
