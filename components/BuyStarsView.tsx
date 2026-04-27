@@ -7,14 +7,14 @@ import { useState } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { doc, updateDoc, increment, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
-// Пакеты молний как в Telegram
+// Пакеты молний со скидкой 50%
 const STAR_PACKAGES = [
-  { stars: 50, price: 79, oldPrice: 149, priceUSD: 0.79, popular: false, discount: true },
-  { stars: 100, price: 159, oldPrice: 199, priceUSD: 1.59, popular: false, discount: true },
-  { stars: 250, price: 399, oldPrice: 449, priceUSD: 3.99, popular: true, discount: true },
-  { stars: 500, price: 799, oldPrice: 899, priceUSD: 7.99, popular: false, discount: true },
-  { stars: 1000, price: 1499, oldPrice: 1699, priceUSD: 14.99, popular: false, discount: true },
-  { stars: 2500, price: 3499, oldPrice: 3999, priceUSD: 34.99, popular: false, discount: true },
+  { stars: 50, price: 40, oldPrice: 79, priceUSD: 0.40, popular: false, discount: true },
+  { stars: 100, price: 80, oldPrice: 159, priceUSD: 0.80, popular: false, discount: true },
+  { stars: 250, price: 200, oldPrice: 399, priceUSD: 2.00, popular: true, discount: true },
+  { stars: 500, price: 400, oldPrice: 799, priceUSD: 4.00, popular: false, discount: true },
+  { stars: 1000, price: 750, oldPrice: 1499, priceUSD: 7.50, popular: false, discount: true },
+  { stars: 2500, price: 1750, oldPrice: 3499, priceUSD: 17.50, popular: false, discount: true },
 ];
 
 export default function BuyStarsView() {
@@ -74,6 +74,62 @@ export default function BuyStarsView() {
 
       {/* Content */}
       <div className="flex-grow overflow-y-auto p-4">
+        {/* MEGA DISCOUNT BANNER */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="bg-gradient-to-r from-red-500 via-pink-500 to-purple-600 rounded-2xl p-4 mb-4 text-white relative overflow-hidden"
+        >
+          {/* Animated Background */}
+          <div className="absolute inset-0 opacity-20">
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                }}
+                animate={{
+                  y: [0, -30, 0],
+                  opacity: [0, 1, 0],
+                  scale: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay: i * 0.3,
+                }}
+              >
+                <Zap size={20} fill="white" />
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <motion.div
+                className="flex items-center gap-2 mb-1"
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              >
+                <span className="text-[24px] font-black">-50%</span>
+                <span className="text-[16px] font-bold">СКИДКА!</span>
+              </motion.div>
+              <p className="text-[13px] opacity-90">
+                Все пакеты по супер цене! 🔥
+              </p>
+            </div>
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+              className="text-[40px]"
+            >
+              🎉
+            </motion.div>
+          </div>
+        </motion.div>
+
         {/* Info Banner */}
         <div className="bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 rounded-3xl p-6 mb-6 text-white">
           <div className="flex items-center gap-3 mb-3">
