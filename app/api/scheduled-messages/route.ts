@@ -1,25 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 
-// Инициализация Firebase Admin (только если еще не инициализирован)
-if (!getApps().length) {
+// Проверяем наличие переменных окружения
+const hasFirebaseConfig = !!(
+  process.env.FIREBASE_PROJECT_ID &&
+  process.env.FIREBASE_CLIENT_EMAIL &&
+  process.env.FIREBASE_PRIVATE_KEY
+);
+
+let adminApp: any = null;
+let db: any = null;
+
+// Инициализация Firebase Admin только если есть конфигурация
+if (hasFirebaseConfig) {
   try {
-    initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    });
+    const { initializeApp, getApps, cert } = require('firebase-admin/app');
+    const { getFirestore } = require('firebase-admin/firestore');
+    
+    // Инициализация Firebase Admin (только если еще не инициализирован)
+    if (!getApps().length) {
+      adminApp = initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
+      });
+    } else {
+      adminApp = getApps()[0];
+    }
+    
+    db = getFirestore(adminApp);
   } catch (error) {
     console.error('Firebase Admin initialization error:', error);
   }
 }
 
-const db = getFirestore();
-
 export async function POST(request: NextRequest) {
+  // Проверяем конфигурацию
+  if (!hasFirebaseConfig || !db) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Firebase Admin not configured. Please set environment variables.' 
+      },
+      { status: 500 }
+    );
+  }
+
   try {
     const now = new Date();
     
@@ -114,6 +141,15 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint для проверки статуса
 export async function GET() {
+  // Проверяем конфигурацию
+  if (!hasFirebaseConfig || !db) {
+    return NextResponse.json({
+      success: false,
+      error: 'Firebase Admin not configured',
+      configured: false
+    });
+  }
+
   try {
     const now = new Date();
     
@@ -131,6 +167,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      configured: true,
       stats: {
         totalPending: pendingSnapshot.size,
         overdue: overdueSnapshot.size,
