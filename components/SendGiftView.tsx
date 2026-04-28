@@ -360,7 +360,7 @@ export default function SendGiftView() {
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="absolute inset-0 bg-tg-bg-light flex flex-col z-10"
+      className="absolute inset-0 bg-tg-bg-light flex flex-col z-30"
     >
       {/* Header */}
       <div
@@ -829,7 +829,7 @@ export default function SendGiftView() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20"
+            className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-40"
           >
             {/* Confetti Effect */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">

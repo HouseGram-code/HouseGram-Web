@@ -47,7 +47,6 @@ const ChatInput = memo(function ChatInput({
 }: ChatInputProps) {
   const [inputText, setInputText] = useState(editingMsg?.text || '');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Синхронизация с editingMsg
@@ -89,37 +88,6 @@ const ChatInput = memo(function ChatInput({
       }
     }
   }, [inputText, onScheduleSend]);
-
-  // Обработка долгого нажатия для запланированных сообщений
-  const handleSendMouseDown = useCallback(() => {
-    if (!inputText.trim()) return;
-    
-    const timer = setTimeout(() => {
-      setShowScheduleModal(true);
-      // Вибрация при долгом нажатии (если поддерживается)
-      if (navigator.vibrate) {
-        navigator.vibrate(50);
-      }
-    }, 500); // 500ms для долгого нажатия
-    
-    setLongPressTimer(timer);
-  }, [inputText]);
-
-  const handleSendMouseUp = useCallback(() => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
-  }, [longPressTimer]);
-
-  const handleSendClick = useCallback(() => {
-    // Если таймер еще активен, значит это обычный клик
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-      handleSend();
-    }
-  }, [longPressTimer, handleSend]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -259,60 +227,35 @@ const ChatInput = memo(function ChatInput({
             </motion.button>
           </div>
         ) : inputText.trim() ? (
-          <div className="relative shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Schedule Button */}
+            <motion.button
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowScheduleModal(true)}
+              className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all ${
+                isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Clock size={20} />
+            </motion.button>
+            
+            {/* Send Button */}
             <motion.button
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               exit={{ scale: 0, rotate: 180 }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onMouseDown={handleSendMouseDown}
-              onMouseUp={handleSendMouseUp}
-              onMouseLeave={handleSendMouseUp}
-              onTouchStart={handleSendMouseDown}
-              onTouchEnd={handleSendMouseUp}
-              onClick={handleSendClick}
-              className="w-11 h-11 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow relative overflow-hidden"
+              onClick={handleSend}
+              className="w-11 h-11 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow"
               style={{ backgroundColor: themeColor }}
             >
-              <Send size={20} className="ml-0.5 relative z-10" />
-              
-              {/* Long press indicator */}
-              {longPressTimer && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute inset-0 rounded-full"
-                >
-                  <div className="absolute inset-0 rounded-full border-2 border-white/30">
-                    <motion.div
-                      initial={{ rotate: 0 }}
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 0.5, ease: "linear" }}
-                      className="absolute inset-0 rounded-full border-2 border-transparent border-t-white"
-                    />
-                  </div>
-                </motion.div>
-              )}
+              <Send size={20} className="ml-0.5" />
             </motion.button>
-            
-            {/* Tooltip */}
-            <AnimatePresence>
-              {longPressTimer && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.8 }}
-                  className={`absolute bottom-full right-0 mb-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${
-                    isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-900 text-white'
-                  } shadow-lg`}
-                >
-                  <Clock size={12} className="inline mr-1" />
-                  Запланировать
-                  <div className="absolute top-full right-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         ) : (
           <motion.button

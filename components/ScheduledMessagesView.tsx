@@ -112,7 +112,7 @@ export default function ScheduledMessagesView() {
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`absolute inset-0 flex flex-col z-10 ${isDarkMode ? 'bg-[#0f0f0f] text-white' : 'bg-white text-black'}`}
+      className={`absolute inset-0 flex flex-col z-30 ${isDarkMode ? 'bg-[#0f0f0f] text-white' : 'bg-white text-black'}`}
     >
       {/* Header */}
       <div
