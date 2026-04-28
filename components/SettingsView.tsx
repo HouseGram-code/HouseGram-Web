@@ -325,46 +325,131 @@ export default function SettingsView() {
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`px-4 py-3 mx-4 my-3 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 to-purple-50'}`}
+            className={`px-4 py-4 mx-4 my-3 rounded-3xl relative overflow-hidden ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50'}`}
           >
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={16} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
-              <span className={`text-[13px] font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Статистика аккаунта</span>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="text-center">
-                <div className={`text-[20px] font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{accountStats.chats}</div>
-                <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Чатов</div>
-              </div>
-              <div className={`text-center border-x ${isDarkMode ? 'border-gray-700' : 'border-blue-200'}`}>
-                <div className={`text-[20px] font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>{accountStats.days}</div>
-                <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Дней</div>
-              </div>
-              <div className="text-center">
-                <div className={`text-[20px] font-bold ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}>{userProfile.giftsSent || 0}</div>
-                <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Подарков</div>
-              </div>
+            {/* Animated Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(5)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className={`absolute w-20 h-20 rounded-full ${isDarkMode ? 'bg-blue-500/10' : 'bg-blue-200/30'}`}
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                  }}
+                  animate={{
+                    scale: [1, 1.5, 1],
+                    opacity: [0.3, 0.6, 0.3],
+                    x: [0, Math.random() * 50 - 25, 0],
+                    y: [0, Math.random() * 50 - 25, 0],
+                  }}
+                  transition={{
+                    duration: 3 + i,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
             </div>
             
-            {/* AI Usage */}
-            <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-blue-200'}`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={`text-[12px] font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>ИИ запросы сегодня:</span>
-                <span className={`text-[14px] font-bold ${aiRequestsToday >= maxAiRequests ? 'text-red-500' : isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                  {aiRequestsToday}/{maxAiRequests}
-                </span>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-3">
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                >
+                  <TrendingUp size={18} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
+                </motion.div>
+                <span className={`text-[14px] font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Статистика аккаунта</span>
               </div>
-              <div className={`w-full h-2 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-blue-100'}`}>
-                <div 
-                  className={`h-2 rounded-full transition-all ${aiRequestsToday >= maxAiRequests ? 'bg-red-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'}`}
-                  style={{ width: `${Math.min((aiRequestsToday / maxAiRequests) * 100, 100)}%` }}
-                />
+              
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <motion.div 
+                  className={`text-center p-3 rounded-2xl ${isDarkMode ? 'bg-blue-500/10' : 'bg-white/60'} backdrop-blur-sm`}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                >
+                  <motion.div 
+                    className={`text-[24px] font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
+                  >
+                    {accountStats.chats}
+                  </motion.div>
+                  <div className={`text-[11px] font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Чатов</div>
+                </motion.div>
+                
+                <motion.div 
+                  className={`text-center p-3 rounded-2xl ${isDarkMode ? 'bg-purple-500/10' : 'bg-white/60'} backdrop-blur-sm`}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                >
+                  <motion.div 
+                    className={`text-[24px] font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                  >
+                    {accountStats.days}
+                  </motion.div>
+                  <div className={`text-[11px] font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Дней</div>
+                </motion.div>
+                
+                <motion.div 
+                  className={`text-center p-3 rounded-2xl ${isDarkMode ? 'bg-pink-500/10' : 'bg-white/60'} backdrop-blur-sm`}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                >
+                  <motion.div 
+                    className={`text-[24px] font-bold ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200, delay: 0.3 }}
+                  >
+                    {userProfile.giftsSent || 0}
+                  </motion.div>
+                  <div className={`text-[11px] font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Подарков</div>
+                </motion.div>
               </div>
-              {!isPremium && aiRequestsToday >= maxAiRequests && (
-                <p className={`text-[10px] mt-1 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
-                  Лимит исчерпан. Premium: 5 запросов/день
-                </p>
-              )}
+              
+              {/* AI Usage */}
+              <motion.div 
+                className={`pt-3 border-t ${isDarkMode ? 'border-gray-700/50' : 'border-blue-200/50'}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-[12px] font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>ИИ запросы сегодня:</span>
+                  <motion.span 
+                    className={`text-[15px] font-bold ${aiRequestsToday >= maxAiRequests ? 'text-red-500' : isDarkMode ? 'text-green-400' : 'text-green-600'}`}
+                    key={aiRequestsToday}
+                    initial={{ scale: 1.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    {aiRequestsToday}/{maxAiRequests}
+                  </motion.span>
+                </div>
+                <div className={`w-full h-2.5 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-blue-100'} overflow-hidden`}>
+                  <motion.div 
+                    className={`h-2.5 rounded-full ${aiRequestsToday >= maxAiRequests ? 'bg-gradient-to-r from-red-500 to-pink-500' : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500'}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min((aiRequestsToday / maxAiRequests) * 100, 100)}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                  />
+                </div>
+                {!isPremium && aiRequestsToday >= maxAiRequests && (
+                  <motion.p 
+                    className={`text-[10px] mt-1.5 ${isDarkMode ? 'text-red-400' : 'text-red-600'} font-medium`}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    ⚠️ Лимит исчерпан. Premium: 5 запросов/день
+                  </motion.p>
+                )}
+              </motion.div>
             </div>
           </motion.div>
         )}
@@ -377,78 +462,162 @@ export default function SettingsView() {
           
           {/* Группа: Персонализация */}
           <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
-            {/* HouseGram Premium */}
-            <div 
-              onClick={() => setView('premium')}
-              className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer ${isDarkMode ? 'active:bg-white/5 border-tg-divider' : 'active:bg-gray-50 border-gray-100'} border-b`}
+            {/* Цветовая тема */}
+            <div
+              className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
+              onClick={() => setShowThemeSelector(!showThemeSelector)}
             >
-              <div className="relative">
-                <motion.div
-                  animate={{
-                    rotate: [0, 360],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 2L14.09 8.26L20 10L14.09 11.74L12 18L9.91 11.74L4 10L9.91 8.26L12 2Z"
-                      fill="url(#premium-gradient)"
-                    />
-                    <defs>
-                      <linearGradient id="premium-gradient" x1="4" y1="2" x2="20" y2="18">
-                        <stop offset="0%" stopColor="#8B5CF6" />
-                        <stop offset="50%" stopColor="#3B82F6" />
-                        <stop offset="100%" stopColor="#06B6D4" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </motion.div>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
+                <Palette size={18} className="text-white" />
               </div>
               <div className="flex-grow">
-                <div className={`text-[16px] font-normal ${isDarkMode ? 'text-white' : 'text-black'} flex items-center gap-2`}>
-                  HouseGram Premium
-                  {isPremium && (
-                    <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium rounded-full">
-                      Активен
-                    </span>
-                  )}
+                <div className={`text-[16px] font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Цветовая тема</div>
+                <div className={`text-[13px] mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {colorThemes.find(t => t.color === themeColor)?.name || 'Синий'}
                 </div>
-                <div className={`text-[13px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {isPremium && premiumExpiry 
-                    ? `До ${premiumExpiry.toLocaleDateString('ru-RU')}`
-                    : 'Эксклюзивные возможности'
-                  }
+              </div>
+              <motion.div
+                animate={{ rotate: showThemeSelector ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                </svg>
+              </motion.div>
+            </div>
+            
+            {/* Color Theme Selector */}
+            <AnimatePresence>
+              {showThemeSelector && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`overflow-hidden border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}
+                >
+                  <div className="px-4 py-3 grid grid-cols-4 gap-3">
+                    {colorThemes.map((theme) => (
+                      <motion.button
+                        key={theme.id}
+                        onClick={() => {
+                          setThemeColor(theme.color);
+                          if (auth.currentUser) {
+                            updateDoc(doc(db, 'users', auth.currentUser.uid), {
+                              themeColor: theme.color
+                            }).catch(console.error);
+                          }
+                        }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="relative"
+                      >
+                        <div
+                          className={`w-full aspect-square rounded-full ${theme.bg} shadow-lg transition-all ${
+                            themeColor === theme.color ? 'ring-4 ring-offset-2 ring-offset-white' : ''
+                          }`}
+                          style={{ 
+                            ringColor: theme.color,
+                          }}
+                        >
+                          {themeColor === theme.color && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute inset-0 flex items-center justify-center"
+                            >
+                              <Check size={20} className="text-white" strokeWidth={3} />
+                            </motion.div>
+                          )}
+                        </div>
+                        <div className={`text-[11px] mt-1 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {theme.name}
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            <div className={`border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
+              {/* HouseGram Premium */}
+              <div 
+                onClick={() => setView('premium')}
+                className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer ${isDarkMode ? 'active:bg-white/5' : 'active:bg-gray-50'}`}
+              >
+                <div className="relative">
+                  <motion.div
+                    animate={{
+                      rotate: [0, 360],
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M12 2L14.09 8.26L20 10L14.09 11.74L12 18L9.91 11.74L4 10L9.91 8.26L12 2Z"
+                        fill="url(#premium-gradient)"
+                      />
+                      <defs>
+                        <linearGradient id="premium-gradient" x1="4" y1="2" x2="20" y2="18">
+                          <stop offset="0%" stopColor="#8B5CF6" />
+                          <stop offset="50%" stopColor="#3B82F6" />
+                          <stop offset="100%" stopColor="#06B6D4" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </motion.div>
+                </div>
+                <div className="flex-grow">
+                  <div className={`text-[16px] font-normal ${isDarkMode ? 'text-white' : 'text-black'} flex items-center gap-2`}>
+                    HouseGram Premium
+                    {isPremium && (
+                      <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium rounded-full">
+                        Активен
+                      </span>
+                    )}
+                  </div>
+                  <div className={`text-[13px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {isPremium && premiumExpiry 
+                      ? `До ${premiumExpiry.toLocaleDateString('ru-RU')}`
+                      : 'Эксклюзивные возможности'
+                    }
+                  </div>
                 </div>
               </div>
             </div>
             
-            <SettingsItem 
-              icon={<Zap size={22} className="text-yellow-500" fill="currentColor" />} 
-              text="Молнии" 
-              subtitle="Баланс и подарки"
-              onClick={() => setView('stars')}
-              isDarkMode={isDarkMode}
-            />
-            <SettingsItem 
-              icon={<Gift size={22} className="text-pink-500" />} 
-              text="Мои подарки" 
-              subtitle="Полученные подарки"
-              onClick={() => setView('my-gifts')} 
-              divider
-              isDarkMode={isDarkMode}
-            />
-            <SettingsItem 
-              icon={<Calendar size={22} className="text-purple-500" />} 
-              text="Мои истории" 
-              subtitle="Просмотр и управление"
-              onClick={() => setView('my-stories')} 
-              divider
-              isDarkMode={isDarkMode}
-            />
+            <div className={`border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
+              <SettingsItem 
+                icon={<Zap size={22} className="text-yellow-500" fill="currentColor" />} 
+                text="Молнии" 
+                subtitle="Баланс и подарки"
+                onClick={() => setView('stars')}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+            <div className={`border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
+              <SettingsItem 
+                icon={<Gift size={22} className="text-pink-500" />} 
+                text="Мои подарки" 
+                subtitle="Полученные подарки"
+                onClick={() => setView('my-gifts')} 
+                isDarkMode={isDarkMode}
+              />
+            </div>
+            <div className={`border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
+              <SettingsItem 
+                icon={<Calendar size={22} className="text-purple-500" />} 
+                text="Мои истории" 
+                subtitle="Просмотр и управление"
+                onClick={() => setView('my-stories')} 
+                isDarkMode={isDarkMode}
+              />
+            </div>
           </div>
 
           {/* Группа: Приватность */}
@@ -529,36 +698,106 @@ export default function SettingsView() {
 
 
           {/* Темная тема */}
-          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm mb-3`}>
+          <motion.div 
+            className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm mb-3`}
+            whileHover={{ scale: 1.01 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
             <div
               className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
               onClick={() => setIsDarkMode(!isDarkMode)}
             >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-yellow-500/20' : 'bg-gray-200'}`}>
-                {isDarkMode ? <Sun size={18} className="text-yellow-500" /> : <Moon size={18} className="text-gray-600" />}
+              <motion.div 
+                className={`w-10 h-10 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-yellow-400 to-orange-500'}`}
+                animate={{ rotate: isDarkMode ? 0 : 360 }}
+                transition={{ duration: 0.5 }}
+              >
+                <AnimatePresence mode="wait">
+                  {isDarkMode ? (
+                    <motion.div
+                      key="moon"
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 180 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Moon size={20} className="text-white" fill="white" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="sun"
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 180 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Sun size={20} className="text-white" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+              <div className="flex-grow">
+                <span className={`text-[16px] font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {isDarkMode ? 'Темная тема' : 'Светлая тема'}
+                </span>
+                <div className={`text-[13px] mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {isDarkMode ? 'Комфорт для глаз' : 'Яркий интерфейс'}
+                </div>
               </div>
-              <span className={`text-[16px] flex-grow font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Темная тема</span>
-              <div className={`w-12 h-7 rounded-full p-1 transition-all duration-300 ${isDarkMode ? 'bg-blue-500' : 'bg-gray-300'}`}>
-                <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`} />
-              </div>
+              <motion.div 
+                className={`w-14 h-8 rounded-full p-1 transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-gray-300'}`}
+                whileTap={{ scale: 0.95 }}
+              >
+                <motion.div 
+                  className="w-6 h-6 rounded-full bg-white shadow-lg"
+                  animate={{ x: isDarkMode ? 24 : 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Стеклянный дизайн */}
-          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm`}>
+          <motion.div 
+            className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden shadow-sm`}
+            whileHover={{ scale: 1.01 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
             <div
               className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
               onClick={() => setIsGlassEnabled(!isGlassEnabled)}
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-                <Layers size={18} className="text-blue-600" />
+              <motion.div 
+                className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 via-cyan-400 to-teal-400 flex items-center justify-center"
+                animate={{ 
+                  boxShadow: isGlassEnabled 
+                    ? ['0 0 0 0 rgba(59, 130, 246, 0.4)', '0 0 0 10px rgba(59, 130, 246, 0)', '0 0 0 0 rgba(59, 130, 246, 0)']
+                    : '0 0 0 0 rgba(59, 130, 246, 0)'
+                }}
+                transition={{ duration: 1.5, repeat: isGlassEnabled ? Infinity : 0 }}
+              >
+                <Layers size={20} className="text-white" />
+              </motion.div>
+              <div className="flex-grow">
+                <span className={`text-[16px] font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Стеклянный дизайн
+                </span>
+                <div className={`text-[13px] mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {isGlassEnabled ? 'Эффект размытия включен' : 'Классический стиль'}
+                </div>
               </div>
-              <span className={`text-[16px] flex-grow font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Стеклянный дизайн</span>
-              <div className={`w-12 h-7 rounded-full p-1 transition-all duration-300 ${isGlassEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
-                <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${isGlassEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-              </div>
+              <motion.div 
+                className={`w-14 h-8 rounded-full p-1 transition-all duration-300 ${isGlassEnabled ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gray-300'}`}
+                whileTap={{ scale: 0.95 }}
+              >
+                <motion.div 
+                  className="w-6 h-6 rounded-full bg-white shadow-lg"
+                  animate={{ x: isGlassEnabled ? 24 : 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </div>
         </div>
       </div>

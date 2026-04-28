@@ -1,7 +1,7 @@
 'use client';
 
 import { ChatProvider, useChat } from '@/context/ChatContext';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import dynamic from 'next/dynamic';
 import { Suspense, useMemo, useState, useEffect } from 'react';
 import { isDemoMode } from '@/lib/firebase';
@@ -11,9 +11,29 @@ function DemoBanner() {
   if (!isDemoMode) return null;
   
   return (
-    <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 text-center text-sm font-medium z-50 shadow-lg">
-      🎭 ДЕМО РЕЖИМ: Приложение работает с тестовыми данными. Для полной функциональности настройте Firebase.
-    </div>
+    <motion.div
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 200, damping: 20 }}
+      className="fixed top-0 left-0 right-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 text-white px-4 py-3 text-center text-sm font-medium z-50 shadow-2xl"
+    >
+      <div className="flex items-center justify-center gap-2">
+        <motion.span
+          animate={{ rotate: [0, 10, -10, 0] }}
+          transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
+        >
+          🎭
+        </motion.span>
+        <span className="font-bold">ДЕМО РЕЖИМ:</span>
+        <span>Приложение работает с тестовыми данными</span>
+      </div>
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 h-1 bg-white/30"
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 0.8, delay: 0.3 }}
+      />
+    </motion.div>
   );
 }
 
@@ -118,8 +138,69 @@ const FrozenAccountScreen = dynamic(() => import('@/components/FrozenAccountScre
 
 function LoadingSpinner() {
   return (
-    <div className="absolute inset-0 bg-tg-bg-light flex items-center justify-center z-10">
-      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center z-10">
+      <div className="text-center">
+        {/* Animated Logo */}
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          className="mb-6"
+        >
+          <div className="relative w-24 h-24 mx-auto">
+            {/* Outer Ring */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-500 border-r-purple-500"
+            />
+            {/* Inner Ring */}
+            <motion.div
+              animate={{ rotate: -360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-2 rounded-full border-4 border-transparent border-b-pink-500 border-l-cyan-500"
+            />
+            {/* Center Icon */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="text-4xl"
+              >
+                💬
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+        
+        {/* Loading Text */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            HouseGram
+          </h3>
+          <div className="flex items-center justify-center gap-1">
+            <motion.span
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
+              className="w-2 h-2 bg-blue-500 rounded-full"
+            />
+            <motion.span
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+              className="w-2 h-2 bg-purple-500 rounded-full"
+            />
+            <motion.span
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+              className="w-2 h-2 bg-pink-500 rounded-full"
+            />
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }
