@@ -267,6 +267,24 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
           const data = userDoc.data();
           if (data.gameProgress?.cryptoClicker) {
             const progress = data.gameProgress.cryptoClicker;
+            
+            // Проверка на бан
+            if (progress.banned) {
+              // Обнуляем баланс забаненного пользователя
+              await updateDoc(doc(db, 'users', currentUser.id), {
+                'gameProgress.cryptoClicker.coins': 0,
+                'gameProgress.cryptoClicker.coinsPerClick': 0.0001,
+                'gameProgress.cryptoClicker.coinsPerSecond': 0,
+                'gameProgress.cryptoClicker.clickUpgradeLevel': 0,
+                'gameProgress.cryptoClicker.autoUpgradeLevel': 0,
+                'gameProgress.cryptoClicker.balanceResetAt': serverTimestamp()
+              });
+              
+              alert(`❌ Вы заблокированы в мини-играх!\nПричина: ${progress.bannedReason || 'Нарушение правил'}\n\nВаш игровой прогресс был сброшен.`);
+              onBack();
+              return;
+            }
+            
             setCoins(progress.coins || 0);
             setCoinsPerClick(progress.coinsPerClick || 0.0001);
             setCoinsPerSecond(progress.coinsPerSecond || 0);
@@ -282,7 +300,7 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
     };
     
     loadProgress();
-  }, [currentUser]);
+  }, [currentUser, onBack]);
 
   // Save game progress to Firestore
   useEffect(() => {

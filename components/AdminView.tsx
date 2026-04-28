@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck, CreditCard, Zap, Clock, CheckCheck, X, Crown } from 'lucide-react';
+import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck, CreditCard, Zap, Clock, CheckCheck, X, Crown, Gamepad2, Coins } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 
-type TabType = 'users' | 'stats' | 'system' | 'database' | 'payments' | 'premium';
+type TabType = 'users' | 'stats' | 'system' | 'database' | 'payments' | 'premium' | 'minigames';
 
 export default function AdminView() {
   const { setView, themeColor, isGlassEnabled, isAdmin } = useChat();
@@ -428,6 +428,12 @@ export default function AdminView() {
           label="Premium"
         />
         <TabButton 
+          active={activeTab === 'minigames'} 
+          onClick={() => setActiveTab('minigames')}
+          icon={<Gamepad2 size={18} />}
+          label="Мини-игры"
+        />
+        <TabButton 
           active={activeTab === 'stats'} 
           onClick={() => setActiveTab('stats')}
           icon={<TrendingUp size={18} />}
@@ -811,6 +817,242 @@ export default function AdminView() {
                     <X size={20} />
                     Убрать Premium по username
                   </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'minigames' && (
+            <motion.div
+              key="minigames"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4"
+            >
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <Gamepad2 size={24} className="text-orange-500" />
+                  Управление мини-играми
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Управление балансами игроков и борьба с читерами
+                </p>
+              </div>
+
+              {/* Search User */}
+              <div className="bg-white rounded-xl p-4 mb-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Search size={20} />
+                  Поиск игрока
+                </h3>
+                <div className="relative mb-3">
+                  <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Введите username или имя..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                {searchQuery && filteredUsers.length > 0 && (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {filteredUsers.slice(0, 5).map(user => (
+                      <button
+                        key={user.id}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowUserModal(true);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-medium shrink-0">
+                          {user.name?.charAt(0) || '?'}
+                        </div>
+                        <div className="flex-grow min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                          <div className="text-sm text-gray-500 truncate">{user.username}</div>
+                        </div>
+                        {user.gameProgress?.cryptoClicker && (
+                          <div className="flex items-center gap-1 text-yellow-600 font-semibold">
+                            <Coins size={16} />
+                            {user.gameProgress.cryptoClicker.coins?.toFixed(2) || '0.00'}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Zap size={20} className="text-yellow-500" />
+                  Быстрые действия
+                </h3>
+                
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username игрока (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          const confirm = window.confirm(`Обнулить баланс игрока ${user.name}?`);
+                          if (confirm) {
+                            updateDoc(doc(db, 'users', user.id), {
+                              'gameProgress.cryptoClicker.coins': 0,
+                              'gameProgress.cryptoClicker.coinsPerClick': 0.0001,
+                              'gameProgress.cryptoClicker.coinsPerSecond': 0,
+                              'gameProgress.cryptoClicker.clickUpgradeLevel': 0,
+                              'gameProgress.cryptoClicker.autoUpgradeLevel': 0
+                            }).then(() => {
+                              alert('✅ Баланс обнулен!');
+                              fetchUsers();
+                            });
+                          }
+                        } else {
+                          alert('Игрок не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <AlertTriangle size={20} />
+                    Обнулить баланс игрока
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username игрока (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          const amount = prompt('Сколько монет выдать?', '1000');
+                          if (amount && !isNaN(Number(amount))) {
+                            const currentCoins = user.gameProgress?.cryptoClicker?.coins || 0;
+                            updateDoc(doc(db, 'users', user.id), {
+                              'gameProgress.cryptoClicker.coins': currentCoins + Number(amount)
+                            }).then(() => {
+                              alert(`✅ Выдано ${amount} монет!`);
+                              fetchUsers();
+                            });
+                          }
+                        } else {
+                          alert('Игрок не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-green-500 text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Coins size={20} />
+                    Выдать монеты игроку
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username игрока для блокировки (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          const reason = prompt('Причина бана:', 'Использование автокликера');
+                          if (reason) {
+                            const confirm = window.confirm(`Заблокировать игрока ${user.name} за: ${reason}?\n\nБаланс будет обнулен!`);
+                            if (confirm) {
+                              updateDoc(doc(db, 'users', user.id), {
+                                'gameProgress.cryptoClicker.banned': true,
+                                'gameProgress.cryptoClicker.bannedReason': reason,
+                                'gameProgress.cryptoClicker.bannedAt': new Date().toISOString(),
+                                'gameProgress.cryptoClicker.coins': 0,
+                                'gameProgress.cryptoClicker.coinsPerClick': 0.0001,
+                                'gameProgress.cryptoClicker.coinsPerSecond': 0,
+                                'gameProgress.cryptoClicker.clickUpgradeLevel': 0,
+                                'gameProgress.cryptoClicker.autoUpgradeLevel': 0,
+                                'gameProgress.cryptoClicker.balanceResetAt': new Date().toISOString()
+                              }).then(() => {
+                                alert('✅ Игрок заблокирован! Баланс обнулен!');
+                                fetchUsers();
+                              });
+                            }
+                          }
+                        } else {
+                          alert('Игрок не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Ban size={20} />
+                    Заблокировать за читерство (обнулить баланс)
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username игрока для разблокировки (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          updateDoc(doc(db, 'users', user.id), {
+                            'gameProgress.cryptoClicker.banned': false,
+                            'gameProgress.cryptoClicker.bannedReason': null,
+                            'gameProgress.cryptoClicker.bannedAt': null
+                          }).then(() => {
+                            alert('✅ Игрок разблокирован!');
+                            fetchUsers();
+                          });
+                        } else {
+                          alert('Игрок не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                    <CheckCircle size={20} />
+                    Разблокировать игрока
+                  </button>
+                </div>
+              </div>
+
+              {/* Top Players */}
+              <div className="mt-4 bg-white rounded-xl p-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <TrendingUp size={20} className="text-green-500" />
+                  Топ игроков
+                </h3>
+                
+                <div className="space-y-2">
+                  {users
+                    .filter(u => u.gameProgress?.cryptoClicker?.coins > 0)
+                    .sort((a, b) => (b.gameProgress?.cryptoClicker?.coins || 0) - (a.gameProgress?.cryptoClicker?.coins || 0))
+                    .slice(0, 10)
+                    .map((user, index) => (
+                      <div key={user.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                          index === 0 ? 'bg-yellow-400 text-white' :
+                          index === 1 ? 'bg-gray-300 text-gray-700' :
+                          index === 2 ? 'bg-orange-400 text-white' :
+                          'bg-gray-200 text-gray-600'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div className="flex-grow min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                          <div className="text-xs text-gray-500 truncate">{user.username}</div>
+                        </div>
+                        <div className="flex items-center gap-1 text-yellow-600 font-bold">
+                          <Coins size={16} />
+                          {user.gameProgress.cryptoClicker.coins.toFixed(2)}
+                        </div>
+                        {user.gameProgress?.cryptoClicker?.banned && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
+                            БАН
+                          </span>
+                        )}
+                      </div>
+                    ))}
                 </div>
               </div>
             </motion.div>
