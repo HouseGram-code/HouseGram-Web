@@ -26,34 +26,60 @@ export async function uploadToAppsFather(
   }
 
   try {
+    console.log('📤 Apps Father: Starting upload...', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      userId,
+      folder
+    });
+
     const formData = new FormData();
     formData.append('file', file);
+    
+    // Добавляем метаданные как отдельные поля
     formData.append('userId', userId);
     formData.append('folder', folder);
+    formData.append('fileName', file.name);
 
-    const response = await fetch(`${API_URL}/upload`, {
+    console.log('📤 Apps Father: Sending request to:', API_URL);
+
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        'X-API-Key': API_KEY,
+        // НЕ устанавливаем Content-Type - браузер сам установит с boundary для FormData
       },
       body: formData,
     });
 
+    console.log('📤 Apps Father: Response status:', response.status);
+
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Upload failed: ${error}`);
+      const errorText = await response.text();
+      console.error('📤 Apps Father: Upload failed:', errorText);
+      throw new Error(`Upload failed (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('📤 Apps Father: Upload successful:', data);
+
+    // Поддержка разных форматов ответа
+    const fileUrl = data.url || data.fileUrl || data.link || data.file_url;
+    
+    if (!fileUrl) {
+      console.error('📤 Apps Father: No URL in response:', data);
+      throw new Error('No file URL in response');
+    }
 
     return {
-      url: data.url || data.fileUrl,
+      url: fileUrl,
       fileName: file.name,
       fileSize: file.size,
       mimeType: file.type,
     };
   } catch (error) {
-    console.error('Apps Father upload error:', error);
+    console.error('📤 Apps Father: Upload error:', error);
     throw error;
   }
 }
@@ -67,10 +93,10 @@ export async function deleteFromAppsFather(fileUrl: string): Promise<void> {
   }
 
   try {
-    const response = await fetch(`${API_URL}/delete`, {
+    const response = await fetch(API_URL, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        'X-API-Key': API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ fileUrl }),
@@ -95,13 +121,11 @@ export async function getFileInfo(fileUrl: string): Promise<any> {
   }
 
   try {
-    const response = await fetch(`${API_URL}/info`, {
-      method: 'POST',
+    const response = await fetch(`${API_URL}?fileUrl=${encodeURIComponent(fileUrl)}`, {
+      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
+        'X-API-Key': API_KEY,
       },
-      body: JSON.stringify({ fileUrl }),
     });
 
     if (!response.ok) {

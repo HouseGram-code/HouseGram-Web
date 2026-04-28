@@ -48,15 +48,24 @@ export const uploadFile = async (
   fileType?: FileType,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> => {
+  console.log('📤 Storage Wrapper: Starting upload...', {
+    fileName: file.name,
+    fileSize: formatFileSize(file.size),
+    fileType: fileType || detectFileType(file),
+    userId
+  });
+
   // Приоритет 1: Apps Father Storage (если настроен)
   if (isAppsFatherAvailable()) {
     try {
-      console.log('📤 Uploading via Apps Father Storage...');
+      console.log('📤 Storage Wrapper: Trying Apps Father Storage...');
       const result = await AppsFatherStorage.uploadToAppsFather(
         file,
         userId,
         fileType || detectFileType(file)
       );
+      
+      console.log('✅ Storage Wrapper: Apps Father upload successful!', result.url);
       
       return {
         url: result.url,
@@ -65,26 +74,41 @@ export const uploadFile = async (
         type: result.mimeType,
       };
     } catch (error) {
-      console.error('Apps Father upload failed, trying MEGA:', error);
+      console.error('❌ Storage Wrapper: Apps Father upload failed:', error);
+      console.log('📤 Storage Wrapper: Falling back to MEGA...');
       // Fallback на MEGA
     }
+  } else {
+    console.log('⚠️ Storage Wrapper: Apps Father not configured, skipping...');
   }
   
   // Приоритет 2: MEGA Storage
   const megaStorage = getMegaStorage();
   if (megaStorage) {
     try {
-      console.log('📤 Uploading via MEGA Storage...');
-      return await MegaStorage.uploadFile(file, userId, fileType, onProgress);
+      console.log('📤 Storage Wrapper: Trying MEGA Storage...');
+      const result = await MegaStorage.uploadFile(file, userId, fileType, onProgress);
+      console.log('✅ Storage Wrapper: MEGA upload successful!', result.url);
+      return result;
     } catch (error) {
-      console.error('MEGA upload failed, falling back to API Storage:', error);
+      console.error('❌ Storage Wrapper: MEGA upload failed:', error);
+      console.log('📤 Storage Wrapper: Falling back to API Storage...');
       // Fallback на API Storage
     }
+  } else {
+    console.log('⚠️ Storage Wrapper: MEGA not available, skipping...');
   }
   
   // Приоритет 3: API Storage как последний fallback (обход CORS)
-  console.log('📤 Uploading via API Storage (CORS bypass)...');
-  return await ApiStorage.uploadFile(file, userId, fileType, onProgress);
+  console.log('📤 Storage Wrapper: Using API Storage (last resort)...');
+  try {
+    const result = await ApiStorage.uploadFile(file, userId, fileType, onProgress);
+    console.log('✅ Storage Wrapper: API Storage upload successful!', result.url);
+    return result;
+  } catch (error) {
+    console.error('❌ Storage Wrapper: All upload methods failed!', error);
+    throw new Error('Не удалось загрузить файл. Попробуйте позже.');
+  }
 };
 
 // Загрузка нескольких файлов
