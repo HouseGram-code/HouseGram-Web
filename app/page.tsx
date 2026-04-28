@@ -114,6 +114,7 @@ const BotMasterView = dynamic(() => import('@/components/BotMasterView'), {
   loading: () => <LoadingSpinner />
 });
 const ConnectionLoader = dynamic(() => import('@/components/ConnectionLoader'));
+const FrozenAccountScreen = dynamic(() => import('@/components/FrozenAccountScreen'));
 
 function LoadingSpinner() {
   return (
@@ -158,7 +159,7 @@ const viewComponents: Record<string, React.ComponentType> = {
 };
 
 function AppContent() {
-  const { view, isLocked, user, isDarkMode, activeChatId } = useChat();
+  const { view, isLocked, user, isDarkMode, activeChatId, isFrozen, frozenAt, frozenReason } = useChat();
   const [showConnectionLoader, setShowConnectionLoader] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -235,6 +236,15 @@ function AppContent() {
           <AuthView />
         </Suspense>
       </MobileShell>
+    );
+  }
+
+  // Проверка заморозки аккаунта
+  if (isFrozen && frozenAt) {
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <FrozenAccountScreen frozenAt={frozenAt} reason={frozenReason || undefined} />
+      </Suspense>
     );
   }
 

@@ -285,6 +285,43 @@ export default function AdminView() {
     }
   };
 
+  const freezeAccount = async (userId: string, reason?: string) => {
+    try {
+      const freezeReason = reason || prompt('Причина заморозки:', 'Нарушение правил использования');
+      if (!freezeReason) return;
+
+      await updateDoc(doc(db, 'users', userId), {
+        isFrozen: true,
+        frozenAt: new Date().toISOString(),
+        frozenReason: freezeReason
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isFrozen: true, frozenAt: new Date().toISOString(), frozenReason: freezeReason } : u));
+      alert(`✅ Аккаунт заморожен! У пользователя есть 7 дней для связи с поддержкой.`);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error freezing account:', err);
+      alert('Ошибка при заморозке аккаунта');
+    }
+  };
+
+  const unfreezeAccount = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        isFrozen: false,
+        frozenAt: null,
+        frozenReason: null
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isFrozen: false, frozenAt: null, frozenReason: null } : u));
+      alert(`✅ Аккаунт разморожен!`);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error unfreezing account:', err);
+      alert('Ошибка при разморозке аккаунта');
+    }
+  };
+
   const toggleMaintenance = async () => {
     try {
       await setDoc(doc(db, 'settings', 'global'), {
@@ -523,7 +560,7 @@ export default function AdminView() {
                           {user.name?.charAt(0) || '?'}
                         </div>
                         <div className="flex flex-col flex-grow min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[16px] text-black font-medium truncate">{user.name}</span>
                             {user.role === 'admin' && <Shield size={14} className="text-blue-500 shrink-0" />}
                             {user.status === 'online' && (
@@ -534,26 +571,51 @@ export default function AdminView() {
                                 Забанен
                               </span>
                             )}
+                            {user.isFrozen && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded-full shrink-0 flex items-center gap-1">
+                                🧊 Заморожен
+                              </span>
+                            )}
                           </div>
                           <span className="text-[13px] text-gray-500 truncate">{user.email}</span>
                           <span className="text-[12px] text-gray-400 truncate">{user.username}</span>
                         </div>
                         
                         {user.role !== 'admin' && (
-                          <button
-                            onClick={() => toggleBan(user.id, user.isBanned)}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                              user.isBanned 
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                                : 'bg-red-100 text-red-700 hover:bg-red-200'
-                            }`}
-                          >
-                            {user.isBanned ? (
-                              <><CheckCircle size={16} /> Разбанить</>
+                          <div className="flex gap-2 shrink-0">
+                            {!user.isFrozen ? (
+                              <>
+                                <button
+                                  onClick={() => freezeAccount(user.id)}
+                                  className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                  title="Заморозить аккаунт"
+                                >
+                                  🧊
+                                </button>
+                                <button
+                                  onClick={() => toggleBan(user.id, user.isBanned)}
+                                  className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                                    user.isBanned 
+                                      ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                      : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                  }`}
+                                >
+                                  {user.isBanned ? (
+                                    <><CheckCircle size={16} /> Разбанить</>
+                                  ) : (
+                                    <><Ban size={16} /> Забанить</>
+                                  )}
+                                </button>
+                              </>
                             ) : (
-                              <><Ban size={16} /> Забанить</>
+                              <button
+                                onClick={() => unfreezeAccount(user.id)}
+                                className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors bg-green-100 text-green-700 hover:bg-green-200"
+                              >
+                                <CheckCircle size={16} /> Разморозить
+                              </button>
                             )}
-                          </button>
+                          </div>
                         )}
                       </div>
                     ))}

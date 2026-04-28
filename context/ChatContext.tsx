@@ -87,6 +87,9 @@ interface ChatContextType {
   currentUser: { id: string; email: string | null } | null;
   isAdmin: boolean;
   isMaintenance: boolean;
+  isFrozen: boolean;
+  frozenAt: string | null;
+  frozenReason: string | null;
   logout: () => void;
   addContact: (contact: Contact) => void;
   setTypingStatus: (chatId: string, isTyping: boolean) => void;
@@ -159,6 +162,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMaintenance, setIsMaintenance] = useState(false);
+  const [isFrozen, setIsFrozen] = useState(false);
+  const [frozenAt, setFrozenAt] = useState<string | null>(null);
+  const [frozenReason, setFrozenReason] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumExpiry, setPremiumExpiry] = useState<Date | null>(null);
@@ -202,6 +208,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             if (userDoc.exists()) {
               const data = userDoc.data();
               if (data.isBanned === true) { setView('auth'); setAuthReady(true); return; }
+              
+              // Проверяем заморозку аккаунта
+              if (data.isFrozen === true) {
+                setIsFrozen(true);
+                setFrozenAt(data.frozenAt || new Date().toISOString());
+                setFrozenReason(data.frozenReason || 'Нарушение правил использования');
+                setAuthReady(true);
+                return;
+              }
+              
               setIsAdmin(isAdminEmail(currentUser.email) || data.role === 'admin');
               
               // Проверяем премиум статус
@@ -1186,7 +1202,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       isDarkMode, setIsDarkMode: (val: boolean) => { setIsDarkMode(val); localStorage.setItem('housegram_dark_mode', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode, user, 
       currentUser: user ? { id: user.uid, email: user.email } : null,
-      isAdmin, isMaintenance, logout, setTypingStatus,
+      isAdmin, isMaintenance, isFrozen, frozenAt, frozenReason, logout, setTypingStatus,
       isPremium, premiumExpiry, aiRequestsToday, maxAiRequests
     }}>
       {!authReady ? (
