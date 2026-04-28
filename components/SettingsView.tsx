@@ -517,8 +517,8 @@ export default function SettingsView() {
                             themeColor === theme.color ? 'ring-4 ring-offset-2 ring-offset-white' : ''
                           }`}
                           style={{ 
-                            ringColor: theme.color,
-                          }}
+                            '--tw-ring-color': theme.color,
+                          } as React.CSSProperties}
                         >
                           {themeColor === theme.color && (
                             <motion.div
