@@ -111,4 +111,4 @@ export interface UserProfile {
   premiumExpiry?: FirestoreTimestamp | null;
 }
 
-export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'privacy-settings' | 'notifications' | 'security' | 'admin' | 'auth' | 'info' | 'faq' | 'terms' | 'create-channel' | 'channel-info' | 'notification-stats' | 'server-status' | 'stars' | 'premium' | 'send-gift' | 'my-gifts' | 'user-gifts' | 'buy-stars' | 'wallet' | 'mini-games' | 'my-stories' | 'news' | 'proxy' | 'botfather';
+export type ViewState = 'menu' | 'chat' | 'profile' | 'settings' | 'chat-settings' | 'features' | 'privacy' | 'privacy-settings' | 'notifications' | 'security' | 'admin' | 'auth' | 'info' | 'faq' | 'terms' | 'create-channel' | 'channel-info' | 'notification-stats' | 'server-status' | 'stars' | 'premium' | 'send-gift' | 'my-gifts' | 'user-gifts' | 'buy-stars' | 'wallet' | 'mini-games' | 'my-stories' | 'scheduled-messages' | 'news' | 'proxy' | 'botfather';
