@@ -40,6 +40,8 @@ export default function ChatView() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const stickerFileInputRef = useRef<HTMLInputElement>(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const [contextMenu, setContextMenu] = useState<{ msgId: string; x: number; y: number } | null>(null);
   const [showForwardPicker, setShowForwardPicker] = useState(false);
@@ -521,10 +523,17 @@ export default function ChatView() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
     
+    console.log('File selected:', file.name, file.type, file.size);
     setShowAttachMenu(false);
     
     try {
@@ -533,8 +542,23 @@ export default function ChatView() {
         return;
       }
 
-      // Загружаем через Supabase Storage (автоматически определит тип и сожмёт если нужно)
-      const result = await uploadFile(file, auth.currentUser.uid);
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      console.log('Starting upload...');
+
+      // Загружаем через Storage Wrapper с прогрессом
+      const result = await uploadFile(
+        file, 
+        auth.currentUser.uid,
+        undefined,
+        (progress) => {
+          console.log('Upload progress:', progress.percentage + '%');
+          setUploadProgress(progress.percentage);
+        }
+      );
+      
+      console.log('Upload complete:', result);
       
       const fileType = file.type;
       const isImage = fileType.startsWith('image/');
@@ -543,16 +567,25 @@ export default function ChatView() {
       
       // Отправляем сообщение с правильным типом
       if (isImage) {
+        console.log('Sending image message');
         sendMessage('', { fileUrl: result.url, fileName: file.name });
       } else if (isVideo) {
+        console.log('Sending video message');
         sendMessage('', { fileUrl: result.url, fileName: file.name });
       } else if (isAudio) {
+        console.log('Sending audio message');
         sendMessage('', { audioUrl: result.url });
       } else {
+        console.log('Sending file message');
         sendMessage(`Файл: ${file.name}`, { fileUrl: result.url, fileName: file.name });
       }
+      
+      setIsUploading(false);
+      setUploadProgress(0);
     } catch (error: any) {
       console.error('Error uploading file:', error);
+      setIsUploading(false);
+      setUploadProgress(0);
       alert(error.message || 'Ошибка при загрузке файла');
     }
     
@@ -1335,6 +1368,40 @@ export default function ChatView() {
         </div>
       ) : (
         <>
+          {/* Upload Progress Indicator */}
+          <AnimatePresence>
+            {isUploading && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className={`px-4 py-3 border-t border-gray-200 ${isGlassEnabled ? 'backdrop-blur-xl bg-white/80' : 'bg-white'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-gray-600">Загрузка файла...</span>
+                      <span className="text-sm font-medium text-blue-600">{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${uploadProgress}%` }}
+                        transition={{ duration: 0.3 }}
+                        className="bg-blue-500 h-full rounded-full"
+                      />
+                    </div>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
           <ChatInput
             isRecording={isRecording}
             recordingTime={recordingTime}
