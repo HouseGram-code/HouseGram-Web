@@ -523,9 +523,6 @@ export default function ChatView() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
