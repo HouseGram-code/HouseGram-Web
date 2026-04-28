@@ -337,25 +337,25 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
   };
 
   const buyClickUpgrade = () => {
-    const cost = Math.pow(1.5, clickUpgradeLevel) * 0.001;
+    const cost = Math.pow(2.5, clickUpgradeLevel) * 0.01; // Увеличена сложность с 1.5 до 2.5
     if (coins >= cost) {
       setCoins(prev => prev - cost);
       setClickUpgradeLevel(prev => prev + 1);
-      setCoinsPerClick(prev => prev * 1.5);
+      setCoinsPerClick(prev => prev * 2); // Увеличен множитель с 1.5 до 2
     }
   };
 
   const buyAutoUpgrade = () => {
-    const cost = Math.pow(2, autoUpgradeLevel) * 0.01;
+    const cost = Math.pow(3, autoUpgradeLevel) * 0.05; // Увеличена стоимость с 2 до 3, базовая с 0.01 до 0.05
     if (coins >= cost) {
       setCoins(prev => prev - cost);
       setAutoUpgradeLevel(prev => prev + 1);
-      setCoinsPerSecond(prev => prev + 0.0001);
+      setCoinsPerSecond(prev => prev + (0.001 * Math.pow(1.5, autoUpgradeLevel))); // Экспоненциальный рост дохода
     }
   };
 
-  const getClickUpgradeCost = () => Math.pow(1.5, clickUpgradeLevel) * 0.001;
-  const getAutoUpgradeCost = () => Math.pow(2, autoUpgradeLevel) * 0.01;
+  const getClickUpgradeCost = () => Math.pow(2.5, clickUpgradeLevel) * 0.01;
+  const getAutoUpgradeCost = () => Math.pow(3, autoUpgradeLevel) * 0.05;
 
   if (loading) {
     return (
@@ -398,33 +398,33 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
       <div className="flex-grow overflow-y-auto p-4 flex flex-col">
         {/* Balance Display */}
         <motion.div 
-          className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-500 rounded-3xl p-6 mb-4 shadow-2xl"
+          className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-500 rounded-3xl p-4 sm:p-6 mb-4 shadow-2xl"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200 }}
         >
           <div className="text-center">
-            <div className="text-white/90 text-[14px] font-medium mb-2">Ваш баланс</div>
+            <div className="text-white/90 text-[13px] sm:text-[14px] font-medium mb-2">Ваш баланс</div>
             <motion.div 
-              className="text-white text-[42px] font-bold flex items-center justify-center gap-2"
+              className="text-white text-[32px] sm:text-[42px] font-bold flex items-center justify-center gap-2 flex-wrap"
               key={Math.floor(coins * 10000)}
               initial={{ scale: 1.2 }}
               animate={{ scale: 1 }}
             >
-              {coins.toFixed(4)}
-              <Coins size={32} className="text-white" />
+              <span className="break-all">{coins.toFixed(4)}</span>
+              <Coins size={28} className="text-white shrink-0" />
             </motion.div>
-            <div className="text-white/80 text-[13px] mt-1">
+            <div className="text-white/80 text-[12px] sm:text-[13px] mt-1">
               {coinsPerSecond > 0 && `+${coinsPerSecond.toFixed(4)} HC/сек`}
             </div>
           </div>
         </motion.div>
 
         {/* Click Area */}
-        <div className="flex-grow flex items-center justify-center mb-4 relative">
+        <div className="flex-grow flex items-center justify-center mb-4 relative min-h-[250px] sm:min-h-[300px]">
           <motion.div
             onClick={handleClick}
-            className="relative w-64 h-64 cursor-pointer"
+            className="relative w-48 h-48 sm:w-64 sm:h-64 cursor-pointer"
             whileTap={{ scale: 0.9 }}
           >
             {/* Main Coin */}
@@ -437,9 +437,9 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
                 rotate: { duration: 10, repeat: Infinity, ease: "linear" },
                 scale: { duration: 2, repeat: Infinity }
               }}
-              className="w-full h-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-orange-500 rounded-full shadow-2xl flex items-center justify-center border-8 border-yellow-200"
+              className="w-full h-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-orange-500 rounded-full shadow-2xl flex items-center justify-center border-4 sm:border-8 border-yellow-200"
             >
-              <Coins size={96} className="text-white drop-shadow-lg" />
+              <Coins size={72} className="sm:w-24 sm:h-24 text-white drop-shadow-lg" />
             </motion.div>
 
             {/* Click Animations */}
@@ -451,7 +451,7 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
                   animate={{ opacity: 0, y: -50, scale: 1.5 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 1 }}
-                  className="absolute pointer-events-none text-yellow-600 font-bold text-[20px]"
+                  className="absolute pointer-events-none text-yellow-600 font-bold text-[16px] sm:text-[20px]"
                   style={{ left: anim.x, top: anim.y }}
                 >
                   +{coinsPerClick.toFixed(4)}
@@ -475,26 +475,26 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white rounded-xl p-3 shadow-sm">
-            <div className="text-[12px] text-gray-500 mb-1">За клик</div>
-            <div className="text-[18px] font-bold text-gray-900">{coinsPerClick.toFixed(4)}</div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div className="bg-white rounded-xl p-2.5 sm:p-3 shadow-sm">
+            <div className="text-[11px] sm:text-[12px] text-gray-500 mb-1">За клик</div>
+            <div className="text-[16px] sm:text-[18px] font-bold text-gray-900 break-all">{coinsPerClick.toFixed(4)}</div>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm">
-            <div className="text-[12px] text-gray-500 mb-1">В секунду</div>
-            <div className="text-[18px] font-bold text-gray-900">{coinsPerSecond.toFixed(4)}</div>
+          <div className="bg-white rounded-xl p-2.5 sm:p-3 shadow-sm">
+            <div className="text-[11px] sm:text-[12px] text-gray-500 mb-1">В секунду</div>
+            <div className="text-[16px] sm:text-[18px] font-bold text-gray-900 break-all">{coinsPerSecond.toFixed(4)}</div>
           </div>
         </div>
 
         {/* Upgrades Button */}
         <motion.button
           onClick={() => setShowUpgrades(!showUpgrades)}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl p-4 font-bold text-[16px] shadow-lg mb-4"
+          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl p-3 sm:p-4 font-bold text-[14px] sm:text-[16px] shadow-lg mb-3 sm:mb-4"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <div className="flex items-center justify-center gap-2">
-            <TrendingUp size={20} />
+            <TrendingUp size={18} className="sm:w-5 sm:h-5" />
             {showUpgrades ? 'Скрыть улучшения' : 'Показать улучшения'}
           </div>
         </motion.button>
@@ -506,28 +506,28 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="space-y-3 overflow-hidden"
+              className="space-y-2 sm:space-y-3 overflow-hidden"
             >
               {/* Click Upgrade */}
               <motion.button
                 onClick={buyClickUpgrade}
                 disabled={coins < getClickUpgradeCost()}
-                className={`w-full bg-white rounded-2xl p-4 shadow-sm ${
+                className={`w-full bg-white rounded-2xl p-3 sm:p-4 shadow-sm ${
                   coins >= getClickUpgradeCost() ? 'cursor-pointer active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
                 }`}
                 whileHover={coins >= getClickUpgradeCost() ? { scale: 1.02 } : {}}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center">
-                    <Zap size={24} className="text-white" fill="white" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center shrink-0">
+                    <Zap size={20} className="sm:w-6 sm:h-6 text-white" fill="white" />
                   </div>
-                  <div className="flex-grow text-left">
-                    <div className="text-[15px] font-semibold text-gray-900">Мощный клик</div>
-                    <div className="text-[12px] text-gray-500">Уровень {clickUpgradeLevel}</div>
+                  <div className="flex-grow text-left min-w-0">
+                    <div className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Мощный клик</div>
+                    <div className="text-[11px] sm:text-[12px] text-gray-500">Уровень {clickUpgradeLevel}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-[14px] font-bold text-gray-900">{getClickUpgradeCost().toFixed(4)}</div>
-                    <div className="text-[11px] text-gray-500">HC</div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900">{getClickUpgradeCost().toFixed(4)}</div>
+                    <div className="text-[10px] sm:text-[11px] text-gray-500">HC</div>
                   </div>
                 </div>
               </motion.button>
@@ -536,22 +536,22 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
               <motion.button
                 onClick={buyAutoUpgrade}
                 disabled={coins < getAutoUpgradeCost()}
-                className={`w-full bg-white rounded-2xl p-4 shadow-sm ${
+                className={`w-full bg-white rounded-2xl p-3 sm:p-4 shadow-sm ${
                   coins >= getAutoUpgradeCost() ? 'cursor-pointer active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
                 }`}
                 whileHover={coins >= getAutoUpgradeCost() ? { scale: 1.02 } : {}}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-400 rounded-xl flex items-center justify-center">
-                    <Star size={24} className="text-white" fill="white" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-400 to-emerald-400 rounded-xl flex items-center justify-center shrink-0">
+                    <Star size={20} className="sm:w-6 sm:h-6 text-white" fill="white" />
                   </div>
-                  <div className="flex-grow text-left">
-                    <div className="text-[15px] font-semibold text-gray-900">Авто-фарм</div>
-                    <div className="text-[12px] text-gray-500">Уровень {autoUpgradeLevel}</div>
+                  <div className="flex-grow text-left min-w-0">
+                    <div className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Авто-фарм</div>
+                    <div className="text-[11px] sm:text-[12px] text-gray-500">Уровень {autoUpgradeLevel}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-[14px] font-bold text-gray-900">{getAutoUpgradeCost().toFixed(4)}</div>
-                    <div className="text-[11px] text-gray-500">HC</div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900">{getAutoUpgradeCost().toFixed(4)}</div>
+                    <div className="text-[10px] sm:text-[11px] text-gray-500">HC</div>
                   </div>
                 </div>
               </motion.button>
