@@ -114,12 +114,13 @@ export async function uploadToFreeStorage(
   if (fileSizeMB <= 200) {
     // Catbox - лучший выбор для файлов до 200MB (постоянное хранение)
     try {
+      console.log('📤 Free Storage: Trying Catbox.moe (up to 200MB)...');
       onProgress?.(10);
       const result = await uploadToCatbox(file);
       onProgress?.(100);
       return result;
     } catch (error) {
-      console.warn('⚠️ Catbox failed, trying 0x0.st...');
+      console.warn('⚠️ Catbox failed, trying 0x0.st...', error);
       // Fallback на 0x0.st
     }
   }
@@ -127,12 +128,13 @@ export async function uploadToFreeStorage(
   // 0x0.st - для файлов до 512MB (временное хранение)
   if (fileSizeMB <= 512) {
     try {
+      console.log('📤 Free Storage: Trying 0x0.st (up to 512MB)...');
       onProgress?.(10);
       const result = await uploadTo0x0(file);
       onProgress?.(100);
       return result;
     } catch (error) {
-      console.error('❌ All free storage services failed');
+      console.error('❌ All free storage services failed', error);
       throw new Error('Не удалось загрузить файл ни на один бесплатный сервис');
     }
   }

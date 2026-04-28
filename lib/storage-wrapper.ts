@@ -62,29 +62,41 @@ export const uploadFile = async (
   // Приоритет 1: Puter.js (бесплатное неограниченное хранилище БЕЗ API ключей)
   if (typeof window !== 'undefined') {
     try {
-      console.log('📤 Storage Wrapper: Trying Puter.js...');
-      const result = await PuterStorage.uploadToPuter(
-        file,
-        userId,
-        (progress) => {
-          if (onProgress) {
-            onProgress({
-              loaded: (file.size * progress) / 100,
-              total: file.size,
-              percentage: progress,
-            });
+      console.log('📤 Storage Wrapper: Checking Puter.js availability...');
+      
+      // Проверяем доступность Puter.js с коротким таймаутом
+      const puterAvailable = await Promise.race([
+        PuterStorage.waitForPuter(3000),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 3000))
+      ]);
+      
+      if (puterAvailable) {
+        console.log('📤 Storage Wrapper: Trying Puter.js...');
+        const result = await PuterStorage.uploadToPuter(
+          file,
+          userId,
+          (progress) => {
+            if (onProgress) {
+              onProgress({
+                loaded: (file.size * progress) / 100,
+                total: file.size,
+                percentage: progress,
+              });
+            }
           }
-        }
-      );
-      
-      console.log('✅ Storage Wrapper: Puter.js upload successful!', result.url);
-      
-      return {
-        url: result.url,
-        path: result.path,
-        size: result.size,
-        type: result.type,
-      };
+        );
+        
+        console.log('✅ Storage Wrapper: Puter.js upload successful!', result.url);
+        
+        return {
+          url: result.url,
+          path: result.path,
+          size: result.size,
+          type: result.type,
+        };
+      } else {
+        console.warn('⚠️ Storage Wrapper: Puter.js not available, skipping...');
+      }
     } catch (error) {
       console.error('❌ Storage Wrapper: Puter.js upload failed:', error);
       console.log('📤 Storage Wrapper: Falling back to Apps Father...');

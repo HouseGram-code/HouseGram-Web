@@ -40,20 +40,24 @@ export function isPuterAvailable(): boolean {
 /**
  * Ожидание загрузки Puter.js
  */
-export function waitForPuter(timeout = 5000): Promise<boolean> {
+export function waitForPuter(timeout = 10000): Promise<boolean> {
   return new Promise((resolve) => {
     if (isPuterAvailable()) {
+      console.log('✅ Puter.js already loaded');
       resolve(true);
       return;
     }
 
+    console.log('⏳ Waiting for Puter.js to load...');
     const startTime = Date.now();
     const checkInterval = setInterval(() => {
       if (isPuterAvailable()) {
         clearInterval(checkInterval);
+        console.log('✅ Puter.js loaded successfully');
         resolve(true);
       } else if (Date.now() - startTime > timeout) {
         clearInterval(checkInterval);
+        console.error('❌ Puter.js loading timeout');
         resolve(false);
       }
     }, 100);
