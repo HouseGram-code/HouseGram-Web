@@ -1,6 +1,6 @@
 /**
  * Apps Father Storage Integration
- * Provides file upload functionality using Apps Father API
+ * CloudStorage API for file uploads
  */
 
 const API_URL = process.env.NEXT_PUBLIC_APPS_FATHER_API_URL;
@@ -14,7 +14,7 @@ export interface UploadResult {
 }
 
 /**
- * Upload file to Apps Father Storage
+ * Upload file to Apps Father CloudStorage
  */
 export async function uploadToAppsFather(
   file: File,
@@ -34,23 +34,23 @@ export async function uploadToAppsFather(
       folder
     });
 
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // Добавляем метаданные как отдельные поля
-    formData.append('userId', userId);
-    formData.append('folder', folder);
-    formData.append('fileName', file.name);
+    // Читаем файл как base64
+    const base64 = await fileToBase64(file);
 
-    console.log('📤 Apps Father: Sending request to:', API_URL);
-
-    const response = await fetch(API_URL, {
+    // Отправляем через CloudStorage API
+    const response = await fetch(`${API_URL}/storage/upload`, {
       method: 'POST',
       headers: {
-        'X-API-Key': API_KEY,
-        // НЕ устанавливаем Content-Type - браузер сам установит с boundary для FormData
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
       },
-      body: formData,
+      body: JSON.stringify({
+        file: base64,
+        fileName: file.name,
+        mimeType: file.type,
+        folder: folder,
+        userId: userId,
+      }),
     });
 
     console.log('📤 Apps Father: Response status:', response.status);
@@ -65,7 +65,7 @@ export async function uploadToAppsFather(
     console.log('📤 Apps Father: Upload successful:', data);
 
     // Поддержка разных форматов ответа
-    const fileUrl = data.url || data.fileUrl || data.link || data.file_url;
+    const fileUrl = data.url || data.fileUrl || data.link || data.file_url || data.downloadUrl;
     
     if (!fileUrl) {
       console.error('📤 Apps Father: No URL in response:', data);
@@ -85,6 +85,21 @@ export async function uploadToAppsFather(
 }
 
 /**
+ * Convert File to base64 string
+ */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
  * Delete file from Apps Father Storage
  */
 export async function deleteFromAppsFather(fileUrl: string): Promise<void> {
@@ -93,10 +108,10 @@ export async function deleteFromAppsFather(fileUrl: string): Promise<void> {
   }
 
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetch(`${API_URL}/storage/delete`, {
       method: 'DELETE',
       headers: {
-        'X-API-Key': API_KEY,
+        'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ fileUrl }),
@@ -121,10 +136,10 @@ export async function getFileInfo(fileUrl: string): Promise<any> {
   }
 
   try {
-    const response = await fetch(`${API_URL}?fileUrl=${encodeURIComponent(fileUrl)}`, {
+    const response = await fetch(`${API_URL}/storage/info?fileUrl=${encodeURIComponent(fileUrl)}`, {
       method: 'GET',
       headers: {
-        'X-API-Key': API_KEY,
+        'Authorization': `Bearer ${API_KEY}`,
       },
     });
 

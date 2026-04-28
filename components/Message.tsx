@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from '
 import NextImage from 'next/image';
 import { FileIcon, Eye, Check, CheckCheck, Clock, Download, Play, Reply, Heart } from 'lucide-react';
 import { parseFormattedText, hasFormatting } from '@/lib/textFormatter';
+import { useFileDownload } from '@/hooks/useFileDownload';
 
 interface MessageProps {
   msg: any;
@@ -50,6 +51,9 @@ const Message = memo(function Message({
   const isJumbo = onlyEmojis && emojiCount <= 5 && !msg.audioUrl && !msg.fileUrl && !msg.stickerUrl && !msg.gifUrl;
   const isSticker = !!msg.stickerUrl;
   const isGif = !!msg.gifUrl;
+  
+  // File download hook
+  const { downloading, download } = useFileDownload();
   
   // Swipe to reply
   const x = useMotionValue(0);
@@ -222,11 +226,21 @@ const Message = memo(function Message({
       {/* Audio Message */}
       {msg.audioUrl ? (
         <motion.div 
-          className="mb-1"
+          className="mb-1 relative group"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
         >
           <audio controls src={msg.audioUrl} className="h-8 w-48" />
+          {/* Download Button */}
+          <motion.button
+            onClick={() => download(msg.audioUrl, { fileName: msg.fileName || 'audio.mp3' })}
+            disabled={downloading}
+            className="absolute top-1 right-1 p-1.5 bg-white/90 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <Download size={16} className="text-gray-700" />
+          </motion.button>
         </motion.div>
       ) : msg.fileUrl ? (
         msg.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
@@ -248,7 +262,7 @@ const Message = memo(function Message({
             />
             {/* Image Overlay on Hover */}
             <motion.div 
-              className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center"
+              className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center gap-2"
               initial={{ opacity: 0 }}
               whileHover={{ opacity: 1 }}
             >
@@ -259,7 +273,50 @@ const Message = memo(function Message({
               >
                 <Eye size={24} className="text-gray-700" />
               </motion.div>
+              <motion.button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  download(msg.fileUrl, { fileName: msg.fileName || 'image.jpg' });
+                }}
+                disabled={downloading}
+                initial={{ scale: 0 }}
+                whileHover={{ scale: 1 }}
+                className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg disabled:opacity-50"
+              >
+                <Download size={24} className="text-gray-700" />
+              </motion.button>
             </motion.div>
+            {msg.fileName && (
+              <div className="text-[13px] mt-1 opacity-70">{msg.fileName}</div>
+            )}
+          </motion.div>
+        ) : msg.fileUrl.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+          /* Video */
+          <motion.div 
+            className="mb-1 rounded-lg overflow-hidden cursor-pointer relative group"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <video
+              src={msg.fileUrl}
+              controls
+              className="w-full max-w-[300px] rounded-lg"
+            />
+            {/* Download Button */}
+            <motion.button
+              onClick={(e) => {
+                e.stopPropagation();
+                download(msg.fileUrl, { fileName: msg.fileName || 'video.mp4' });
+              }}
+              disabled={downloading}
+              className="absolute top-2 right-2 p-2 bg-white/90 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Download size={20} className="text-gray-700" />
+            </motion.button>
             {msg.fileName && (
               <div className="text-[13px] mt-1 opacity-70">{msg.fileName}</div>
             )}
@@ -267,7 +324,7 @@ const Message = memo(function Message({
         ) : (
           /* File */
           <motion.div 
-            className="flex items-center gap-2 mb-1 bg-black/5 p-2 rounded-lg"
+            className="flex items-center gap-2 mb-1 bg-black/5 p-2 rounded-lg group"
             whileHover={{ scale: 1.02, backgroundColor: 'rgba(0,0,0,0.08)' }}
             whileTap={{ scale: 0.98 }}
             initial={{ opacity: 0, x: -10 }}
@@ -284,10 +341,22 @@ const Message = memo(function Message({
               href={msg.fileUrl} 
               target="_blank" 
               rel="noreferrer" 
-              className="text-blue-600 underline truncate max-w-[150px] hover:text-blue-700"
+              className="text-blue-600 underline truncate max-w-[150px] hover:text-blue-700 flex-1"
             >
               {msg.fileName}
             </a>
+            <motion.button
+              onClick={(e) => {
+                e.preventDefault();
+                download(msg.fileUrl, { fileName: msg.fileName });
+              }}
+              disabled={downloading}
+              className="p-1.5 bg-blue-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Download size={16} />
+            </motion.button>
           </motion.div>
         )
       ) : isSticker ? (
