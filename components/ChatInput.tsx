@@ -234,42 +234,6 @@ const ChatInput = memo(function ChatInput({
           </motion.button>
         )}
       </div>
-
-      {/* Attach Menu */}
-      <AnimatePresence>
-        {showAttachMenu && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-gray-100"
-          >
-            <div className="grid grid-cols-4 gap-3 p-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                  <ImageIcon size={24} />
-                </div>
-                <span className="text-[12px] text-gray-600">Фото</span>
-              </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center text-white">
-                  <FileIcon size={24} />
-                </div>
-                <span className="text-[12px] text-gray-600">Файл</span>
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 });

@@ -246,6 +246,20 @@ export default function ChatView() {
     </div>
   );
 
+  // Обработчик отправки для ChatInput
+  const handleSendFromInput = useCallback((text: string) => {
+    if (text.trim() && !contact.isBlocked) {
+      if (editingMsg) {
+        editMessage(editingMsg.id, text.trim());
+        setEditingMsg(null);
+      } else {
+        sendMessage(text.trim(), replyingTo ? { replyTo: replyingTo } : undefined);
+      }
+      setShowPicker(false);
+      setReplyingTo(null);
+    }
+  }, [contact.isBlocked, editingMsg, replyingTo, editMessage, sendMessage]);
+
   const handleSend = () => {
     const inputText = inputRef.current?.value || '';
     if (inputText.trim() && !contact.isBlocked) {
@@ -1329,7 +1343,7 @@ export default function ChatView() {
             replyingTo={replyingTo}
             themeColor={themeColor}
             isGlassEnabled={isGlassEnabled}
-            onSend={handleSend}
+            onSend={handleSendFromInput}
             onInputChange={handleInputChange}
             onStartRecording={startRecording}
             onStopRecording={stopRecording}
