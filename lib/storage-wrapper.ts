@@ -1,11 +1,13 @@
 /**
- * Storage Wrapper - автоматически выбирает между Apps Father, MEGA и API Storage
+ * Storage Wrapper - автоматически выбирает между Puter.js, Apps Father, бесплатными хранилищами, MEGA и API Storage
  */
 
 import { getMegaStorage } from './mega-storage';
 import * as MegaStorage from './mega-storage';
 import * as ApiStorage from './api-storage';
 import * as AppsFatherStorage from './apps-father-storage';
+import * as FreeStorage from './free-storage';
+import * as PuterStorage from './puter-storage';
 
 export type FileType = 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif';
 
@@ -21,6 +23,8 @@ export interface UploadResult {
   size: number;
   type: string;
   megaUrl?: string;
+  deleteUrl?: string;
+  expiresAt?: Date;
 }
 
 // Определение типа файла
@@ -55,7 +59,40 @@ export const uploadFile = async (
     userId
   });
 
-  // Приоритет 1: Apps Father Storage (если настроен)
+  // Приоритет 1: Puter.js (бесплатное неограниченное хранилище БЕЗ API ключей)
+  if (typeof window !== 'undefined') {
+    try {
+      console.log('📤 Storage Wrapper: Trying Puter.js...');
+      const result = await PuterStorage.uploadToPuter(
+        file,
+        userId,
+        (progress) => {
+          if (onProgress) {
+            onProgress({
+              loaded: (file.size * progress) / 100,
+              total: file.size,
+              percentage: progress,
+            });
+          }
+        }
+      );
+      
+      console.log('✅ Storage Wrapper: Puter.js upload successful!', result.url);
+      
+      return {
+        url: result.url,
+        path: result.path,
+        size: result.size,
+        type: result.type,
+      };
+    } catch (error) {
+      console.error('❌ Storage Wrapper: Puter.js upload failed:', error);
+      console.log('📤 Storage Wrapper: Falling back to Apps Father...');
+      // Fallback на Apps Father
+    }
+  }
+
+  // Приоритет 2: Apps Father Storage (если настроен)
   if (isAppsFatherAvailable()) {
     try {
       console.log('📤 Storage Wrapper: Trying Apps Father Storage...');
@@ -75,14 +112,51 @@ export const uploadFile = async (
       };
     } catch (error) {
       console.error('❌ Storage Wrapper: Apps Father upload failed:', error);
-      console.log('📤 Storage Wrapper: Falling back to MEGA...');
-      // Fallback на MEGA
+      console.log('📤 Storage Wrapper: Falling back to free storage...');
+      // Fallback на бесплатные хранилища
     }
   } else {
     console.log('⚠️ Storage Wrapper: Apps Father not configured, skipping...');
   }
   
-  // Приоритет 2: MEGA Storage
+  // Приоритет 3: Бесплатные хранилища (Catbox, 0x0.st)
+  const freeStorageCheck = FreeStorage.isSupportedByFreeStorage(file);
+  if (freeStorageCheck.supported) {
+    try {
+      console.log('📤 Storage Wrapper: Trying free storage services...');
+      const result = await FreeStorage.uploadToFreeStorage(
+        file,
+        (progress) => {
+          if (onProgress) {
+            onProgress({
+              loaded: (file.size * progress) / 100,
+              total: file.size,
+              percentage: progress,
+            });
+          }
+        }
+      );
+      
+      console.log('✅ Storage Wrapper: Free storage upload successful!', result.url);
+      
+      return {
+        url: result.url,
+        path: result.url,
+        size: file.size,
+        type: file.type,
+        deleteUrl: result.deleteUrl,
+        expiresAt: result.expiresAt,
+      };
+    } catch (error) {
+      console.error('❌ Storage Wrapper: Free storage upload failed:', error);
+      console.log('📤 Storage Wrapper: Falling back to MEGA...');
+      // Fallback на MEGA
+    }
+  } else {
+    console.log('⚠️ Storage Wrapper: File not supported by free storage:', freeStorageCheck.reason);
+  }
+  
+  // Приоритет 4: MEGA Storage
   const megaStorage = getMegaStorage();
   if (megaStorage) {
     try {
@@ -99,7 +173,7 @@ export const uploadFile = async (
     console.log('⚠️ Storage Wrapper: MEGA not available, skipping...');
   }
   
-  // Приоритет 3: API Storage как последний fallback (обход CORS)
+  // Приоритет 5: API Storage как последний fallback (обход CORS)
   console.log('📤 Storage Wrapper: Using API Storage (last resort)...');
   try {
     const result = await ApiStorage.uploadFile(file, userId, fileType, onProgress);
