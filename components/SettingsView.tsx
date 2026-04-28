@@ -611,6 +611,15 @@ export default function SettingsView() {
             </div>
             <div className={`border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
               <SettingsItem 
+                icon={<Clock size={22} className="text-blue-500" />} 
+                text="Запланированные сообщения" 
+                subtitle="Управление отложенной отправкой"
+                onClick={() => setView('scheduled-messages')} 
+                isDarkMode={isDarkMode}
+              />
+            </div>
+            <div className={`border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
+              <SettingsItem 
                 icon={<Calendar size={22} className="text-purple-500" />} 
                 text="Мои истории" 
                 subtitle="Просмотр и управление"
