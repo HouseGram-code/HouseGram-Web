@@ -255,6 +255,11 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
   const [clickAnimations, setClickAnimations] = useState<Array<{ id: number; x: number; y: number }>>([]);
   const [showUpgrades, setShowUpgrades] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Защита от автокликера
+  const [clickCount, setClickCount] = useState(0);
+  const [clickTimestamp, setClickTimestamp] = useState(Date.now());
+  const [isBlocked, setIsBlocked] = useState(false);
 
   // Load game progress from Firestore
   useEffect(() => {
@@ -285,7 +290,15 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
               return;
             }
             
-            setCoins(progress.coins || 0);
+            // Проверяем корректность загруженных данных
+            const loadedCoins = progress.coins || 0;
+            if (loadedCoins < 0 || isNaN(loadedCoins)) {
+              console.error('Invalid coins value loaded:', loadedCoins);
+              setCoins(0);
+            } else {
+              setCoins(loadedCoins);
+            }
+            
             setCoinsPerClick(progress.coinsPerClick || 0.0001);
             setCoinsPerSecond(progress.coinsPerSecond || 0);
             setClickUpgradeLevel(progress.clickUpgradeLevel || 0);
@@ -308,6 +321,12 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
     
     const saveProgress = async () => {
       try {
+        // Проверяем, что значения корректны перед сохранением
+        if (coins < 0 || isNaN(coins)) {
+          console.error('Invalid coins value:', coins);
+          return;
+        }
+        
         await updateDoc(doc(db, 'users', currentUser.id), {
           'gameProgress.cryptoClicker': {
             coins,
@@ -333,13 +352,54 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
     if (coinsPerSecond <= 0) return;
     
     const interval = setInterval(() => {
-      setCoins(prev => prev + coinsPerSecond / 10);
+      setCoins(prev => {
+        const newValue = prev + coinsPerSecond / 10;
+        // Проверяем на переполнение и некорректные значения
+        if (newValue < 0 || isNaN(newValue) || newValue > 1000000) {
+          console.error('Invalid auto-earn value:', newValue);
+          return prev;
+        }
+        return newValue;
+      });
     }, 100);
     
     return () => clearInterval(interval);
   }, [coinsPerSecond]);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Защита от автокликера
+    const now = Date.now();
+    const timeDiff = now - clickTimestamp;
+    
+    // Если прошло больше 1 секунды, сбрасываем счетчик
+    if (timeDiff > 1000) {
+      setClickCount(1);
+      setClickTimestamp(now);
+    } else {
+      // Увеличиваем счетчик кликов
+      const newClickCount = clickCount + 1;
+      setClickCount(newClickCount);
+      
+      // Если больше 15 кликов в секунду - блокируем
+      if (newClickCount > 15) {
+        setIsBlocked(true);
+        alert('⚠️ Обнаружен автокликер!\n\nВы заблокированы на 30 секунд.\nИспользование автокликеров запрещено!');
+        
+        // Блокируем на 30 секунд
+        setTimeout(() => {
+          setIsBlocked(false);
+          setClickCount(0);
+        }, 30000);
+        
+        return;
+      }
+    }
+    
+    // Если заблокирован - не начисляем монеты
+    if (isBlocked) {
+      return;
+    }
+    
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -440,6 +500,21 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
 
         {/* Click Area */}
         <div className="flex-grow flex items-center justify-center mb-4 relative min-h-[250px] sm:min-h-[300px]">
+          {/* Предупреждение о блокировке */}
+          {isBlocked && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute inset-0 bg-red-500/90 backdrop-blur-sm rounded-3xl flex items-center justify-center z-50 p-4"
+            >
+              <div className="text-center text-white">
+                <div className="text-[48px] mb-2">🚫</div>
+                <div className="text-[20px] font-bold mb-2">Автокликер обнаружен!</div>
+                <div className="text-[14px]">Вы заблокированы на 30 секунд</div>
+              </div>
+            </motion.div>
+          )}
+          
           <motion.div
             onClick={handleClick}
             className="relative w-48 h-48 sm:w-64 sm:h-64 cursor-pointer"
