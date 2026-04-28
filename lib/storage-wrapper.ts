@@ -1,10 +1,11 @@
 /**
- * Storage Wrapper - автоматически выбирает между MEGA и API Storage
+ * Storage Wrapper - автоматически выбирает между Apps Father, MEGA и API Storage
  */
 
 import { getMegaStorage } from './mega-storage';
 import * as MegaStorage from './mega-storage';
 import * as ApiStorage from './api-storage';
+import * as AppsFatherStorage from './apps-father-storage';
 
 export type FileType = 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif';
 
@@ -32,6 +33,14 @@ export const formatFileSize = (bytes: number): string => {
   return MegaStorage.formatFileSize(bytes);
 };
 
+// Проверка доступности Apps Father
+const isAppsFatherAvailable = (): boolean => {
+  return !!(
+    process.env.NEXT_PUBLIC_APPS_FATHER_API_URL && 
+    process.env.NEXT_PUBLIC_APPS_FATHER_API_KEY
+  );
+};
+
 // Основная функция загрузки с автоматическим fallback
 export const uploadFile = async (
   file: File,
@@ -39,9 +48,30 @@ export const uploadFile = async (
   fileType?: FileType,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> => {
-  const megaStorage = getMegaStorage();
+  // Приоритет 1: Apps Father Storage (если настроен)
+  if (isAppsFatherAvailable()) {
+    try {
+      console.log('📤 Uploading via Apps Father Storage...');
+      const result = await AppsFatherStorage.uploadToAppsFather(
+        file,
+        userId,
+        fileType || detectFileType(file)
+      );
+      
+      return {
+        url: result.url,
+        path: result.url,
+        size: result.fileSize,
+        type: result.mimeType,
+      };
+    } catch (error) {
+      console.error('Apps Father upload failed, trying MEGA:', error);
+      // Fallback на MEGA
+    }
+  }
   
-  // Если MEGA доступен, используем его
+  // Приоритет 2: MEGA Storage
+  const megaStorage = getMegaStorage();
   if (megaStorage) {
     try {
       console.log('📤 Uploading via MEGA Storage...');
@@ -52,7 +82,7 @@ export const uploadFile = async (
     }
   }
   
-  // Используем API Storage как fallback (обход CORS)
+  // Приоритет 3: API Storage как последний fallback (обход CORS)
   console.log('📤 Uploading via API Storage (CORS bypass)...');
   return await ApiStorage.uploadFile(file, userId, fileType, onProgress);
 };
@@ -81,9 +111,18 @@ export const uploadMultipleFiles = async (
 
 // Удаление файла
 export const deleteFile = async (filePath: string): Promise<boolean> => {
-  const megaStorage = getMegaStorage();
+  // Пробуем удалить из Apps Father
+  if (isAppsFatherAvailable() && filePath.includes('apps-father.com')) {
+    try {
+      await AppsFatherStorage.deleteFromAppsFather(filePath);
+      return true;
+    } catch (error) {
+      console.error('Apps Father delete failed:', error);
+    }
+  }
   
   // Пробуем удалить из MEGA
+  const megaStorage = getMegaStorage();
   if (megaStorage) {
     try {
       return await MegaStorage.deleteFile(filePath);
