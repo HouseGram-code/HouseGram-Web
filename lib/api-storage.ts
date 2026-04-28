@@ -48,7 +48,7 @@ export const uploadFile = async (
 ): Promise<UploadResult> => {
   const type = fileType || detectFileType(file);
   
-  console.log(`📤 Uploading via API: ${file.name} (${formatFileSize(file.size)})`);
+  console.log(`📤 API Storage: Uploading ${file.name} (${formatFileSize(file.size)}) as ${type}`);
   
   try {
     const formData = new FormData();
@@ -63,10 +63,12 @@ export const uploadFile = async (
       // Отслеживание прогресса
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable && onProgress) {
+          const percentage = Math.round((e.loaded / e.total) * 100);
+          console.log(`📤 Upload progress: ${percentage}%`);
           onProgress({
             loaded: e.loaded,
             total: e.total,
-            percentage: Math.round((e.loaded / e.total) * 100),
+            percentage: percentage,
           });
         }
       });
@@ -74,21 +76,34 @@ export const uploadFile = async (
       // Обработка завершения
       xhr.addEventListener('load', () => {
         if (xhr.status === 200) {
-          const result = JSON.parse(xhr.responseText);
-          console.log(`✅ File uploaded successfully: ${result.url}`);
-          resolve(result);
+          try {
+            const result = JSON.parse(xhr.responseText);
+            console.log(`✅ API Storage: Upload successful:`, result.url);
+            resolve(result);
+          } catch (error) {
+            console.error('❌ API Storage: Failed to parse response:', xhr.responseText);
+            reject(new Error('Invalid response from server'));
+          }
         } else {
-          const error = JSON.parse(xhr.responseText);
-          reject(new Error(error.error || 'Upload failed'));
+          try {
+            const error = JSON.parse(xhr.responseText);
+            console.error('❌ API Storage: Upload failed:', error);
+            reject(new Error(error.error || 'Upload failed'));
+          } catch {
+            console.error('❌ API Storage: Upload failed with status:', xhr.status);
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
         }
       });
 
       // Обработка ошибок
       xhr.addEventListener('error', () => {
+        console.error('❌ API Storage: Network error during upload');
         reject(new Error('Network error during upload'));
       });
 
       xhr.addEventListener('abort', () => {
+        console.error('❌ API Storage: Upload aborted');
         reject(new Error('Upload aborted'));
       });
 
@@ -97,7 +112,7 @@ export const uploadFile = async (
       xhr.send(formData);
     });
   } catch (error: any) {
-    console.error('❌ API upload failed:', error);
+    console.error('❌ API Storage: Upload failed:', error);
     throw new Error(`Ошибка загрузки файла: ${error.message}`);
   }
 };
