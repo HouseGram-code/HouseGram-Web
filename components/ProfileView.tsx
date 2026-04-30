@@ -2,21 +2,24 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Bookmark, BadgeCheck, Gift, Phone, Mail, Calendar, MessageCircle, User, Shield, Camera, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Bookmark, BadgeCheck, Gift, Phone, Mail, Calendar, MessageCircle, User, Shield, Camera, MoreVertical, Lock, Crown } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { uploadFile } from '@/lib/storage-wrapper';
 import FounderBadge from './FounderBadge';
+import CopyProtectionModal from './CopyProtectionModal';
 
 export default function ProfileView() {
-  const { contacts, activeChatId, setView, themeColor, isGlassEnabled, sendMessage, blockContact, user } = useChat();
+  const { contacts, activeChatId, setView, themeColor, isGlassEnabled, sendMessage, blockContact, user, isPremium } = useChat();
   const contact = activeChatId ? contacts[activeChatId] : null;
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showEditMenu, setShowEditMenu] = useState(false);
+  const [showOtherMenu, setShowOtherMenu] = useState(false);
+  const [showCopyProtectionModal, setShowCopyProtectionModal] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -203,6 +206,58 @@ export default function ProfileView() {
               />
             )}
             
+            {/* Menu Button для чужого профиля: запретить копирование и т.д. */}
+            {!isOwnProfile && contact && contact.id !== 'saved_messages' && contact.id !== 'test_bot' && !contact.isChannel && (
+              <div className="absolute top-2 right-2 z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowOtherMenu(!showOtherMenu);
+                  }}
+                  className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white hover:bg-black/60 transition-colors"
+                  aria-label="Ещё"
+                >
+                  <MoreVertical size={20} />
+                </button>
+
+                <AnimatePresence>
+                  {showOtherMenu && (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowOtherMenu(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        className="absolute right-0 top-12 bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl py-1 z-50 min-w-[240px] overflow-hidden"
+                      >
+                        <button
+                          onClick={() => {
+                            setShowOtherMenu(false);
+                            setShowCopyProtectionModal(true);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 text-left text-[15px] text-gray-700 dark:text-gray-200 transition-colors"
+                        >
+                          <Lock size={18} className="text-gray-500 dark:text-gray-400" />
+                          <span className="flex-1">
+                            {contact.copyProtectedBy?.[user?.uid || ''] ? 'Отключить защиту от копирования' : 'Запретить копирование'}
+                          </span>
+                          {!isPremium && (
+                            <Crown size={16} className="text-amber-500" />
+                          )}
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
             {/* Edit Button — баннер можно менять только в своём профиле */}
             {isOwnProfile && (
               <div className="absolute top-2 right-2 z-10">
@@ -554,6 +609,16 @@ export default function ProfileView() {
           </div>
         )}
       </AnimatePresence>
+
+      {contact && (
+        <CopyProtectionModal
+          open={showCopyProtectionModal}
+          contactId={contact.id}
+          contactName={contact.name}
+          isEnabled={Boolean(user?.uid && contact.copyProtectedBy?.[user.uid])}
+          onClose={() => setShowCopyProtectionModal(false)}
+        />
+      )}
     </motion.div>
   );
 }

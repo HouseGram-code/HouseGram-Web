@@ -22,6 +22,10 @@ interface MessageProps {
   showAvatar?: boolean;
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
+  // true, if the author of this message enabled «restrict copying» for this chat.
+  // We disable text selection, swallow copy events and signal to the parent
+  // context menu that Скопировать / Переслать should be hidden.
+  isCopyProtected?: boolean;
 }
 
 const isOnlyEmojis = (str: string) => {
@@ -44,7 +48,8 @@ const Message = memo(function Message({
   onReaction,
   showAvatar = false,
   isFirstInGroup = true,
-  isLastInGroup = true
+  isLastInGroup = true,
+  isCopyProtected = false,
 }: MessageProps) {
   const onlyEmojis = isOnlyEmojis(msg.text);
   const emojiCount = Array.from(msg.text.replace(/\s/g, '')).length;
@@ -149,8 +154,11 @@ const Message = memo(function Message({
           setShowReplyIcon(false);
           handleDragEnd(e, info);
         }}
-        style={{ x }}
+        style={{ x, ...(isCopyProtected ? { userSelect: 'none', WebkitUserSelect: 'none' } : {}) }}
         onContextMenu={(e) => onContextMenu(e, msg.id)}
+        onCopy={isCopyProtected ? (e) => { e.preventDefault(); } : undefined}
+        onCut={isCopyProtected ? (e) => { e.preventDefault(); } : undefined}
+        onDragStartCapture={isCopyProtected ? (e) => { e.preventDefault(); } : undefined}
         onTouchStart={(e) => {
           onTouchStart(e, msg.id);
           handleDoubleTap();

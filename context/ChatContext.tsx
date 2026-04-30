@@ -73,6 +73,7 @@ interface ChatContextType {
   setUserProfile: (profile: UserProfile) => void;
   blockContact: (contactId: string) => void;
   unblockContact: (contactId: string) => void;
+  setCopyProtection: (contactId: string, enabled: boolean) => void;
   notificationsEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
   soundEnabled: boolean;
@@ -539,18 +540,34 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             isTyping = false;
           }
         }
-        
+
+        // Copy protection: map {userId: true}, выставленный тем, кто включил
+        // «Запретить копирование» для своих сообщений в этом чате. Храним
+        // карту как есть, ChatView / Message решают, что с ней делать.
+        const rawCopyProtected = (data.copyProtectedBy || {}) as Record<string, unknown>;
+        const copyProtectedBy: Record<string, boolean> = {};
+        for (const [uid, v] of Object.entries(rawCopyProtected)) {
+          if (v === true) copyProtectedBy[uid] = true;
+        }
+
         setContacts(prev => {
           if (!prev[activeChatId]) return prev;
-          
+          const existing = prev[activeChatId];
+
+          const prevMap = existing.copyProtectedBy || {};
+          const mapChanged =
+            Object.keys(prevMap).length !== Object.keys(copyProtectedBy).length ||
+            Object.keys(copyProtectedBy).some(k => !prevMap[k]);
+
           // Проверяем изменился ли статус, чтобы избежать лишних ре-рендеров
-          if (prev[activeChatId].isTyping === isTyping) return prev;
-          
+          if (existing.isTyping === isTyping && !mapChanged) return prev;
+
           return {
             ...prev,
             [activeChatId]: {
-              ...prev[activeChatId],
-              isTyping
+              ...existing,
+              isTyping,
+              copyProtectedBy,
             }
           };
         });
@@ -693,6 +710,26 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       await updateDoc(doc(db, 'chats', chatId), updateData); 
     } catch (e) {}
     setContacts(prev => ({ ...prev, [contactId]: { ...prev[contactId], isBlocked: false } }));
+  }, [user]);
+
+  const setCopyProtection = useCallback(async (contactId: string, enabled: boolean) => {
+    if (!user) return;
+    const chatId = [user.uid, contactId].sort().join('_');
+    try {
+      const updateData: Record<string, unknown> = {};
+      updateData[`copyProtectedBy.${user.uid}`] = enabled ? true : null;
+      await updateDoc(doc(db, 'chats', chatId), updateData);
+    } catch (e) {
+      console.error('Failed to update copy protection', e);
+    }
+    setContacts(prev => {
+      const existing = prev[contactId];
+      if (!existing) return prev;
+      const nextMap = { ...(existing.copyProtectedBy || {}) };
+      if (enabled) nextMap[user.uid] = true;
+      else delete nextMap[user.uid];
+      return { ...prev, [contactId]: { ...existing, copyProtectedBy: nextMap } };
+    });
   }, [user]);
 
   const lastMessageTimeRef = useRef<number>(0);
@@ -1196,7 +1233,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       themeColor, setThemeColor: (c: string) => { setThemeColor(c); localStorage.setItem('housegram_theme', c); },
       wallpaper, setWallpaper: (u: string) => { setWallpaper(u); localStorage.setItem('housegram_wallpaper', u); },
       isGlassEnabled, setIsGlassEnabled: (v: boolean) => { setIsGlassEnabled(v); localStorage.setItem('housegram_glass', String(v)); },
-      clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, unblockContact, addContact,
+      clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, unblockContact, setCopyProtection, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
       isDarkMode, setIsDarkMode: (val: boolean) => { setIsDarkMode(val); localStorage.setItem('housegram_dark_mode', String(val)); },

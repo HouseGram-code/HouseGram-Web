@@ -79,6 +79,11 @@ export interface Contact {
   isOfficial?: boolean;
   isFounder?: boolean;
   premium?: boolean;
+  // Map userId -> true: user with that id enabled "Restrict copy" for messages
+  // they authored in this chat. Only premium users can set this. Читается
+  // клиентом собеседника, чтобы отключить выделение/копирование/пересылку
+  // сообщений от этого автора.
+  copyProtectedBy?: Record<string, boolean>;
 }
 
 export interface Channel {
