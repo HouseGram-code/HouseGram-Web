@@ -5,7 +5,7 @@ import { Contact, ViewState, Message, UserProfile } from '@/types';
 import { initialContacts } from '@/lib/mockData';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where, deleteDoc, writeBatch, getDocs, deleteField, FirestoreError } from 'firebase/firestore';
 import { GoogleGenAI } from '@google/genai';
 import { initializeFirebaseSettings } from '@/lib/init-firebase-settings';
 
@@ -715,21 +715,31 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const setCopyProtection = useCallback(async (contactId: string, enabled: boolean) => {
     if (!user) return;
     const chatId = [user.uid, contactId].sort().join('_');
+    const chatRef = doc(db, 'chats', chatId);
     try {
-      // setDoc+merge, чтобы работать и когда документа чата ещё нет.
-      // Если чат ещё не создан, Firestore воспринимает это как create и
-      // `isValidChat` требует поля `participants` и `updatedAt` — добавляем их.
-      // Для уже существующего чата merge не меняет participants, а updatedAt
-      // мы тоже обновляем — это ок, мы только что «совершили действие» в чате.
-      await setDoc(
-        doc(db, 'chats', chatId),
-        {
-          copyProtectedBy: { [user.uid]: enabled ? true : null },
-          participants: [user.uid, contactId].sort(),
+      // Основной путь — тот же, что у blockContact/unblockContact: `updateDoc`
+      // с dot-notation, чтобы атомарно тронуть только свой ключ в nested map
+      // `copyProtectedBy` и не затереть запись второго участника.
+      try {
+        await updateDoc(chatRef, {
+          [`copyProtectedBy.${user.uid}`]: enabled ? true : deleteField(),
           updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+        });
+      } catch (err) {
+        // Если документа чата ещё нет (ни одного сообщения не отправлено),
+        // updateDoc упадёт с `not-found` — тогда создаём документ c минимально
+        // необходимыми для `isValidChat` полями.
+        const code = (err as FirestoreError | undefined)?.code;
+        if (code === 'not-found') {
+          await setDoc(chatRef, {
+            copyProtectedBy: enabled ? { [user.uid]: true } : {},
+            participants: [user.uid, contactId].sort(),
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          throw err;
+        }
+      }
       setContacts(prev => {
         const existing = prev[contactId];
         if (!existing) return prev;
