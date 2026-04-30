@@ -2,7 +2,7 @@
 
 import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Paperclip, Send, Mic, Smile, Square, X, Image as ImageIcon, File as FileIcon, Clock } from 'lucide-react';
+import { Paperclip, Send, Mic, Smile, Square, X, Image as ImageIcon, File as FileIcon } from 'lucide-react';
 
 interface ChatInputProps {
   isRecording: boolean;
@@ -14,7 +14,6 @@ interface ChatInputProps {
   isGlassEnabled: boolean;
   isDarkMode?: boolean;
   onSend: (text: string) => void;
-  onScheduleSend: (text: string, scheduledDate: Date) => void;
   onInputChange: (text: string) => void;
   onStartRecording: () => void;
   onStopRecording: () => void;
@@ -35,7 +34,6 @@ const ChatInput = memo(function ChatInput({
   isGlassEnabled,
   isDarkMode = false,
   onSend,
-  onScheduleSend,
   onInputChange,
   onStartRecording,
   onStopRecording,
@@ -46,7 +44,6 @@ const ChatInput = memo(function ChatInput({
   showAttachMenu
 }: ChatInputProps) {
   const [inputText, setInputText] = useState(editingMsg?.text || '');
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Синхронизация с editingMsg
@@ -77,17 +74,6 @@ const ChatInput = memo(function ChatInput({
       }
     }
   }, [inputText, onSend]);
-
-  const handleScheduleSend = useCallback((scheduledDate: Date) => {
-    if (inputText.trim()) {
-      onScheduleSend(inputText.trim(), scheduledDate);
-      setInputText('');
-      // Сброс высоты
-      if (inputRef.current) {
-        inputRef.current.style.height = 'auto';
-      }
-    }
-  }, [inputText, onScheduleSend]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -227,36 +213,18 @@ const ChatInput = memo(function ChatInput({
             </motion.button>
           </div>
         ) : inputText.trim() ? (
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Schedule Button */}
-            <motion.button
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowScheduleModal(true)}
-              className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all ${
-                isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <Clock size={20} />
-            </motion.button>
-            
-            {/* Send Button */}
-            <motion.button
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 180 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleSend}
-              className="w-11 h-11 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow"
-              style={{ backgroundColor: themeColor }}
-            >
-              <Send size={20} className="ml-0.5" />
-            </motion.button>
-          </div>
+          <motion.button
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: 180 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleSend}
+            className="w-11 h-11 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow shrink-0"
+            style={{ backgroundColor: themeColor }}
+          >
+            <Send size={20} className="ml-0.5" />
+          </motion.button>
         ) : (
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -268,20 +236,8 @@ const ChatInput = memo(function ChatInput({
           </motion.button>
         )}
       </div>
-
-      {/* Schedule Message Modal */}
-      <ScheduleMessageModal
-        isOpen={showScheduleModal}
-        onClose={() => setShowScheduleModal(false)}
-        onSchedule={handleScheduleSend}
-        themeColor={themeColor}
-        isDarkMode={isDarkMode}
-      />
     </div>
   );
 });
-
-// Импорт модального окна
-import ScheduleMessageModal from './ScheduleMessageModal';
 
 export default ChatInput;
