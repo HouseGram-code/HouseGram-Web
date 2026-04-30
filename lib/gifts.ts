@@ -122,7 +122,19 @@ export const GIFTS: Gift[] = [
   },
 ];
 
+// Анимированные URL для подарков, которые сняты с продажи, но всё ещё могут
+// встречаться в истории чатов / в списке полученных подарков. Не попадают в
+// GIFTS, потому что больше не должны предлагаться к покупке, но
+// getGiftAnimatedUrl должен по-прежнему отдавать для них картинку.
+const LEGACY_GIFT_ANIMATED_URLS: Record<string, string> = {
+  easter_bunny:
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Rabbit%20Face.webp',
+  cosmonaut:
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Travel%20and%20Places/Rocket.webp',
+};
+
 export function getGiftAnimatedUrl(giftId: string): string | null {
   const gift = GIFTS.find(g => g.id === giftId);
-  return gift?.animatedUrl || null;
+  if (gift?.animatedUrl) return gift.animatedUrl;
+  return LEGACY_GIFT_ANIMATED_URLS[giftId] || null;
 }
