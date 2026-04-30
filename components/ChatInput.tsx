@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useRef, useCallback, useEffect } from 'react';
+import { memo, useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Paperclip, Send, Mic, Smile, Square, X, Image as ImageIcon, File as FileIcon } from 'lucide-react';
 
@@ -24,7 +24,13 @@ interface ChatInputProps {
   showAttachMenu: boolean;
 }
 
-const ChatInput = memo(function ChatInput({
+export interface ChatInputHandle {
+  insertText: (text: string) => void;
+  focus: () => void;
+  clear: () => void;
+}
+
+const ChatInput = memo(forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput({
   isRecording,
   recordingTime,
   isBlocked,
@@ -42,16 +48,44 @@ const ChatInput = memo(function ChatInput({
   onShowPicker,
   onShowAttachMenu,
   showAttachMenu
-}: ChatInputProps) {
+}, ref) {
   const [inputText, setInputText] = useState(editingMsg?.text || '');
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Синхронизация с editingMsg
+  // Синхронизация с editingMsg: при входе в режим редактирования засеиваем
+  // текст редактируемого сообщения, при выходе — чистим поле.
   useEffect(() => {
     if (editingMsg) {
       setInputText(editingMsg.text);
+    } else {
+      setInputText('');
     }
   }, [editingMsg]);
+
+  useImperativeHandle(ref, () => ({
+    insertText: (text: string) => {
+      setInputText(prev => prev + text);
+      onInputChange((inputRef.current?.value ?? '') + text);
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.style.height = 'auto';
+          inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + 'px';
+          const len = inputRef.current.value.length;
+          inputRef.current.setSelectionRange(len, len);
+        }
+      });
+    },
+    focus: () => {
+      inputRef.current?.focus();
+    },
+    clear: () => {
+      setInputText('');
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto';
+      }
+    },
+  }), [onInputChange]);
 
   const handleChange = useCallback((text: string) => {
     setInputText(text);
@@ -238,6 +272,8 @@ const ChatInput = memo(function ChatInput({
       </div>
     </div>
   );
-});
+}));
+
+ChatInput.displayName = 'ChatInput';
 
 export default ChatInput;
