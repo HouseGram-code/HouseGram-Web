@@ -27,7 +27,12 @@ export default function CopyProtectionModal({
 
   const handleToggle = async () => {
     if (!isPremium) return;
-    await setCopyProtection(contactId, !isEnabled);
+    try {
+      await setCopyProtection(contactId, !isEnabled);
+    } catch {
+      // setCopyProtection уже показал alert и пробросил — UI не менялся,
+      // так как локальный стейт обновляется только после успешной записи.
+    }
   };
 
   const handleGoPremium = () => {

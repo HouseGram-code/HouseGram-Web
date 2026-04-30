@@ -73,7 +73,7 @@ interface ChatContextType {
   setUserProfile: (profile: UserProfile) => void;
   blockContact: (contactId: string) => void;
   unblockContact: (contactId: string) => void;
-  setCopyProtection: (contactId: string, enabled: boolean) => void;
+  setCopyProtection: (contactId: string, enabled: boolean) => Promise<void>;
   notificationsEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
   soundEnabled: boolean;
@@ -716,20 +716,26 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
     const chatId = [user.uid, contactId].sort().join('_');
     try {
-      const updateData: Record<string, unknown> = {};
-      updateData[`copyProtectedBy.${user.uid}`] = enabled ? true : null;
-      await updateDoc(doc(db, 'chats', chatId), updateData);
+      // setDoc+merge, чтобы работать и когда документа чата ещё нет
+      // (например, в чат ни одного сообщения не было отправлено).
+      await setDoc(
+        doc(db, 'chats', chatId),
+        { copyProtectedBy: { [user.uid]: enabled ? true : null } },
+        { merge: true }
+      );
+      setContacts(prev => {
+        const existing = prev[contactId];
+        if (!existing) return prev;
+        const nextMap = { ...(existing.copyProtectedBy || {}) };
+        if (enabled) nextMap[user.uid] = true;
+        else delete nextMap[user.uid];
+        return { ...prev, [contactId]: { ...existing, copyProtectedBy: nextMap } };
+      });
     } catch (e) {
       console.error('Failed to update copy protection', e);
+      alert('Не удалось обновить защиту от копирования. Попробуйте ещё раз.');
+      throw e;
     }
-    setContacts(prev => {
-      const existing = prev[contactId];
-      if (!existing) return prev;
-      const nextMap = { ...(existing.copyProtectedBy || {}) };
-      if (enabled) nextMap[user.uid] = true;
-      else delete nextMap[user.uid];
-      return { ...prev, [contactId]: { ...existing, copyProtectedBy: nextMap } };
-    });
   }, [user]);
 
   const lastMessageTimeRef = useRef<number>(0);
