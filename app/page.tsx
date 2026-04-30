@@ -304,13 +304,20 @@ function AppContent() {
       void import('@/components/SettingsView');
       void import('@/components/ProfileView');
     };
-    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
-    if (typeof ric === 'function') {
-      ric(prefetch, { timeout: 2000 });
-    } else {
-      const t = setTimeout(prefetch, 1500);
-      return () => clearTimeout(t);
+    const w = window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof w.requestIdleCallback === 'function') {
+      const id = w.requestIdleCallback(prefetch, { timeout: 2000 });
+      return () => {
+        if (typeof w.cancelIdleCallback === 'function') {
+          w.cancelIdleCallback(id);
+        }
+      };
     }
+    const t = setTimeout(prefetch, 1500);
+    return () => clearTimeout(t);
   }, [user, isAppReady]);
 
   // Контейнер-обёртка для мобильной версии
