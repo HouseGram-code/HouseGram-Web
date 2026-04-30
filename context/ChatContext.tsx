@@ -5,7 +5,7 @@ import { Contact, ViewState, Message, UserProfile } from '@/types';
 import { initialContacts } from '@/lib/mockData';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where, deleteDoc, writeBatch, getDocs, deleteField, FirestoreError } from 'firebase/firestore';
 import { GoogleGenAI } from '@google/genai';
 import { initializeFirebaseSettings } from '@/lib/init-firebase-settings';
 
@@ -73,6 +73,7 @@ interface ChatContextType {
   setUserProfile: (profile: UserProfile) => void;
   blockContact: (contactId: string) => void;
   unblockContact: (contactId: string) => void;
+  setCopyProtection: (contactId: string, enabled: boolean) => Promise<void>;
   notificationsEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
   soundEnabled: boolean;
@@ -539,18 +540,34 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             isTyping = false;
           }
         }
-        
+
+        // Copy protection: map {userId: true}, выставленный тем, кто включил
+        // «Запретить копирование» для своих сообщений в этом чате. Храним
+        // карту как есть, ChatView / Message решают, что с ней делать.
+        const rawCopyProtected = (data.copyProtectedBy || {}) as Record<string, unknown>;
+        const copyProtectedBy: Record<string, boolean> = {};
+        for (const [uid, v] of Object.entries(rawCopyProtected)) {
+          if (v === true) copyProtectedBy[uid] = true;
+        }
+
         setContacts(prev => {
           if (!prev[activeChatId]) return prev;
-          
+          const existing = prev[activeChatId];
+
+          const prevMap = existing.copyProtectedBy || {};
+          const mapChanged =
+            Object.keys(prevMap).length !== Object.keys(copyProtectedBy).length ||
+            Object.keys(copyProtectedBy).some(k => !prevMap[k]);
+
           // Проверяем изменился ли статус, чтобы избежать лишних ре-рендеров
-          if (prev[activeChatId].isTyping === isTyping) return prev;
-          
+          if (existing.isTyping === isTyping && !mapChanged) return prev;
+
           return {
             ...prev,
             [activeChatId]: {
-              ...prev[activeChatId],
-              isTyping
+              ...existing,
+              isTyping,
+              copyProtectedBy,
             }
           };
         });
@@ -693,6 +710,49 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       await updateDoc(doc(db, 'chats', chatId), updateData); 
     } catch (e) {}
     setContacts(prev => ({ ...prev, [contactId]: { ...prev[contactId], isBlocked: false } }));
+  }, [user]);
+
+  const setCopyProtection = useCallback(async (contactId: string, enabled: boolean) => {
+    if (!user) return;
+    const chatId = [user.uid, contactId].sort().join('_');
+    const chatRef = doc(db, 'chats', chatId);
+    try {
+      // Основной путь — тот же, что у blockContact/unblockContact: `updateDoc`
+      // с dot-notation, чтобы атомарно тронуть только свой ключ в nested map
+      // `copyProtectedBy` и не затереть запись второго участника.
+      try {
+        await updateDoc(chatRef, {
+          [`copyProtectedBy.${user.uid}`]: enabled ? true : deleteField(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (err) {
+        // Если документа чата ещё нет (ни одного сообщения не отправлено),
+        // updateDoc упадёт с `not-found` — тогда создаём документ c минимально
+        // необходимыми для `isValidChat` полями.
+        const code = (err as FirestoreError | undefined)?.code;
+        if (code === 'not-found') {
+          await setDoc(chatRef, {
+            copyProtectedBy: enabled ? { [user.uid]: true } : {},
+            participants: [user.uid, contactId].sort(),
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          throw err;
+        }
+      }
+      setContacts(prev => {
+        const existing = prev[contactId];
+        if (!existing) return prev;
+        const nextMap = { ...(existing.copyProtectedBy || {}) };
+        if (enabled) nextMap[user.uid] = true;
+        else delete nextMap[user.uid];
+        return { ...prev, [contactId]: { ...existing, copyProtectedBy: nextMap } };
+      });
+    } catch (e) {
+      console.error('Failed to update copy protection', e);
+      alert('Не удалось обновить защиту от копирования. Попробуйте ещё раз.');
+      throw e;
+    }
   }, [user]);
 
   const lastMessageTimeRef = useRef<number>(0);
@@ -1002,13 +1062,23 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             if (data.lastMessage) {
               dummyMessages.push({ id: 'dummy', type: data.lastMessageSenderId === user.uid ? 'sent' : 'received', text: data.lastMessage, time: timeString });
             }
+            // copyProtectedBy читаем сразу из документа чата, чтобы ребилд
+            // contacts-листом не затирал защиту (эта же карта параллельно
+            // обновляется active-chat listener'ом).
+            const rawCp = (data.copyProtectedBy || {}) as Record<string, unknown>;
+            const copyProtectedBy: Record<string, boolean> = {};
+            for (const [uid, v] of Object.entries(rawCp)) {
+              if (v === true) copyProtectedBy[uid] = true;
+            }
+
             newContacts[otherUserId] = {
               id: otherUserId, name: userData.name || 'User', initial: (userData.name || 'U').charAt(0).toUpperCase(),
               avatarColor: getAvatarColor(otherUserId), avatarUrl: userData.avatarUrl || '', statusOnline, statusOffline,
               phone: userData.phone || '', bio: userData.bio || '', username: userData.username || '',
               messages: dummyMessages, isTyping: false, unread: 0, isChannel: false,
               isOfficial: userData.isOfficial === true || userData.role === 'admin' || isAdminEmail(userData.email),
-              premium: userData.premium === true
+              premium: userData.premium === true,
+              copyProtectedBy,
             };
           }
         } catch (e) { console.error('Error fetching user doc for chat:', otherUserId, e); }
@@ -1196,7 +1266,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       themeColor, setThemeColor: (c: string) => { setThemeColor(c); localStorage.setItem('housegram_theme', c); },
       wallpaper, setWallpaper: (u: string) => { setWallpaper(u); localStorage.setItem('housegram_wallpaper', u); },
       isGlassEnabled, setIsGlassEnabled: (v: boolean) => { setIsGlassEnabled(v); localStorage.setItem('housegram_glass', String(v)); },
-      clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, unblockContact, addContact,
+      clearHistory, deleteChat, userProfile, setUserProfile: updateUserProfile, blockContact, unblockContact, setCopyProtection, addContact,
       notificationsEnabled, setNotificationsEnabled: (val: boolean) => { setNotificationsEnabled(val); localStorage.setItem('housegram_notif', String(val)); },
       soundEnabled, setSoundEnabled: (val: boolean) => { setSoundEnabled(val); localStorage.setItem('housegram_sound', String(val)); },
       isDarkMode, setIsDarkMode: (val: boolean) => { setIsDarkMode(val); localStorage.setItem('housegram_dark_mode', String(val)); },

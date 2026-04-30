@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, Sparkles } from 'lucide-react';
+import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, Sparkles, Lock } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import NextImage from 'next/image';
 import { auth, db } from '@/lib/firebase';
@@ -730,6 +730,24 @@ export default function ChatView() {
                   onClick={() => setShowPremiumModal(true)}
                 />
               )}
+              {(() => {
+                const protectedBy = contact.copyProtectedBy || {};
+                const anyActive = Object.keys(protectedBy).length > 0;
+                if (!anyActive) return null;
+                return (
+                  <motion.span
+                    initial={{ scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 14 }}
+                    whileHover={{ rotate: [0, -8, 8, -4, 4, 0] }}
+                    className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-white/20"
+                    title="В этом чате включена защита от копирования"
+                    aria-label="Защита от копирования активна"
+                  >
+                    <Lock size={11} className="text-white" />
+                  </motion.span>
+                );
+              })()}
             </div>
             <div className="text-[13px] text-[#d1e0ec]">{contact.isChannel ? contact.statusOnline : (contact.isTyping ? 'печатает...' : contact.statusOffline)}</div>
           </div>
@@ -1111,6 +1129,7 @@ export default function ChatView() {
                   showAvatar={showAvatar}
                   isFirstInGroup={isFirstInGroup}
                   isLastInGroup={isLastInGroup}
+                  isCopyProtected={!isOwn && Boolean(msg.senderId && contact.copyProtectedBy?.[msg.senderId])}
                 />
               </div>
             </motion.div>
@@ -1144,6 +1163,7 @@ export default function ChatView() {
           if (!msg) return null;
           const isOwn = msg.type === 'sent';
           const canEdit = isOwn && !msg.audioUrl && !msg.fileUrl && !msg.stickerUrl && !msg.gifUrl;
+          const isProtectedIncoming = !isOwn && Boolean(msg.senderId && contact.copyProtectedBy?.[msg.senderId]);
 
           return (
             <motion.div
@@ -1165,9 +1185,20 @@ export default function ChatView() {
               <button onClick={() => handleReply(msg.id, isOwn ? 'Вы' : contact.name, msg.text)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700 transition-colors">
                 <Reply size={18} className="text-gray-500" /> Ответить
               </button>
-              <button onClick={() => handleForward(msg.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700 transition-colors">
-                <Repeat2 size={18} className="text-gray-500" /> Переслать
-              </button>
+              {!isProtectedIncoming && (
+                <button onClick={() => handleForward(msg.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700 transition-colors">
+                  <Repeat2 size={18} className="text-gray-500" /> Переслать
+                </button>
+              )}
+              {isProtectedIncoming && (
+                <div
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[13px] text-gray-500 bg-gray-50/70"
+                  title="Собеседник включил защиту от копирования"
+                >
+                  <Lock size={16} className="text-gray-400" />
+                  <span>Копирование и пересылка ограничены</span>
+                </div>
+              )}
               {msg.stickerUrl && !savedStickers.includes(msg.stickerUrl) && (
                 <button onClick={() => { saveSticker(msg.stickerUrl!); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left text-[15px] text-gray-700">
                   <Download size={18} className="text-gray-500" /> Сохранить стикер
