@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Gift, Star, Loader2, Sparkles, Zap } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { getUserGifts, convertGiftToStars, ReceivedGift } from '@/lib/firebase-gifts';
-import { getGiftAnimatedUrl } from './SendGiftView';
+import { getGiftAnimatedUrl } from '@/lib/gifts';
 import Image from 'next/image';
 
 export default function MyGiftsView() {

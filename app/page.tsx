@@ -293,6 +293,26 @@ function AppContent() {
     setIsAppReady(true);
   };
 
+  // Префетч самых вероятных следующих экранов в idle-таймаут после того,
+  // как первый кадр отрисован. Сами по себе dynamic-импорты ленивы, но мы
+  // можем заранее начать качать их чанки, пока пользователь смотрит на
+  // главное меню — переход в чат / настройки тогда будет мгновенным.
+  useEffect(() => {
+    if (!user || !isAppReady) return;
+    const prefetch = () => {
+      void import('@/components/ChatView');
+      void import('@/components/SettingsView');
+      void import('@/components/ProfileView');
+    };
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+    if (typeof ric === 'function') {
+      ric(prefetch, { timeout: 2000 });
+    } else {
+      const t = setTimeout(prefetch, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [user, isAppReady]);
+
   // Контейнер-обёртка для мобильной версии
   const MobileShell = ({ children }: { children: React.ReactNode }) => (
     <div className={`relative w-full h-[100dvh] overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh] ${isDarkMode ? 'bg-[#0f0f0f] dark' : 'bg-tg-bg-light'}`}>

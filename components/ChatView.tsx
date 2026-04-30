@@ -15,7 +15,7 @@ import ChatInput, { type ChatInputHandle } from './ChatInput';
 import FounderBadge from './FounderBadge';
 import PremiumBadge from './PremiumBadge';
 import PremiumModal from './PremiumModal';
-import { getGiftAnimatedUrl } from './SendGiftView';
+import { getGiftAnimatedUrl } from '@/lib/gifts';
 
 type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 

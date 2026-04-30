@@ -6,7 +6,7 @@ import { ArrowLeft, Gift, User, Loader2, Zap } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { getGiftAnimatedUrl } from './SendGiftView';
+import { getGiftAnimatedUrl } from '@/lib/gifts';
 import Image from 'next/image';
 
 interface SentGift {
