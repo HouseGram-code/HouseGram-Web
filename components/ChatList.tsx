@@ -332,7 +332,7 @@ export default function ChatList() {
             </motion.div>
           ))}
         </AnimatePresence>
-        {(!isSearching || searchQuery.trim().length <= 2) && sortedContacts.map((contact, index) => {
+        {(!isSearching || searchQuery.trim().length <= 2) && sortedContacts.map((contact) => {
           const lastMsg = contact.messages[contact.messages.length - 1];
           let previewText = '';
           
@@ -343,13 +343,15 @@ export default function ChatList() {
           }
           
           return (
-            <motion.div
+            // Не используем motion.div + per-row staggered animation:
+            // при каждом обновлении контактов (входящее сообщение, изменение
+            // unread, статусов) этот блок перерисовывался и заново
+            // проигрывал spring-анимацию по всему списку — это давало
+            // ощутимые лаги при активной переписке.
+            <div
               key={contact.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.03, type: 'spring', bounce: 0.3 }}
               onClick={() => handleChatClick(contact.id)}
-              className="flex items-center px-4 py-3.5 cursor-pointer border-b border-tg-divider hover:bg-gradient-to-r hover:from-blue-50 dark:hover:from-blue-900/30 hover:to-transparent active:bg-blue-100 dark:active:bg-blue-900/40 transition-all duration-200 gap-3 group"
+              className="flex items-center px-4 py-3.5 cursor-pointer border-b border-tg-divider hover:bg-gradient-to-r hover:from-blue-50 dark:hover:from-blue-900/30 hover:to-transparent active:bg-blue-100 dark:active:bg-blue-900/40 transition-colors duration-150 gap-3 group"
             >
               <div className="relative">
                 {contact.id === 'saved_messages' ? (
@@ -407,7 +409,7 @@ export default function ChatList() {
               <div className="flex flex-col items-end text-[12px] text-tg-secondary-text ml-2 shrink-0 gap-1">
                 <div className="font-medium">{lastMsg?.time}</div>
               </div>
-            </motion.div>
+            </div>
           );
         })}
         {isSearching && searchQuery.trim().length > 2 && searchResults.length === 0 && (

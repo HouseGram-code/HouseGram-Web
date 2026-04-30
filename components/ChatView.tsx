@@ -572,56 +572,59 @@ export default function ChatView() {
     }
   };
 
-  const handleContextMenu = (e: React.MouseEvent, msgId: string) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent, msgId: string) => {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ msgId, x: e.clientX, y: e.clientY });
-  };
+  }, []);
 
-  // Поддержка долгого нажатия для мобильных устройств
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  // Поддержка долгого нажатия для мобильных устройств.
+  // Используем ref-ы вместо useState, чтобы touch-обработчики оставались
+  // стабильными между рендерами — иначе memoized <Message> перерисовывался
+  // на каждое нажатие клавиши в инпуте.
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  const handleTouchStart = (e: React.TouchEvent, msgId: string) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent, msgId: string) => {
     const touch = e.touches[0];
-    setTouchStart({ x: touch.clientX, y: touch.clientY });
-    
-    const timer = setTimeout(() => {
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+
+    longPressTimerRef.current = setTimeout(() => {
       // Вибрация при долгом нажатии (если поддерживается)
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-      setContextMenu({ 
-        msgId, 
-        x: touch.clientX, 
-        y: touch.clientY 
+      setContextMenu({
+        msgId,
+        x: touch.clientX,
+        y: touch.clientY,
       });
     }, 500); // 500ms для долгого нажатия
-    
-    setLongPressTimer(timer);
-  };
+  }, []);
 
-  const handleTouchEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
     }
-    setTouchStart(null);
-  };
+    touchStartRef.current = null;
+  }, []);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStart && longPressTimer) {
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    const timer = longPressTimerRef.current;
+    if (start && timer) {
       const touch = e.touches[0];
-      const deltaX = Math.abs(touch.clientX - touchStart.x);
-      const deltaY = Math.abs(touch.clientY - touchStart.y);
-      
+      const deltaX = Math.abs(touch.clientX - start.x);
+      const deltaY = Math.abs(touch.clientY - start.y);
+
       // Если палец сдвинулся больше чем на 10px, отменяем долгое нажатие
       if (deltaX > 10 || deltaY > 10) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
+        clearTimeout(timer);
+        longPressTimerRef.current = null;
       }
     }
-  };
+  }, []);
 
   const handleEdit = (msgId: string, text: string) => {
     setEditingMsg({ id: msgId, text });
@@ -639,17 +642,18 @@ export default function ChatView() {
     setContextMenu(null);
   };
 
-  const handleReply = (msgId: string, senderName: string, text: string) => {
-    setReplyingTo({ 
-      messageId: msgId, 
-      senderName, 
+  const contactAvatarUrl = contact?.avatarUrl;
+  const handleReply = useCallback((msgId: string, senderName: string, text: string) => {
+    setReplyingTo({
+      messageId: msgId,
+      senderName,
       text: text.substring(0, 100),
-      senderAvatar: contact.avatarUrl 
+      senderAvatar: contactAvatarUrl,
     });
     setContextMenu(null);
     // Фокусируемся на поле ввода
     setTimeout(() => chatInputRef.current?.focus(), 100);
-  };
+  }, [contactAvatarUrl]);
 
   const handleForwardTo = (targetChatId: string) => {
     const msg = contact.messages.find(m => m.id === contextMenu?.msgId);
