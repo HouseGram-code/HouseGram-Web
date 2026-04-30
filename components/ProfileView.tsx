@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Bookmark, BadgeCheck, CheckCircle, Gift, Phone, Mail, Calendar, MessageCircle, User, Shield, Clock, MapPin, Camera, MoreVertical, Edit } from 'lucide-react';
+import { ArrowLeft, Bookmark, BadgeCheck, Gift, Phone, Mail, Calendar, MessageCircle, User, Shield, Camera, MoreVertical } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { db, auth } from '@/lib/firebase';
@@ -183,7 +183,7 @@ export default function ProfileView() {
         <div className="text-[17px] font-medium flex-grow">Инфо</div>
       </div>
 
-      <div className="flex-grow overflow-y-auto pt-14 no-scrollbar bg-gray-50">
+      <div className="flex-grow overflow-y-auto pt-14 no-scrollbar bg-gray-50 dark:bg-[#0f0f0f]">
         {/* Header Card with Banner and Avatar */}
         <div className="relative">
           {/* Banner */}
@@ -197,27 +197,21 @@ export default function ProfileView() {
                 unoptimized
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600">
-                {/* Decorative Background */}
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
-                </div>
-              </div>
+              <div
+                className="absolute inset-0"
+                style={{ backgroundColor: themeColor }}
+              />
             )}
             
-            {/* Edit Button - только для своего профиля */}
-            {(isOwnProfile || true) && (
+            {/* Edit Button — баннер можно менять только в своём профиле */}
+            {isOwnProfile && (
               <div className="absolute top-2 right-2 z-10">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('Edit button clicked, isOwnProfile:', isOwnProfile);
-                    console.log('auth.currentUser?.uid:', auth.currentUser?.uid);
-                    console.log('displayContact.id:', displayContact.id);
                     setShowEditMenu(!showEditMenu);
                   }}
-                  className="p-2 bg-black/50 backdrop-blur-sm rounded-full text-white hover:bg-black/70 transition-colors"
+                  className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white hover:bg-black/60 transition-colors"
                 >
                   <MoreVertical size={20} />
                 </button>
@@ -272,52 +266,49 @@ export default function ProfileView() {
           </div>
           
           {/* Avatar Section */}
-          <div className="relative px-6 pb-6 bg-gradient-to-b from-transparent to-gray-50">
+          <div className="relative px-6 pb-6">
             <div className="flex flex-col items-center text-center -mt-12">
               {displayContact.id === 'saved_messages' ? (
-                <div 
-                  className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white shrink-0 shadow-xl mb-3 border-4 border-white"
+                <div
+                  className="w-[96px] h-[96px] rounded-full flex items-center justify-center text-white shrink-0 mb-3 border-4 border-gray-50 dark:border-[#0f0f0f]"
                   style={{ backgroundColor: displayContact.avatarColor }}
                 >
                   <Bookmark size={40} fill="currentColor" />
                 </div>
               ) : displayContact.avatarUrl ? (
                 <div className="relative mb-3">
-                  <Image 
-                    src={displayContact.avatarUrl} 
-                    alt={displayContact.name} 
-                    width={90} 
-                    height={90} 
-                    className="rounded-full object-cover shrink-0 shadow-xl border-4 border-white" 
+                  <Image
+                    src={displayContact.avatarUrl}
+                    alt={displayContact.name}
+                    width={96}
+                    height={96}
+                    className="rounded-full object-cover shrink-0 border-4 border-gray-50 dark:border-[#0f0f0f]"
                     referrerPolicy="no-referrer"
                     unoptimized
                   />
                   {displayContact.statusOffline === 'в сети' && (
-                    <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white"></div>
+                    <div className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-50 dark:border-[#0f0f0f]" />
                   )}
                 </div>
               ) : (
-                <div 
-                  className="w-[90px] h-[90px] rounded-full flex items-center justify-center text-white font-medium text-[36px] shrink-0 shadow-xl mb-3 border-4 border-white"
+                <div
+                  className="w-[96px] h-[96px] rounded-full flex items-center justify-center text-white font-medium text-[38px] shrink-0 mb-3 border-4 border-gray-50 dark:border-[#0f0f0f]"
                   style={{ backgroundColor: displayContact.avatarColor }}
                 >
                   {displayContact.initial}
                 </div>
               )}
               
-              <div className="text-[24px] font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <div className="text-[22px] font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                 {displayContact.name}
-                {userStats.isFounder && <FounderBadge size={28} />}
-                {displayContact.isOfficial && !userStats.isFounder && <BadgeCheck size={24} className="text-blue-500 fill-blue-500" />}
+                {userStats.isFounder && <FounderBadge size={26} />}
+                {displayContact.isOfficial && !userStats.isFounder && <BadgeCheck size={22} className="text-blue-500 fill-blue-500" />}
               </div>
-              
-              <div className="flex items-center gap-2 text-gray-600 text-[14px] mb-2">
-                <Clock size={14} />
-                {displayContact.statusOffline}
-              </div>
-              
+
+              <div className="text-[14px] text-gray-500 dark:text-gray-400 mb-1">{displayContact.statusOffline}</div>
+
               {displayContact.username && (
-                <div className="text-gray-500 text-[14px]">{displayContact.username}</div>
+                <div className="text-[14px]" style={{ color: themeColor }}>{displayContact.username}</div>
               )}
             </div>
           </div>
@@ -325,39 +316,15 @@ export default function ProfileView() {
 
         {/* Founder Badge Section */}
         {userStats.isFounder && (
-          <div className="mx-4 mt-4 bg-gradient-to-r from-red-50 via-gray-50 to-black/5 rounded-xl p-4 border border-red-200 relative overflow-hidden">
-            {/* Декоративный фон */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-red-600 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-              <div className="absolute bottom-0 left-0 w-16 h-16 bg-black rounded-full translate-y-1/2 -translate-x-1/2"></div>
-            </div>
-            
-            <div className="relative z-10 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-600 to-black flex items-center justify-center shrink-0 shadow-lg">
-                <FounderBadge size={32} />
+          <div className="mx-4 mt-4 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-red-600 to-black flex items-center justify-center shrink-0">
+                <FounderBadge size={28} />
               </div>
-              <div className="flex-grow">
-                <div className="text-[16px] font-bold text-gray-900 mb-1">Основатель HouseGram</div>
-                <div className="text-[13px] text-gray-600 leading-relaxed">
-                  Создатель и разработчик платформы HouseGram. Спасибо за использование нашего мессенджера! 🚀
-                </div>
-              </div>
-            </div>
-            
-            {/* Дополнительная информация */}
-            <div className="mt-3 pt-3 border-t border-red-200/50">
-              <div className="flex items-center gap-4 text-[12px] text-gray-600">
-                <div className="flex items-center gap-1">
-                  <span className="text-red-600">🏗️</span>
-                  <span>Архитектор системы</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-800">💡</span>
-                  <span>Идейный вдохновитель</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-red-700">⚡</span>
-                  <span>Основатель</span>
+              <div className="flex-grow min-w-0">
+                <div className="text-[15px] font-semibold text-gray-900 dark:text-white">Основатель HouseGram</div>
+                <div className="text-[13px] text-gray-500 dark:text-gray-400 leading-snug">
+                  Создатель и разработчик платформы HouseGram.
                 </div>
               </div>
             </div>
@@ -366,22 +333,22 @@ export default function ProfileView() {
 
         {/* Badges Section */}
         {displayContact.isOfficial && !userStats.isFounder && (
-          <div className="mx-4 mt-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100">
+          <div className="mx-4 mt-4 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-                <BadgeCheck size={24} className="text-white" />
+              <div className="w-11 h-11 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                <BadgeCheck size={22} className="text-white" />
               </div>
-              <div>
-                <div className="text-[16px] font-semibold text-gray-900">Официальный аккаунт</div>
-                <div className="text-[13px] text-gray-600">Подтверждено администрацией HouseGram</div>
+              <div className="min-w-0">
+                <div className="text-[15px] font-semibold text-gray-900 dark:text-white">Официальный аккаунт</div>
+                <div className="text-[13px] text-gray-500 dark:text-gray-400">Подтверждено администрацией HouseGram</div>
               </div>
             </div>
           </div>
         )}
-        
+
         {/* Security Warning for Bots */}
         {displayContact.id === 'test_bot' && (
-          <div className="mx-4 mt-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
+          <div className="mx-4 mt-4 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-xl p-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center shrink-0 text-white text-xl">
                 🤖
@@ -396,34 +363,30 @@ export default function ProfileView() {
           </div>
         )}
 
-        {/* User Stats - только для обычных пользователей */}
+        {/* User Stats — спокойный блок, все числа цветом темы. */}
         {!displayContact.isChannel && displayContact.id !== 'saved_messages' && displayContact.id !== 'test_bot' && (
-          <div className="mx-4 mt-4 bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h3 className="text-[15px] font-semibold text-gray-900">Статистика</h3>
-            </div>
-            <div className="grid grid-cols-3 divide-x divide-gray-100">
-              <div className="p-4 text-center">
-                <div className="text-[24px] font-bold text-blue-600">{userStats.stars}</div>
-                <div className="text-[12px] text-gray-500 mt-1">⚡ Молний</div>
+          <div className="mx-4 mt-4 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-xl overflow-hidden">
+            <div className="px-4 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Статистика</div>
+            <div className="grid grid-cols-3 px-2 pb-3">
+              <div className="p-2 text-center">
+                <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userStats.stars}</div>
+                <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">⚡ Молний</div>
               </div>
-              <div className="p-4 text-center">
-                <div className="text-[24px] font-bold text-purple-600">{userStats.giftsSent}</div>
-                <div className="text-[12px] text-gray-500 mt-1">🎁 Отправлено</div>
+              <div className="p-2 text-center">
+                <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userStats.giftsSent}</div>
+                <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">🎁 Отправлено</div>
               </div>
-              <div className="p-4 text-center">
-                <div className="text-[24px] font-bold text-pink-600">{userStats.giftsReceived}</div>
-                <div className="text-[12px] text-gray-500 mt-1">🎁 Получено</div>
+              <div className="p-2 text-center">
+                <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userStats.giftsReceived}</div>
+                <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">🎁 Получено</div>
               </div>
             </div>
           </div>
         )}
 
         {/* Info Section */}
-        <div className="mx-4 mt-4 bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h3 className="text-[15px] font-semibold text-gray-900">Информация</h3>
-          </div>
+        <div className="mx-4 mt-4 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-xl overflow-hidden">
+          <div className="px-4 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Информация</div>
           
           {displayContact.bio && (
             <div className="px-4 py-3 border-b border-gray-100">
@@ -481,7 +444,7 @@ export default function ProfileView() {
         </div>
 
         {/* Actions Section */}
-        <div className="mx-4 mt-4 mb-6 bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="mx-4 mt-4 mb-6 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-xl overflow-hidden">
           {!displayContact.isChannel && (
             <ActionButton 
               text="Отправить сообщение" 
@@ -597,16 +560,18 @@ export default function ProfileView() {
 
 function ActionButton({ text, isDestructive, onClick, color, icon }: { text: string; isDestructive?: boolean; onClick?: () => void; color?: string; icon?: React.ReactNode }) {
   return (
-    <button 
+    <button
       onClick={onClick}
-      className={`block w-full px-4 py-3.5 text-left text-[15px] border-b border-gray-100 last:border-b-0 transition-all hover:bg-gray-50 active:bg-gray-100 ${
+      className={`block w-full px-4 py-3 text-left text-[15px] border-b border-gray-100 dark:border-[#2c2c2e] last:border-b-0 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 ${
         isDestructive ? 'text-red-500' : ''
-      } flex items-center gap-3 font-medium`}
+      } flex items-center gap-3 font-normal`}
       style={!isDestructive && color ? { color } : {}}
     >
       {icon && <span className="shrink-0">{icon}</span>}
       <span className="flex-grow">{text}</span>
-      <span className="text-gray-400">›</span>
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className="shrink-0 text-gray-400 dark:text-gray-500">
+        <path d="M7.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L11.586 10 7.293 5.707a1 1 0 010-1.414z" />
+      </svg>
     </button>
   );
 }
