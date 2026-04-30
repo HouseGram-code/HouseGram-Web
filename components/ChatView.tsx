@@ -7,11 +7,11 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import NextImage from 'next/image';
 import { auth, db } from '@/lib/firebase';
 import { uploadFile } from '@/lib/storage-wrapper';
-import { doc, getDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { stickerPacks, gifCollection } from '@/lib/stickers';
 import { correctText, detectLanguage } from '@/lib/aiCorrection';
 import Message from './Message';
-import ChatInput from './ChatInput';
+import ChatInput, { type ChatInputHandle } from './ChatInput';
 import FounderBadge from './FounderBadge';
 import PremiumBadge from './PremiumBadge';
 import PremiumModal from './PremiumModal';
@@ -21,7 +21,7 @@ type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 
 export default function ChatView() {
   const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus, isDarkMode } = useChat();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const chatInputRef = useRef<ChatInputHandle>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -262,62 +262,8 @@ export default function ChatView() {
     }
   }, [contact.isBlocked, editingMsg, replyingTo, editMessage, sendMessage]);
 
-  // Обработчик запланированной отправки
-  const handleScheduleSendFromInput = useCallback((text: string, scheduledDate: Date) => {
-    if (text.trim() && !contact.isBlocked) {
-      // Сохраняем запланированное сообщение в Firebase
-      const scheduleMessage = async () => {
-        try {
-          const messageData = {
-            text: text.trim(),
-            scheduledFor: scheduledDate,
-            chatId: activeChatId,
-            senderId: auth.currentUser?.uid,
-            replyTo: replyingTo?.messageId || null,
-            createdAt: new Date(),
-            status: 'scheduled'
-          };
-          
-          // Добавляем в коллекцию запланированных сообщений
-          await addDoc(collection(db, 'scheduledMessages'), messageData);
-          
-          // Показываем уведомление
-          alert(`📅 Сообщение запланировано на ${scheduledDate.toLocaleString('ru-RU')}`);
-          
-          setReplyingTo(null);
-          setShowPicker(false);
-        } catch (error) {
-          console.error('Error scheduling message:', error);
-          alert('Ошибка при планировании сообщения');
-        }
-      };
-      
-      scheduleMessage();
-    }
-  }, [contact.isBlocked, activeChatId, replyingTo]);
-
-  const handleSend = () => {
-    const inputText = inputRef.current?.value || '';
-    if (inputText.trim() && !contact.isBlocked) {
-      if (editingMsg) {
-        editMessage(editingMsg.id, inputText.trim());
-        setEditingMsg(null);
-      } else {
-        sendMessage(inputText.trim(), replyingTo ? { replyTo: replyingTo } : undefined);
-      }
-      if (inputRef.current) {
-        inputRef.current.value = '';
-      }
-      setShowPicker(false);
-      setReplyingTo(null);
-    }
-  };
-
   const handleEmojiClick = (emoji: string) => {
-    if (inputRef.current) {
-      inputRef.current.value += emoji;
-      inputRef.current.focus();
-    }
+    chatInputRef.current?.insertText(emoji);
   };
 
   const sendSticker = (stickerUrl: string, width: number, height: number) => {
@@ -679,10 +625,7 @@ export default function ChatView() {
 
   const handleEdit = (msgId: string, text: string) => {
     setEditingMsg({ id: msgId, text });
-    if (inputRef.current) {
-      inputRef.current.value = text;
-      inputRef.current.focus();
-    }
+    requestAnimationFrame(() => chatInputRef.current?.focus());
     setContextMenu(null);
   };
 
@@ -705,7 +648,7 @@ export default function ChatView() {
     });
     setContextMenu(null);
     // Фокусируемся на поле ввода
-    setTimeout(() => inputRef.current?.focus(), 100);
+    setTimeout(() => chatInputRef.current?.focus(), 100);
   };
 
   const handleForwardTo = (targetChatId: string) => {
@@ -714,11 +657,9 @@ export default function ChatView() {
     setShowForwardPicker(false);
   };
 
-  const cancelEdit = () => { 
-    setEditingMsg(null); 
-    if (inputRef.current) {
-      inputRef.current.value = '';
-    }
+  const cancelEdit = () => {
+    setEditingMsg(null);
+    chatInputRef.current?.clear();
   };
 
   const cancelReply = () => { 
@@ -1434,6 +1375,7 @@ export default function ChatView() {
           </AnimatePresence>
           
           <ChatInput
+            ref={chatInputRef}
             isRecording={isRecording}
             recordingTime={recordingTime}
             isBlocked={contact.isBlocked || false}
@@ -1443,7 +1385,6 @@ export default function ChatView() {
             isGlassEnabled={isGlassEnabled}
             isDarkMode={isDarkMode}
             onSend={handleSendFromInput}
-            onScheduleSend={handleScheduleSendFromInput}
             onInputChange={handleInputChange}
             onStartRecording={startRecording}
             onStopRecording={stopRecording}

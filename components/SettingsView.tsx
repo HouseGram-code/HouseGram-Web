@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare, Moon, Sun, Palette, Globe, Clock } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare, Moon, Sun, Palette, Globe } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { storage, auth, db } from '@/lib/firebase';
@@ -611,15 +611,6 @@ export default function SettingsView() {
             </div>
             <div className={`border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
               <SettingsItem 
-                icon={<Clock size={22} className="text-blue-500" />} 
-                text="Запланированные сообщения" 
-                subtitle="Управление отложенной отправкой"
-                onClick={() => setView('scheduled-messages')} 
-                isDarkMode={isDarkMode}
-              />
-            </div>
-            <div className={`border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
-              <SettingsItem 
                 icon={<Calendar size={22} className="text-purple-500" />} 
                 text="Мои истории" 
                 subtitle="Просмотр и управление"
@@ -656,7 +647,7 @@ export default function SettingsView() {
           {/* Группа: Данные */}
           <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             <SettingsItem 
-              icon={<Database size={22} className="isDarkMode ? 'text-gray-400' : 'text-gray-500'" />} 
+              icon={<Database size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />} 
               text="Данные и память" 
               soon 
               isDarkMode={isDarkMode}
