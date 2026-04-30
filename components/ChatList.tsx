@@ -332,7 +332,7 @@ export default function ChatList() {
           if (contact.isChannel) {
             previewText = lastMsg ? lastMsg.text : 'Постов пока нет';
           } else if (lastMsg) {
-            previewText = isOwnLast ? lastMsg.text : lastMsg.text;
+            previewText = lastMsg.text;
           }
 
           // Статус отправленного сообщения (Telegram-style галочки в превью).
@@ -404,7 +404,7 @@ export default function ChatList() {
                   <div className="text-[12px] text-tg-secondary-text shrink-0 tabular-nums">{lastMsg?.time}</div>
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  {StatusIcon && (
+                  {StatusIcon && !contact.isTyping && (
                     <StatusIcon size={16} className={`shrink-0 ${statusColor}`} />
                   )}
                   <div className="text-[14px] text-tg-secondary-text truncate leading-snug flex-grow min-w-0">
