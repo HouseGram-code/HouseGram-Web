@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, TrendingUp, Calendar, MessageSquare, Moon, Sun, Palette, Globe } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, Calendar, MessageSquare, Moon, Sun, Palette, Globe } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { storage, auth, db } from '@/lib/firebase';
@@ -268,7 +268,7 @@ export default function SettingsView() {
         <div className={`pt-4 pb-10 ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}>
         {/* Account Section */}
         <div className="px-4 py-2">
-          <div className="text-[15px] font-medium mb-2" style={{ color: themeColor }}>Аккаунт</div>
+          <div className="text-[12px] font-semibold mb-2 uppercase tracking-wider" style={{ color: themeColor }}>Аккаунт</div>
           
           <div className={`py-2.5 border-b ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
             {isEditing ? (
@@ -320,148 +320,60 @@ export default function SettingsView() {
           </div>
         </div>
 
-        {/* Account Stats */}
+        {/* Account Stats — спокойный блок, без плавающих шаров и вращательных
+            иконок. По стилю близко к Telegram Premium бэннеру. */}
         {!isEditing && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`px-4 py-4 mx-4 my-3 rounded-3xl relative overflow-hidden ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50'}`}
+          <div
+            className={`px-4 py-3 mx-4 my-3 rounded-2xl ${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-gray-50'}`}
           >
-            {/* Animated Background */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {[...Array(5)].map((_, i) => (
+            <div className={`text-[12px] font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Статистика</div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center">
+                <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{accountStats.chats}</div>
+                <div className={`text-[11px] font-medium mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Чатов</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{accountStats.days}</div>
+                <div className={`text-[11px] font-medium mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Дней</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userProfile.giftsSent || 0}</div>
+                <div className={`text-[11px] font-medium mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Подарков</div>
+              </div>
+            </div>
+            <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className={`text-[12px] font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>ИИ запросы сегодня</span>
+                <span
+                  className={`text-[13px] font-semibold tabular-nums ${aiRequestsToday >= maxAiRequests ? 'text-red-500' : isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
+                >
+                  {aiRequestsToday}/{maxAiRequests}
+                </span>
+              </div>
+              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-[#2c2c2e]' : 'bg-gray-200'}`}>
                 <motion.div
-                  key={i}
-                  className={`absolute w-20 h-20 rounded-full ${isDarkMode ? 'bg-blue-500/10' : 'bg-blue-200/30'}`}
-                  style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                  }}
-                  animate={{
-                    scale: [1, 1.5, 1],
-                    opacity: [0.3, 0.6, 0.3],
-                    x: [0, Math.random() * 50 - 25, 0],
-                    y: [0, Math.random() * 50 - 25, 0],
-                  }}
-                  transition={{
-                    duration: 3 + i,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: aiRequestsToday >= maxAiRequests ? '#ef4444' : themeColor }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min((aiRequestsToday / maxAiRequests) * 100, 100)}%` }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
                 />
-              ))}
-            </div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-3">
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                >
-                  <TrendingUp size={18} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
-                </motion.div>
-                <span className={`text-[14px] font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Статистика аккаунта</span>
               </div>
-              
-              <div className="grid grid-cols-3 gap-3 mb-3">
-                <motion.div 
-                  className={`text-center p-3 rounded-2xl ${isDarkMode ? 'bg-blue-500/10' : 'bg-white/60'} backdrop-blur-sm`}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                >
-                  <motion.div 
-                    className={`text-[24px] font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
-                  >
-                    {accountStats.chats}
-                  </motion.div>
-                  <div className={`text-[11px] font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Чатов</div>
-                </motion.div>
-                
-                <motion.div 
-                  className={`text-center p-3 rounded-2xl ${isDarkMode ? 'bg-purple-500/10' : 'bg-white/60'} backdrop-blur-sm`}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                >
-                  <motion.div 
-                    className={`text-[24px] font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                  >
-                    {accountStats.days}
-                  </motion.div>
-                  <div className={`text-[11px] font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Дней</div>
-                </motion.div>
-                
-                <motion.div 
-                  className={`text-center p-3 rounded-2xl ${isDarkMode ? 'bg-pink-500/10' : 'bg-white/60'} backdrop-blur-sm`}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                >
-                  <motion.div 
-                    className={`text-[24px] font-bold ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, delay: 0.3 }}
-                  >
-                    {userProfile.giftsSent || 0}
-                  </motion.div>
-                  <div className={`text-[11px] font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Подарков</div>
-                </motion.div>
-              </div>
-              
-              {/* AI Usage */}
-              <motion.div 
-                className={`pt-3 border-t ${isDarkMode ? 'border-gray-700/50' : 'border-blue-200/50'}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-[12px] font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>ИИ запросы сегодня:</span>
-                  <motion.span 
-                    className={`text-[15px] font-bold ${aiRequestsToday >= maxAiRequests ? 'text-red-500' : isDarkMode ? 'text-green-400' : 'text-green-600'}`}
-                    key={aiRequestsToday}
-                    initial={{ scale: 1.5 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    {aiRequestsToday}/{maxAiRequests}
-                  </motion.span>
-                </div>
-                <div className={`w-full h-2.5 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-blue-100'} overflow-hidden`}>
-                  <motion.div 
-                    className={`h-2.5 rounded-full ${aiRequestsToday >= maxAiRequests ? 'bg-gradient-to-r from-red-500 to-pink-500' : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500'}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min((aiRequestsToday / maxAiRequests) * 100, 100)}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                  />
-                </div>
-                {!isPremium && aiRequestsToday >= maxAiRequests && (
-                  <motion.p 
-                    className={`text-[10px] mt-1.5 ${isDarkMode ? 'text-red-400' : 'text-red-600'} font-medium`}
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    ⚠️ Лимит исчерпан. Premium: 5 запросов/день
-                  </motion.p>
-                )}
-              </motion.div>
+              {!isPremium && aiRequestsToday >= maxAiRequests && (
+                <p className={`text-[11px] mt-1.5 ${isDarkMode ? 'text-red-400' : 'text-red-600'} font-medium`}>
+                  Лимит исчерпан. Premium: 5 запросов/день.
+                </p>
+              )}
             </div>
-          </motion.div>
+          </div>
         )}
-
-        <div className={`h-2 ${isDarkMode ? 'bg-tg-divider' : 'bg-gray-100'} w-full my-2`}></div>
 
         {/* Settings Section */}
         <div className="px-4 py-2">
-          <div className={`text-[15px] font-medium mb-3 uppercase tracking-wide ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Настройки</div>
+          <div className={`text-[12px] font-semibold mb-2 uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Настройки</div>
           
           {/* Группа: Персонализация */}
-          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-xl overflow-hidden mb-3`}>
             {/* Цветовая тема */}
             <div
               className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
@@ -621,7 +533,7 @@ export default function SettingsView() {
           </div>
 
           {/* Группа: Приватность */}
-          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-xl overflow-hidden mb-3`}>
             <SettingsItem 
               icon={<Bell size={22} className="text-blue-500" />} 
               text="Уведомления и звуки" 
@@ -645,7 +557,7 @@ export default function SettingsView() {
           </div>
 
           {/* Группа: Данные */}
-          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-xl overflow-hidden mb-3`}>
             <SettingsItem 
               icon={<Database size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />} 
               text="Данные и память" 
@@ -662,7 +574,7 @@ export default function SettingsView() {
           </div>
 
           {/* Группа: Подключение */}
-          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-xl overflow-hidden mb-3`}>
             <SettingsItem 
               icon={<Globe size={22} className="text-blue-500" />} 
               text="Прокси" 
@@ -673,7 +585,7 @@ export default function SettingsView() {
           </div>
 
           {/* Группа: Информация */}
-          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-xl overflow-hidden mb-3`}>
             <SettingsItem 
               icon={<Server size={22} className="text-cyan-500" />} 
               text="Статус сервера" 
@@ -808,28 +720,32 @@ export default function SettingsView() {
 function SettingsItem({ icon, text, subtitle, onClick, soon, divider, isDarkMode }: { icon: React.ReactNode; text: string; subtitle?: string; onClick?: () => void; soon?: boolean; divider?: boolean; isDarkMode?: boolean }) {
   const dark = isDarkMode || false;
   return (
-    <div className={divider ? `border-t ${dark ? 'border-tg-divider' : 'border-gray-100'}` : ''}>
-      <div 
-        className={`flex items-center px-4 py-3.5 gap-4 transition-colors ${
-          soon 
-            ? 'opacity-50 cursor-not-allowed' 
+    <div className={divider ? `border-t ${dark ? 'border-[#2c2c2e]' : 'border-gray-100'}` : ''}>
+      <div
+        className={`flex items-center px-4 py-3 gap-3.5 transition-colors ${
+          soon
+            ? 'opacity-50 cursor-not-allowed'
             : `cursor-pointer ${dark ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`
         }`}
         onClick={!soon ? onClick : undefined}
       >
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${dark ? 'bg-white/5' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+        <div className="w-8 h-8 flex items-center justify-center shrink-0">
           {icon}
         </div>
-        <div className="flex-grow">
-          <div className={`text-[16px] font-medium ${dark ? 'text-tg-text-primary' : 'text-gray-900'}`}>{text}</div>
-          {subtitle && <div className={`text-[13px] mt-0.5 ${dark ? 'text-tg-text-secondary' : 'text-gray-500'}`}>{subtitle}</div>}
+        <div className="flex-grow min-w-0">
+          <div className={`text-[15px] font-normal truncate ${dark ? 'text-tg-text-primary' : 'text-gray-900'}`}>{text}</div>
+          {subtitle && <div className={`text-[13px] mt-0.5 truncate ${dark ? 'text-tg-text-secondary' : 'text-gray-500'}`}>{subtitle}</div>}
         </div>
-        {soon && (
-          <div className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full ${dark ? 'text-tg-text-secondary bg-white/5' : 'text-gray-400 bg-gray-100'}`}>
+        {soon ? (
+          <div className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full shrink-0 ${dark ? 'text-tg-text-secondary bg-white/5' : 'text-gray-400 bg-gray-100'}`}>
             <span>soon!</span>
             <Lock size={10} />
           </div>
-        )}
+        ) : onClick ? (
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className={`shrink-0 ${dark ? 'text-gray-500' : 'text-gray-400'}`}>
+            <path d="M7.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L11.586 10 7.293 5.707a1 1 0 010-1.414z" />
+          </svg>
+        ) : null}
       </div>
     </div>
   );
