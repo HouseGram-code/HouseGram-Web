@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
+import { useState } from 'react';
 import { Copy, Forward, Camera, Crown, Check, X } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 
@@ -13,8 +14,11 @@ interface CopyProtectionModalProps {
   onClose: () => void;
 }
 
+// На GitHub-зеркале Telegram-эмодзи нет файла `Locked.webp` — есть только
+// `Locked With Key.webp` в папке `Objects`. Старый URL отдавал 404, замок
+// не показывался. На случай если CDN снова отвалится — есть fallback на 🔒.
 const LOCK_ANIMATED =
-  'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Locked.webp';
+  'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Locked%20With%20Key.webp';
 
 export default function CopyProtectionModal({
   open,
@@ -24,6 +28,7 @@ export default function CopyProtectionModal({
   onClose,
 }: CopyProtectionModalProps) {
   const { isPremium, setCopyProtection, setView, isDarkMode, themeColor } = useChat();
+  const [lockBroken, setLockBroken] = useState(false);
 
   const handleToggle = async () => {
     if (!isPremium) return;
@@ -96,15 +101,27 @@ export default function CopyProtectionModal({
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 260, damping: 18 }}
                   whileHover={{ rotate: [0, -8, 8, -4, 4, 0] }}
+                  className="flex items-center justify-center"
                 >
-                  <Image
-                    src={LOCK_ANIMATED}
-                    alt="lock"
-                    width={96}
-                    height={96}
-                    className="drop-shadow-lg"
-                    unoptimized
-                  />
+                  {lockBroken ? (
+                    <span
+                      role="img"
+                      aria-label="lock"
+                      className="text-[80px] leading-none drop-shadow-lg"
+                    >
+                      🔒
+                    </span>
+                  ) : (
+                    <Image
+                      src={LOCK_ANIMATED}
+                      alt="lock"
+                      width={96}
+                      height={96}
+                      className="drop-shadow-lg"
+                      unoptimized
+                      onError={() => setLockBroken(true)}
+                    />
+                  )}
                 </motion.div>
                 <button
                   type="button"
