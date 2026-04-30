@@ -354,8 +354,8 @@ export default function ProfileView() {
                 🤖
               </div>
               <div>
-                <div className="text-[15px] font-semibold text-gray-900 mb-1">Это бот</div>
-                <div className="text-[13px] text-gray-600 leading-relaxed">
+                <div className="text-[15px] font-semibold text-gray-900 dark:text-white mb-1">Это бот</div>
+                <div className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed">
                   Будьте осторожны при отправке конфиденциальной информации. Боты могут иметь доступ к вашим сообщениям.
                 </div>
               </div>
@@ -389,23 +389,23 @@ export default function ProfileView() {
           <div className="px-4 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Информация</div>
           
           {displayContact.bio && (
-            <div className="px-4 py-3 border-b border-gray-100">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e]">
               <div className="flex items-start gap-3">
-                <User size={20} className="text-gray-400 shrink-0 mt-0.5" />
+                <User size={20} className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[13px] text-gray-500 mb-1">О себе</div>
-                  <div className="text-[15px] text-gray-900 leading-relaxed">{displayContact.bio}</div>
+                  <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1">О себе</div>
+                  <div className="text-[15px] text-gray-900 dark:text-white leading-relaxed">{displayContact.bio}</div>
                 </div>
               </div>
             </div>
           )}
           
           {displayContact.username && !displayContact.isChannel && (
-            <div className="px-4 py-3 border-b border-gray-100">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e]">
               <div className="flex items-start gap-3">
-                <MessageCircle size={20} className="text-gray-400 shrink-0 mt-0.5" />
+                <MessageCircle size={20} className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[13px] text-gray-500 mb-1">Имя пользователя</div>
+                  <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1">Имя пользователя</div>
                   <div className="text-[15px] font-medium" style={{ color: themeColor }}>{displayContact.username}</div>
                 </div>
               </div>
@@ -413,12 +413,12 @@ export default function ProfileView() {
           )}
           
           {displayContact.phone && displayContact.phone !== '+7 9XX XXX XX XX' && (
-            <div className="px-4 py-3 border-b border-gray-100">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e]">
               <div className="flex items-start gap-3">
-                <Phone size={20} className="text-gray-400 shrink-0 mt-0.5" />
+                <Phone size={20} className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[13px] text-gray-500 mb-1">Телефон</div>
-                  <div className="text-[15px] text-gray-900">{displayContact.phone}</div>
+                  <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1">Телефон</div>
+                  <div className="text-[15px] text-gray-900 dark:text-white">{displayContact.phone}</div>
                 </div>
               </div>
             </div>
@@ -427,10 +427,10 @@ export default function ProfileView() {
           {userStats.joinedDate && (
             <div className="px-4 py-3">
               <div className="flex items-start gap-3">
-                <Calendar size={20} className="text-gray-400 shrink-0 mt-0.5" />
+                <Calendar size={20} className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[13px] text-gray-500 mb-1">Дата регистрации</div>
-                  <div className="text-[15px] text-gray-900">
+                  <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1">Дата регистрации</div>
+                  <div className="text-[15px] text-gray-900 dark:text-white">
                     {userStats.joinedDate.toLocaleDateString('ru-RU', { 
                       day: 'numeric', 
                       month: 'long', 
