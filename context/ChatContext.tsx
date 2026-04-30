@@ -716,11 +716,18 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
     const chatId = [user.uid, contactId].sort().join('_');
     try {
-      // setDoc+merge, чтобы работать и когда документа чата ещё нет
-      // (например, в чат ни одного сообщения не было отправлено).
+      // setDoc+merge, чтобы работать и когда документа чата ещё нет.
+      // Если чат ещё не создан, Firestore воспринимает это как create и
+      // `isValidChat` требует поля `participants` и `updatedAt` — добавляем их.
+      // Для уже существующего чата merge не меняет participants, а updatedAt
+      // мы тоже обновляем — это ок, мы только что «совершили действие» в чате.
       await setDoc(
         doc(db, 'chats', chatId),
-        { copyProtectedBy: { [user.uid]: enabled ? true : null } },
+        {
+          copyProtectedBy: { [user.uid]: enabled ? true : null },
+          participants: [user.uid, contactId].sort(),
+          updatedAt: serverTimestamp(),
+        },
         { merge: true }
       );
       setContacts(prev => {
