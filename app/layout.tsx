@@ -39,6 +39,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" className={roboto.variable} suppressHydrationWarning>
       <head>
+        {/* Preconnect к Firebase / Firestore / Storage сокращает время до
+            первого запроса (TLS handshake идёт параллельно с парсингом HTML). */}
+        <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://firebase.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://firebaseinstallations.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://raw.githubusercontent.com" />
+
         {/* Puter.js - Free Unlimited Cloud Storage */}
         <script src="https://js.puter.com/v2/" async></script>
       </head>

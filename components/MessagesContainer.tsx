@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { motion } from 'motion/react';
 import { Bookmark } from 'lucide-react';
 import Message from './Message';
-import { getGiftAnimatedUrl } from './SendGiftView';
+import { getGiftAnimatedUrl } from '@/lib/gifts';
 import Image from 'next/image';
 
 interface MessagesContainerProps {
