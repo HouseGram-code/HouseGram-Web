@@ -1062,13 +1062,23 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             if (data.lastMessage) {
               dummyMessages.push({ id: 'dummy', type: data.lastMessageSenderId === user.uid ? 'sent' : 'received', text: data.lastMessage, time: timeString });
             }
+            // copyProtectedBy читаем сразу из документа чата, чтобы ребилд
+            // contacts-листом не затирал защиту (эта же карта параллельно
+            // обновляется active-chat listener'ом).
+            const rawCp = (data.copyProtectedBy || {}) as Record<string, unknown>;
+            const copyProtectedBy: Record<string, boolean> = {};
+            for (const [uid, v] of Object.entries(rawCp)) {
+              if (v === true) copyProtectedBy[uid] = true;
+            }
+
             newContacts[otherUserId] = {
               id: otherUserId, name: userData.name || 'User', initial: (userData.name || 'U').charAt(0).toUpperCase(),
               avatarColor: getAvatarColor(otherUserId), avatarUrl: userData.avatarUrl || '', statusOnline, statusOffline,
               phone: userData.phone || '', bio: userData.bio || '', username: userData.username || '',
               messages: dummyMessages, isTyping: false, unread: 0, isChannel: false,
               isOfficial: userData.isOfficial === true || userData.role === 'admin' || isAdminEmail(userData.email),
-              premium: userData.premium === true
+              premium: userData.premium === true,
+              copyProtectedBy,
             };
           }
         } catch (e) { console.error('Error fetching user doc for chat:', otherUserId, e); }
