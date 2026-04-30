@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { Menu, Search, Edit2, Bookmark, ArrowLeft, CheckCircle, BadgeCheck, Star, Monitor, Smartphone } from 'lucide-react';
+import { Menu, Search, Edit2, Bookmark, ArrowLeft, BadgeCheck, Monitor, Smartphone, Check, CheckCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -288,126 +288,146 @@ export default function ChatList() {
             Результаты поиска
           </motion.div>
         )}
-        <AnimatePresence mode="popLayout">
-          {isSearching && searchQuery.trim().length > 2 && searchResults.map((user, index) => (
-            <motion.div
-              key={user.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ delay: index * 0.05, type: 'spring', bounce: 0.3 }}
-              onClick={() => handleSearchResultClick(user)}
-              className="flex items-center px-4 py-3 cursor-pointer border-b border-tg-divider hover:bg-gradient-to-r hover:from-blue-50 dark:hover:from-blue-900/30 hover:to-transparent active:bg-blue-100 dark:active:bg-blue-900/40 transition-all duration-200 gap-3 group"
-            >
-              <div className="relative">
-                {user.avatarUrl ? (
-                  <Image 
-                    src={user.avatarUrl} 
-                    alt={user.name} 
-                    width={52} 
-                    height={52} 
-                    className="rounded-full object-cover shrink-0 ring-2 ring-transparent group-hover:ring-blue-200 transition-all" 
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div 
-                    className="w-[52px] h-[52px] rounded-full flex items-center justify-center text-white font-semibold text-lg shrink-0 shadow-md group-hover:shadow-lg transition-all"
-                    style={{ backgroundColor: getAvatarColor(user.id) }}
-                  >
-                    {user.name?.charAt(0).toUpperCase() || '?'}
-                  </div>
+        {isSearching && searchQuery.trim().length > 2 && searchResults.map((user) => (
+          <div
+            key={user.id}
+            onClick={() => handleSearchResultClick(user)}
+            className="flex items-center px-3 py-2.5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors duration-150 gap-3"
+          >
+            {user.avatarUrl ? (
+              <Image
+                src={user.avatarUrl}
+                alt={user.name}
+                width={52}
+                height={52}
+                className="rounded-full object-cover shrink-0"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div
+                className="w-[52px] h-[52px] rounded-full flex items-center justify-center text-white font-semibold text-lg shrink-0"
+                style={{ backgroundColor: getAvatarColor(user.id) }}
+              >
+                {user.name?.charAt(0).toUpperCase() || '?'}
+              </div>
+            )}
+            <div className="flex-grow min-w-0">
+              <div className="font-semibold text-[15px] text-tg-text-primary truncate flex items-center gap-1.5">
+                <span className="truncate">{user.name}</span>
+                {(user.role === 'admin' || user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) && (
+                  <BadgeCheck size={16} className="text-blue-500 fill-blue-500 shrink-0" />
                 )}
               </div>
-              <div className="flex-grow overflow-hidden flex flex-col justify-center">
-                <div className="font-semibold text-[16px] text-tg-text-primary mb-0.5 truncate flex items-center gap-1.5">
-                  {user.name}
-                  {(user.role === 'admin' || user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) && (
-                    <BadgeCheck size={17} className="text-blue-500 fill-blue-500 text-white" />
-                  )}
-                </div>
-                <div className="text-[14px] text-tg-secondary-text truncate leading-snug">
-                  {user.username ? (user.username.startsWith('@') ? user.username : `@${user.username}`) : ''}
-                </div>
+              <div className="text-[13px] text-tg-secondary-text truncate leading-snug">
+                {user.username ? (user.username.startsWith('@') ? user.username : `@${user.username}`) : ''}
               </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+            </div>
+          </div>
+        ))}
         {(!isSearching || searchQuery.trim().length <= 2) && sortedContacts.map((contact) => {
           const lastMsg = contact.messages[contact.messages.length - 1];
+          const isOwnLast = lastMsg?.type === 'sent';
           let previewText = '';
-          
+
           if (contact.isChannel) {
             previewText = lastMsg ? lastMsg.text : 'Постов пока нет';
-          } else {
-            previewText = lastMsg ? (lastMsg.type === 'sent' ? `Вы: ${lastMsg.text}` : lastMsg.text) : '';
+          } else if (lastMsg) {
+            previewText = lastMsg.text;
           }
-          
+
+          // Статус отправленного сообщения (Telegram-style галочки в превью).
+          let StatusIcon: typeof Check | null = null;
+          let statusColor = 'text-tg-secondary-text';
+          if (isOwnLast && !contact.isChannel) {
+            if (lastMsg?.status === 'read') {
+              StatusIcon = CheckCheck;
+              statusColor = 'text-blue-500';
+            } else if (lastMsg?.status === 'sent') {
+              StatusIcon = CheckCheck;
+            } else {
+              StatusIcon = Check;
+            }
+          }
+
           return (
-            // Не используем motion.div + per-row staggered animation:
-            // при каждом обновлении контактов (входящее сообщение, изменение
-            // unread, статусов) этот блок перерисовывался и заново
-            // проигрывал spring-анимацию по всему списку — это давало
-            // ощутимые лаги при активной переписке.
+            // Список чатов (Telegram Web A-style):
+            //  - первая строка: имя + бейджи слева, время справа;
+            //  - вторая строка: галочки статуса (для исходящего), превью
+            //    или «печатает…» слева, unread-pill справа.
+            //  motion.div убран ранее в перфоманс-PR — оставляем обычный div.
             <div
               key={contact.id}
               onClick={() => handleChatClick(contact.id)}
-              className="flex items-center px-4 py-3.5 cursor-pointer border-b border-tg-divider hover:bg-gradient-to-r hover:from-blue-50 dark:hover:from-blue-900/30 hover:to-transparent active:bg-blue-100 dark:active:bg-blue-900/40 transition-colors duration-150 gap-3 group"
+              className="flex items-center px-3 py-2.5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors duration-150 gap-3"
             >
-              <div className="relative">
-                {contact.id === 'saved_messages' ? (
-                  <div 
-                    className="w-[54px] h-[54px] rounded-full flex items-center justify-center text-white shrink-0 shadow-md group-hover:shadow-lg transition-all"
-                    style={{ backgroundColor: contact.avatarColor }}
-                  >
-                    <Bookmark size={26} fill="currentColor" />
+              {contact.id === 'saved_messages' ? (
+                <div
+                  className="w-[54px] h-[54px] rounded-full flex items-center justify-center text-white shrink-0"
+                  style={{ backgroundColor: contact.avatarColor }}
+                >
+                  <Bookmark size={26} fill="currentColor" />
+                </div>
+              ) : contact.avatarUrl ? (
+                <Image
+                  src={contact.avatarUrl}
+                  alt={contact.name}
+                  width={54}
+                  height={54}
+                  className="rounded-full object-cover shrink-0"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div
+                  className="w-[54px] h-[54px] rounded-full flex items-center justify-center text-white font-semibold text-xl shrink-0"
+                  style={{ backgroundColor: contact.avatarColor }}
+                >
+                  {contact.initial}
+                </div>
+              )}
+              <div className="flex-grow min-w-0 flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <div className="font-semibold text-[15px] text-tg-text-primary truncate flex items-center gap-1.5 min-w-0">
+                    <span className="truncate">{contact.name}</span>
+                    {contact.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 shrink-0" />}
+                    {contact.premium && (
+                      <PremiumBadge
+                        size="sm"
+                        onClick={(e) => {
+                          e?.stopPropagation();
+                          setSelectedPremiumUser(contact.name);
+                          setShowPremiumModal(true);
+                        }}
+                      />
+                    )}
                   </div>
-                ) : contact.avatarUrl ? (
-                  <Image 
-                    src={contact.avatarUrl} 
-                    alt={contact.name} 
-                    width={54} 
-                    height={54} 
-                    className="rounded-full object-cover shrink-0 ring-2 ring-transparent group-hover:ring-blue-200 transition-all" 
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div 
-                    className="w-[54px] h-[54px] rounded-full flex items-center justify-center text-white font-semibold text-xl shrink-0 shadow-md group-hover:shadow-lg transition-all"
-                    style={{ backgroundColor: contact.avatarColor }}
-                  >
-                    {contact.initial}
+                  <div className="flex-grow" />
+                  <div className="text-[12px] text-tg-secondary-text shrink-0 tabular-nums">{lastMsg?.time}</div>
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  {StatusIcon && !contact.isTyping && (
+                    <StatusIcon size={16} className={`shrink-0 ${statusColor}`} />
+                  )}
+                  <div className="text-[14px] text-tg-secondary-text truncate leading-snug flex-grow min-w-0">
+                    {contact.isTyping ? (
+                      <span className="italic" style={{ color: themeColor }}>печатает…</span>
+                    ) : (
+                      <>
+                        {isOwnLast && !contact.isChannel && previewText && (
+                          <span className="text-tg-secondary-text">Вы: </span>
+                        )}
+                        {previewText}
+                      </>
+                    )}
                   </div>
-                )}
-                {contact.unread > 0 && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[22px] text-center shadow-lg"
-                    style={{ backgroundColor: themeColor }}
-                  >
-                    {contact.unread}
-                  </motion.div>
-                )}
-              </div>
-              <div className="flex-grow overflow-hidden flex flex-col justify-center">
-                <div className="font-semibold text-[16px] text-tg-text-primary mb-1 truncate flex items-center gap-1.5">
-                  {contact.name}
-                  {contact.isOfficial && <BadgeCheck size={17} className="text-blue-500 fill-blue-500 text-white" />}
-                  {contact.premium && (
-                    <PremiumBadge 
-                      size="sm" 
-                      onClick={(e) => {
-                        e?.stopPropagation();
-                        setSelectedPremiumUser(contact.name);
-                        setShowPremiumModal(true);
-                      }}
-                    />
+                  {contact.unread > 0 && (
+                    <span
+                      className="text-white text-[12px] font-semibold rounded-full px-1.5 min-w-[20px] h-5 inline-flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: themeColor }}
+                    >
+                      {contact.unread}
+                    </span>
                   )}
                 </div>
-                <div className="text-[14px] text-tg-secondary-text truncate leading-snug">{previewText}</div>
-              </div>
-              <div className="flex flex-col items-end text-[12px] text-tg-secondary-text ml-2 shrink-0 gap-1">
-                <div className="font-medium">{lastMsg?.time}</div>
               </div>
             </div>
           );
@@ -428,15 +448,15 @@ export default function ChatList() {
       </div>
 
       <motion.button
-        initial={{ scale: 0, rotate: -180 }}
-        animate={{ scale: 1, rotate: 0 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        transition={{ type: 'spring', bounce: 0.5 }}
-        className="absolute bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center shadow-2xl hover:shadow-3xl transition-all text-white z-10"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        whileTap={{ scale: 0.92 }}
+        transition={{ type: 'spring', bounce: 0.35, duration: 0.25 }}
+        className="absolute bottom-5 right-5 w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl active:shadow-md transition-shadow text-white z-10"
         style={{ backgroundColor: themeColor }}
+        aria-label="Новый чат"
       >
-        <Edit2 size={24} />
+        <Edit2 size={22} />
       </motion.button>
 
       {/* Premium Modal */}
