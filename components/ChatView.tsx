@@ -875,8 +875,10 @@ export default function ChatView() {
                 } ${
                   msg.gift.id === 'cosmonaut'
                     ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black'
-                    : msg.gift.id === 'easter_bunny' 
-                    ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400' 
+                    : msg.gift.id === 'easter_bunny'
+                    ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400'
+                    : msg.gift.id === 'may_1'
+                    ? 'bg-gradient-to-br from-red-500 via-rose-500 to-orange-400'
                     : 'bg-gradient-to-br from-purple-500 to-pink-500'
                 }`}
               >
@@ -922,6 +924,49 @@ export default function ChatView() {
                   </div>
                 )}
                 
+                {/* Фон для 1 Мая — тюльпаны и искры */}
+                {msg.gift.id === 'may_1' && (
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <motion.div
+                      className="absolute inset-0"
+                      style={{
+                        background:
+                          'radial-gradient(circle at 50% 25%, rgba(255,255,255,0.45) 0%, transparent 60%)',
+                      }}
+                      animate={{ opacity: [0.4, 0.9, 0.4] }}
+                      transition={{ duration: 2.4, repeat: Infinity }}
+                    />
+                    <motion.div
+                      className="absolute top-2 left-2 text-[24px]"
+                      animate={{ rotate: [0, 10, -10, 0], y: [0, -4, 0] }}
+                      transition={{ duration: 2.2, repeat: Infinity }}
+                    >
+                      🌷
+                    </motion.div>
+                    <motion.div
+                      className="absolute top-2 right-2 text-[24px]"
+                      animate={{ rotate: [0, -10, 10, 0], y: [0, -4, 0] }}
+                      transition={{ duration: 2.2, repeat: Infinity, delay: 0.5 }}
+                    >
+                      🌸
+                    </motion.div>
+                    <motion.div
+                      className="absolute bottom-2 left-2 text-[24px]"
+                      animate={{ rotate: [0, 10, -10, 0], y: [0, 4, 0] }}
+                      transition={{ duration: 2.2, repeat: Infinity, delay: 1 }}
+                    >
+                      ✨
+                    </motion.div>
+                    <motion.div
+                      className="absolute bottom-2 right-2 text-[24px]"
+                      animate={{ rotate: [0, -10, 10, 0], y: [0, 4, 0] }}
+                      transition={{ duration: 2.2, repeat: Infinity, delay: 1.5 }}
+                    >
+                      🌺
+                    </motion.div>
+                  </div>
+                )}
+
                 {/* Пасхальный фон для зайца */}
                 {msg.gift.id === 'easter_bunny' && (
                   <div className="absolute inset-0 opacity-20">
@@ -969,17 +1014,35 @@ export default function ChatView() {
                           rotate: [0, -5, 5, -3, 3, 0],
                           y: [0, -15, 0, -8, 0]
                         }
+                      : msg.gift.id === 'may_1'
+                      ? {
+                          scale: [1, 1.12, 1],
+                          rotate: [0, -8, 8, -4, 4, 0],
+                          y: [0, -12, 0, -6, 0]
+                        }
                       : {
                           scale: [1, 1.15, 1],
                           rotate: [0, -15, 15, -10, 10, -5, 5, 0],
                           y: [0, -10, 0, -5, 0]
                         }
                   }
-                  transition={{ 
-                    duration: msg.gift.id === 'cosmonaut' ? 3 : msg.gift.id === 'easter_bunny' ? 2 : 1.5,
+                  transition={{
+                    duration:
+                      msg.gift.id === 'cosmonaut'
+                        ? 3
+                        : msg.gift.id === 'easter_bunny'
+                        ? 2
+                        : msg.gift.id === 'may_1'
+                        ? 2.4
+                        : 1.5,
                     times: [0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 1],
-                    ease: "easeInOut",
-                    repeat: (msg.gift.id === 'easter_bunny' || msg.gift.id === 'cosmonaut') ? Infinity : 0
+                    ease: 'easeInOut',
+                    repeat:
+                      msg.gift.id === 'easter_bunny' ||
+                      msg.gift.id === 'cosmonaut' ||
+                      msg.gift.id === 'may_1'
+                        ? Infinity
+                        : 0,
                   }}
                   className="mb-2 relative z-10 flex items-center justify-center"
                 >
@@ -1008,6 +1071,11 @@ export default function ChatView() {
                 {msg.gift.id === 'easter_bunny' && (
                   <div className="text-[11px] text-white/80 mt-1 relative z-10">
                     ✨ Эксклюзивный пасхальный подарок ✨
+                  </div>
+                )}
+                {msg.gift.id === 'may_1' && (
+                  <div className="text-[11px] text-yellow-100 mt-1 relative z-10">
+                    🌷 С праздником весны и труда! 🌷
                   </div>
                 )}
               </motion.div>

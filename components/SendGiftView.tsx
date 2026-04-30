@@ -31,8 +31,7 @@ export default function SendGiftView() {
   const [userStars, setUserStars] = useState(100);
   const [sendToSelf, setSendToSelf] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [easterBunnyRemaining, setEasterBunnyRemaining] = useState(15);
-  const [cosmonautRemaining, setCosmonautRemaining] = useState(20);
+  const [may1Remaining, setMay1Remaining] = useState(15);
 
   // Обновляем время каждую минуту
   useEffect(() => {
@@ -45,12 +44,11 @@ export default function SendGiftView() {
   // Проверка доступности подарка
   const isGiftAvailable = (gift: typeof GIFTS[0]) => {
     if (!gift.unlockDate) return true;
-    
+
     if (gift.limited) {
-      if (gift.id === 'easter_bunny' && easterBunnyRemaining <= 0) return false;
-      if (gift.id === 'cosmonaut' && cosmonautRemaining <= 0) return false;
+      if (gift.id === 'may_1' && may1Remaining <= 0) return false;
     }
-    
+
     const now = new Date();
     return now >= gift.unlockDate;
   };
@@ -124,20 +122,14 @@ export default function SendGiftView() {
     return unsubscribe;
   }, [currentUser]);
 
-  // Загружаем количество оставшихся подарков (один раз при монтировании)
+  // Загружаем количество оставшихся лимитированных подарков (один раз при монтировании)
   useEffect(() => {
-    // Easter Bunny
-    getGiftCount('easter_bunny').then(sent => {
-      setEasterBunnyRemaining(Math.max(0, 15 - sent));
+    getGiftCount('may_1').then(sent => {
+      setMay1Remaining(Math.max(0, 15 - sent));
     });
-    
-    // Cosmonaut
-    getGiftCount('cosmonaut').then(sent => {
-      setCosmonautRemaining(Math.max(0, 20 - sent));
-    });
-    
-    // НЕ подписываемся на изменения в реальном времени, чтобы избежать спама обновлений
-    // Пользователь увидит актуальное количество при открытии страницы
+
+    // НЕ подписываемся на изменения в реальном времени, чтобы избежать спама обновлений.
+    // Пользователь увидит актуальное количество при открытии страницы.
   }, []);
 
   const handleSelectUser = (userId: string) => {
@@ -339,12 +331,10 @@ export default function SendGiftView() {
                 const isLocked = !available;
                 const canAfford = userStars >= gift.cost;
                 const isSoldOut = gift.limited && (
-                  (gift.id === 'easter_bunny' && easterBunnyRemaining <= 0) ||
-                  (gift.id === 'cosmonaut' && cosmonautRemaining <= 0)
+                  (gift.id === 'may_1' && may1Remaining <= 0)
                 );
-                
-                const remaining = gift.id === 'easter_bunny' ? easterBunnyRemaining : 
-                                 gift.id === 'cosmonaut' ? cosmonautRemaining : 0;
+
+                const remaining = gift.id === 'may_1' ? may1Remaining : 0;
                 
                 return (
                   <motion.button
@@ -358,8 +348,10 @@ export default function SendGiftView() {
                     className={`relative rounded-2xl p-4 transition-all overflow-hidden ${
                       gift.spaceTheme
                         ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black'
-                        : gift.special 
-                        ? 'bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100' 
+                        : gift.mayTheme
+                        ? 'bg-gradient-to-br from-red-500 via-rose-500 to-orange-400'
+                        : gift.special
+                        ? 'bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100'
                         : 'bg-white shadow-sm'
                     }`}
                     initial={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -394,7 +386,16 @@ export default function SendGiftView() {
                               delay: i * 0.3,
                             }}
                           >
-                            <Sparkles size={12} className={gift.spaceTheme ? "text-cyan-300" : "text-purple-400"} />
+                            <Sparkles
+                              size={12}
+                              className={
+                                gift.spaceTheme
+                                  ? 'text-cyan-300'
+                                  : gift.mayTheme
+                                  ? 'text-yellow-200'
+                                  : 'text-purple-400'
+                              }
+                            />
                           </motion.div>
                         ))}
                       </div>
@@ -427,6 +428,40 @@ export default function SendGiftView() {
                       </div>
                     )}
 
+                    {/* May Theme: лёгкий светящийся радиальный блик + падающие искры */}
+                    {gift.mayTheme && !isLocked && (
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        <motion.div
+                          className="absolute inset-0"
+                          style={{
+                            background:
+                              'radial-gradient(circle at 50% 30%, rgba(255,255,255,0.45) 0%, transparent 60%)',
+                          }}
+                          animate={{ opacity: [0.4, 0.9, 0.4] }}
+                          transition={{ duration: 2.4, repeat: Infinity }}
+                        />
+                        {[...Array(10)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="absolute w-1 h-1 rounded-full bg-yellow-100"
+                            style={{
+                              left: `${(i * 13) % 100}%`,
+                              top: `${(i * 27) % 100}%`,
+                            }}
+                            animate={{
+                              y: [0, 14, 0],
+                              opacity: [0, 1, 0],
+                            }}
+                            transition={{
+                              duration: 2 + (i % 3) * 0.4,
+                              repeat: Infinity,
+                              delay: i * 0.18,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+
                     <div className="relative z-10">
                       <motion.div 
                         className="mb-2 text-center flex items-center justify-center"
@@ -454,9 +489,11 @@ export default function SendGiftView() {
                         )}
                       </motion.div>
                       
-                      <div className={`text-[15px] font-medium mb-1 text-center truncate ${
-                        gift.spaceTheme ? 'text-white' : 'text-gray-900'
-                      }`}>
+                      <div
+                        className={`text-[15px] font-medium mb-1 text-center truncate ${
+                          gift.spaceTheme || gift.mayTheme ? 'text-white' : 'text-gray-900'
+                        }`}
+                      >
                         {gift.name}
                       </div>
                       
@@ -484,32 +521,71 @@ export default function SendGiftView() {
                           >
                             🔒
                           </motion.div>
-                          <div className="text-[11px] text-purple-600 font-medium">
+                          <div
+                            className={`text-[11px] font-medium ${
+                              gift.mayTheme ? 'text-yellow-100' : 'text-purple-600'
+                            }`}
+                          >
                             {timeUntilUnlock}
                           </div>
                           {gift.limited && (
-                            <div className={`text-[10px] mt-1 ${gift.spaceTheme ? 'text-cyan-300' : 'text-purple-600'}`}>
+                            <div
+                              className={`text-[10px] mt-1 ${
+                                gift.spaceTheme
+                                  ? 'text-cyan-300'
+                                  : gift.mayTheme
+                                  ? 'text-white/90'
+                                  : 'text-purple-600'
+                              }`}
+                            >
                               {remaining} из {gift.totalLimit}
                             </div>
                           )}
                         </motion.div>
                       ) : (
                         <>
-                          <motion.div 
-                            className="flex items-center justify-center gap-1 text-yellow-600 font-semibold text-[14px]"
+                          <motion.div
+                            className={`flex items-center justify-center gap-1 font-semibold text-[14px] ${
+                              gift.mayTheme ? 'text-white' : 'text-yellow-600'
+                            }`}
                             whileHover={{ scale: 1.1 }}
+                            animate={
+                              gift.mayTheme
+                                ? { scale: [1, 1.08, 1] }
+                                : undefined
+                            }
+                            transition={
+                              gift.mayTheme
+                                ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }
+                                : undefined
+                            }
                           >
                             <motion.div
-                              animate={{ rotate: [0, -15, 15, -15, 0] }}
-                              transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
+                              animate={
+                                gift.mayTheme
+                                  ? { rotate: [0, -15, 15, -15, 0], scale: [1, 1.2, 1] }
+                                  : { rotate: [0, -15, 15, -15, 0] }
+                              }
+                              transition={{
+                                duration: gift.mayTheme ? 1.4 : 1.5,
+                                repeat: Infinity,
+                                repeatDelay: gift.mayTheme ? 0 : 1,
+                                ease: 'easeInOut',
+                              }}
                             >
-                              <Zap size={14} fill="currentColor" />
+                              <Zap
+                                size={14}
+                                fill="currentColor"
+                                className={gift.mayTheme ? 'text-yellow-200' : ''}
+                              />
                             </motion.div>
                             {gift.cost}
                           </motion.div>
                           {!canAfford && (
-                            <motion.div 
-                              className="text-[11px] text-red-500 mt-1 text-center"
+                            <motion.div
+                              className={`text-[11px] mt-1 text-center ${
+                                gift.mayTheme ? 'text-yellow-100' : 'text-red-500'
+                              }`}
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                             >
@@ -517,8 +593,14 @@ export default function SendGiftView() {
                             </motion.div>
                           )}
                           {gift.limited && (
-                            <motion.div 
-                              className={`text-[10px] mt-1 text-center ${gift.spaceTheme ? 'text-cyan-300' : 'text-purple-600'}`}
+                            <motion.div
+                              className={`text-[10px] mt-1 text-center ${
+                                gift.spaceTheme
+                                  ? 'text-cyan-300'
+                                  : gift.mayTheme
+                                  ? 'text-white/90'
+                                  : 'text-purple-600'
+                              }`}
                               animate={{ opacity: [0.5, 1, 0.5] }}
                               transition={{ duration: 2, repeat: Infinity }}
                             >
