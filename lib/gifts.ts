@@ -19,6 +19,7 @@ export interface Gift {
   limited?: boolean;
   totalLimit?: number;
   spaceTheme?: boolean;
+  mayTheme?: boolean;
 }
 
 export const GIFTS: Gift[] = [
@@ -103,39 +104,37 @@ export const GIFTS: Gift[] = [
     animated: true,
   },
   {
-    id: 'easter_bunny',
-    name: 'Пасхальный заяц',
-    emoji: '🐰🥚',
-    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Rabbit%20Face.webp',
+    id: 'may_1',
+    name: '1 Мая',
+    emoji: '🌷',
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Tulip.webp',
     cost: 50,
-    animation: 'easter',
+    animation: 'may1',
     available: false,
-    unlockDate: new Date('2026-04-12T09:00:00'),
+    // 1 мая 09:00 МСК = 06:00 UTC.
+    unlockDate: new Date('2026-05-01T06:00:00.000Z'),
     special: true,
-    description: 'Эксклюзивный пасхальный подарок',
+    description: 'С праздником весны и труда!',
     limited: true,
     totalLimit: 15,
-    animated: true,
-  },
-  {
-    id: 'cosmonaut',
-    name: 'Космонавт',
-    emoji: '👨‍🚀🚀',
-    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Travel%20and%20Places/Rocket.webp',
-    cost: 50,
-    animation: 'space',
-    available: false,
-    unlockDate: new Date('2026-04-12T00:00:00'),
-    special: true,
-    description: 'День космонавтики! Полетели в космос!',
-    limited: true,
-    totalLimit: 20,
-    spaceTheme: true,
+    mayTheme: true,
     animated: true,
   },
 ];
 
+// Анимированные URL для подарков, которые сняты с продажи, но всё ещё могут
+// встречаться в истории чатов / в списке полученных подарков. Не попадают в
+// GIFTS, потому что больше не должны предлагаться к покупке, но
+// getGiftAnimatedUrl должен по-прежнему отдавать для них картинку.
+const LEGACY_GIFT_ANIMATED_URLS: Record<string, string> = {
+  easter_bunny:
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Rabbit%20Face.webp',
+  cosmonaut:
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Travel%20and%20Places/Rocket.webp',
+};
+
 export function getGiftAnimatedUrl(giftId: string): string | null {
   const gift = GIFTS.find(g => g.id === giftId);
-  return gift?.animatedUrl || null;
+  if (gift?.animatedUrl) return gift.animatedUrl;
+  return LEGACY_GIFT_ANIMATED_URLS[giftId] || null;
 }

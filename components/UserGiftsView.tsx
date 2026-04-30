@@ -82,7 +82,8 @@ export default function UserGiftsView() {
       'diamond': { name: 'Бриллиант', emoji: '💎' },
       'crown': { name: 'Корона', emoji: '👑' },
       'easter_bunny': { name: 'Пасхальный заяц', emoji: '🐰🥚' },
-      'cosmonaut': { name: 'Космонавт', emoji: '👨‍🚀🚀' }
+      'cosmonaut': { name: 'Космонавт', emoji: '👨‍🚀🚀' },
+      'may_1': { name: '1 Мая', emoji: '🌷' }
     };
     
     return giftMap[giftId] || { name: 'Подарок', emoji: '🎁' };

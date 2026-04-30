@@ -88,8 +88,10 @@ const MessagesContainer = memo(function MessagesContainer({
               } ${
                 msg.gift.id === 'cosmonaut'
                   ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black'
-                  : msg.gift.id === 'easter_bunny' 
-                  ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400' 
+                  : msg.gift.id === 'easter_bunny'
+                  ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400'
+                  : msg.gift.id === 'may_1'
+                  ? 'bg-gradient-to-br from-red-500 via-rose-500 to-orange-400'
                   : 'bg-gradient-to-br from-purple-500 to-pink-500'
               }`}
             >
@@ -99,13 +101,20 @@ const MessagesContainer = memo(function MessagesContainer({
                     ? { y: [0, -20, 0], rotate: [0, 10, -10, 0] }
                     : msg.gift.id === 'easter_bunny'
                     ? { scale: [1, 1.1, 1], rotate: [0, -5, 5, -3, 3, 0], y: [0, -15, 0, -8, 0] }
+                    : msg.gift.id === 'may_1'
+                    ? { scale: [1, 1.12, 1], rotate: [0, -8, 8, -4, 4, 0], y: [0, -12, 0, -6, 0] }
                     : { scale: [1, 1.15, 1], rotate: [0, -15, 15, -10, 10, -5, 5, 0], y: [0, -10, 0, -5, 0] }
                 }
-                transition={{ 
-                  duration: msg.gift.id === 'cosmonaut' ? 3 : msg.gift.id === 'easter_bunny' ? 2 : 1.5,
+                transition={{
+                  duration: msg.gift.id === 'cosmonaut' ? 3 : msg.gift.id === 'easter_bunny' ? 2 : msg.gift.id === 'may_1' ? 2.4 : 1.5,
                   times: [0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 1],
-                  ease: "easeInOut",
-                  repeat: (msg.gift.id === 'easter_bunny' || msg.gift.id === 'cosmonaut') ? Infinity : 0
+                  ease: 'easeInOut',
+                  repeat:
+                    msg.gift.id === 'easter_bunny' ||
+                    msg.gift.id === 'cosmonaut' ||
+                    msg.gift.id === 'may_1'
+                      ? Infinity
+                      : 0,
                 }}
                 className="mb-2 relative z-10 flex items-center justify-center"
               >
