@@ -2,7 +2,7 @@
 
 import { memo, useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Paperclip, Send, Mic, Smile, Square, X, Image as ImageIcon, File as FileIcon } from 'lucide-react';
+import { Paperclip, Send, Mic, Smile, Square, X, Image as ImageIcon, File as FileIcon, Wand2, Loader2 } from 'lucide-react';
 
 interface ChatInputProps {
   isRecording: boolean;
@@ -22,6 +22,8 @@ interface ChatInputProps {
   onShowPicker: () => void;
   onShowAttachMenu: () => void;
   showAttachMenu: boolean;
+  // AI исправление текста до отправки
+  onAiFix?: (text: string) => Promise<string>;
 }
 
 export interface ChatInputHandle {
@@ -47,9 +49,11 @@ const ChatInput = memo(forwardRef<ChatInputHandle, ChatInputProps>(function Chat
   onCancelReply,
   onShowPicker,
   onShowAttachMenu,
-  showAttachMenu
+  showAttachMenu,
+  onAiFix,
 }, ref) {
   const [inputText, setInputText] = useState(editingMsg?.text || '');
+  const [isAiFixing, setIsAiFixing] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Синхронизация с editingMsg: при входе в режим редактирования засеиваем
@@ -108,6 +112,31 @@ const ChatInput = memo(forwardRef<ChatInputHandle, ChatInputProps>(function Chat
       }
     }
   }, [inputText, onSend]);
+
+  const handleAiFix = useCallback(async () => {
+    if (!onAiFix) return;
+    const trimmed = inputText.trim();
+    if (!trimmed || isAiFixing) return;
+    setIsAiFixing(true);
+    try {
+      const corrected = await onAiFix(trimmed);
+      if (typeof corrected === 'string' && corrected.trim()) {
+        setInputText(corrected);
+        onInputChange(corrected);
+        requestAnimationFrame(() => {
+          if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + 'px';
+            const len = inputRef.current.value.length;
+            inputRef.current.focus();
+            inputRef.current.setSelectionRange(len, len);
+          }
+        });
+      }
+    } finally {
+      setIsAiFixing(false);
+    }
+  }, [inputText, isAiFixing, onAiFix, onInputChange]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -213,6 +242,29 @@ const ChatInput = memo(forwardRef<ChatInputHandle, ChatInputProps>(function Chat
             }}
           />
           
+          {/* AI Fix Button (shown only when there's text and onAiFix is wired) */}
+          {!isRecording && onAiFix && inputText.trim().length > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleAiFix}
+              disabled={isAiFixing}
+              title="AI исправление (первый день бесплатно)"
+              className="relative p-1 text-purple-500 hover:text-purple-600 transition-colors shrink-0 ml-1 disabled:opacity-60 disabled:cursor-wait"
+            >
+              {isAiFixing ? (
+                <Loader2 size={22} className="animate-spin" />
+              ) : (
+                <Wand2 size={22} />
+              )}
+              {!isAiFixing && (
+                <span className="absolute -top-1.5 -right-2 text-[9px] font-bold leading-none px-1 py-[2px] rounded-full bg-purple-500 text-white shadow">
+                  NEW
+                </span>
+              )}
+            </motion.button>
+          )}
+
           {/* Emoji Button */}
           {!isRecording && (
             <motion.button
