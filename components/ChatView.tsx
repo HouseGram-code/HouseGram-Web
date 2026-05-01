@@ -20,7 +20,7 @@ import { getGiftAnimatedUrl } from '@/lib/gifts';
 type PickerTab = 'emoji' | 'stickers' | 'gifs' | 'my-stickers';
 
 export default function ChatView() {
-  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus, isDarkMode } = useChat();
+  const { contacts, activeChatId, setView, sendMessage, editMessage, deleteMessage, forwardMessage, saveSticker, removeSavedSticker, savedStickers, themeColor, wallpaper, isGlassEnabled, clearHistory, deleteChat, user, setTypingStatus, isDarkMode, isAiTrialActive, startAiTrial, aiTrialStart } = useChat();
   const chatInputRef = useRef<ChatInputHandle>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
@@ -63,6 +63,9 @@ export default function ChatView() {
     correctedText: string;
     isLoading: boolean;
   } | null>(null);
+
+  // Paywall модалка, когда пробный период AI иссяк.
+  const [showAiPaywall, setShowAiPaywall] = useState(false);
 
   // Стабилизируем contact через useMemo чтобы избежать потери при обновлении contacts
   const contact = useMemo(() => activeChatId ? contacts[activeChatId] : null, [activeChatId, contacts]);
@@ -171,8 +174,14 @@ export default function ChatView() {
     }
   }, [contact?.isChannel, activeChatId]);
 
-  // ИИ исправление текста
+  // ИИ исправление текста (тап по сообщению). Первый день бесплатно — дальше paywall.
   const handleAiCorrection = useCallback(async (messageId: string, originalText: string) => {
+    if (!isAiTrialActive()) {
+      setShowAiPaywall(true);
+      return;
+    }
+    if (!aiTrialStart) startAiTrial();
+
     setAiCorrectionModal({
       messageId,
       originalText,
@@ -196,7 +205,24 @@ export default function ChatView() {
         isLoading: false,
       } : null);
     }
-  }, []);
+  }, [isAiTrialActive, aiTrialStart, startAiTrial, setShowAiPaywall, setAiCorrectionModal]);
+
+  // AI исправление текста в поле ввода до отправки. Режим общий с триалом.
+  const handleAiFixInput = useCallback(async (text: string): Promise<string> => {
+    if (!isAiTrialActive()) {
+      setShowAiPaywall(true);
+      return text;
+    }
+    if (!aiTrialStart) startAiTrial();
+    try {
+      const language = detectLanguage(text);
+      const result = await correctText(text, language);
+      return result.correctedText && result.correctedText.trim() ? result.correctedText : text;
+    } catch (error) {
+      console.error('AI input fix error:', error);
+      return text;
+    }
+  }, [isAiTrialActive, aiTrialStart, startAiTrial, setShowAiPaywall]);
 
   // Применить исправления
   const applyCorrection = useCallback(async () => {
@@ -1496,6 +1522,7 @@ export default function ChatView() {
             onShowPicker={() => { setShowPicker(!showPicker); setPickerTab('emoji'); }}
             onShowAttachMenu={() => setShowAttachMenu(!showAttachMenu)}
             showAttachMenu={showAttachMenu}
+            onAiFix={handleAiFixInput}
           />
           
           {/* Attach Menu Popup */}
@@ -1794,6 +1821,59 @@ export default function ChatView() {
           setView('premium');
         }}
       />
+
+      {/* AI Trial Paywall Modal */}
+      <AnimatePresence>
+        {showAiPaywall && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowAiPaywall(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="relative bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg">
+                  <Sparkles size={26} />
+                </div>
+                <div>
+                  <div className="text-[18px] font-semibold text-gray-900">Пробный период закончился</div>
+                  <div className="text-[13px] text-gray-500">AI исправление — функция HouseGram Premium</div>
+                </div>
+              </div>
+              <p className="text-[14px] text-gray-700 leading-relaxed mb-5">
+                Первые 24 часа AI исправление работает бесплатно для каждого пользователя.
+                Чтобы пользоваться им дальше, оформите HouseGram Premium — больше AI-запросов, эксклюзивные эмодзи и значки.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowAiPaywall(false)}
+                  className="px-4 py-2 rounded-xl text-[14px] font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  Позже
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAiPaywall(false);
+                    setView('premium');
+                  }}
+                  className="px-4 py-2 rounded-xl text-[14px] font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 transition-opacity shadow-md"
+                >
+                  Подключить Premium
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

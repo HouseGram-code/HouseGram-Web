@@ -45,6 +45,10 @@ const getAi = () => {
   return aiInstance;
 };
 
+// Длительность бесплатного пробного периода для AI исправления
+export const AI_TRIAL_DURATION_MS = 24 * 60 * 60 * 1000;
+const AI_TRIAL_STORAGE_KEY = 'housegram_ai_trial_start';
+
 interface ChatContextType {
   view: ViewState;
   setView: (view: ViewState) => void;
@@ -98,6 +102,11 @@ interface ChatContextType {
   premiumExpiry: Date | null;
   aiRequestsToday: number;
   maxAiRequests: number;
+  // AI исправление сообщений: 1 день бесплатно
+  aiTrialStart: number | null;
+  startAiTrial: () => number;
+  isAiTrialActive: () => boolean;
+  aiTrialMsLeft: () => number;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -171,6 +180,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [premiumExpiry, setPremiumExpiry] = useState<Date | null>(null);
   const [aiRequestsToday, setAiRequestsToday] = useState(0);
   const [maxAiRequests, setMaxAiRequests] = useState(1);
+  const [aiTrialStart, setAiTrialStart] = useState<number | null>(null);
 
   const settingsRef = useRef({ soundEnabled, notificationsEnabled });
 
@@ -190,6 +200,11 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       const savedSound = localStorage.getItem('housegram_sound');
       if (savedNotif !== null) setNotificationsEnabled(savedNotif === 'true');
       if (savedSound !== null) setSoundEnabled(savedSound === 'true');
+      const savedAiTrial = localStorage.getItem(AI_TRIAL_STORAGE_KEY);
+      if (savedAiTrial) {
+        const ts = Number(savedAiTrial);
+        if (!Number.isNaN(ts)) setAiTrialStart(ts);
+      }
     }
 
     // Инициализируем settings/global если его нет
@@ -917,6 +932,27 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) { console.error('Failed to edit message', e); alert('Ошибка при редактировании'); }
   }, [user, activeChatId]);
 
+  // ---------- AI исправление: бесплатный пробный период ----------
+  const startAiTrial = useCallback(() => {
+    const now = Date.now();
+    setAiTrialStart(now);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(AI_TRIAL_STORAGE_KEY, String(now));
+    }
+    return now;
+  }, []);
+
+  const aiTrialMsLeft = useCallback(() => {
+    if (!aiTrialStart) return AI_TRIAL_DURATION_MS;
+    return Math.max(0, AI_TRIAL_DURATION_MS - (Date.now() - aiTrialStart));
+  }, [aiTrialStart]);
+
+  const isAiTrialActive = useCallback(() => {
+    // Триал ещё не запущен — считаем активным, чтобы первый запуск был бесплатным.
+    if (!aiTrialStart) return true;
+    return Date.now() - aiTrialStart < AI_TRIAL_DURATION_MS;
+  }, [aiTrialStart]);
+
   const deleteMessage = useCallback(async (messageId: string) => {
     if (!user || !activeChatId) return;
     const chatId = [user.uid, activeChatId].sort().join('_');
@@ -1273,7 +1309,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       passcode, isLocked, setIsLocked, updatePasscode, user, 
       currentUser: user ? { id: user.uid, email: user.email } : null,
       isAdmin, isMaintenance, isFrozen, frozenAt, frozenReason, logout, setTypingStatus,
-      isPremium, premiumExpiry, aiRequestsToday, maxAiRequests
+      isPremium, premiumExpiry, aiRequestsToday, maxAiRequests,
+      aiTrialStart, startAiTrial, isAiTrialActive, aiTrialMsLeft
     }}>
       {!authReady ? (
         <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
