@@ -111,6 +111,9 @@ interface ChatContextType {
   currentUser: { id: string; email: string | null } | null;
   isAdmin: boolean;
   isMaintenance: boolean;
+  // Глобальный праздничный режим "День Победы 9 мая". Включается админом
+  // через AdminView и транслируется всем клиентам через settings/global.
+  isVictoryDayTheme: boolean;
   isFrozen: boolean;
   frozenAt: string | null;
   frozenReason: string | null;
@@ -191,6 +194,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMaintenance, setIsMaintenance] = useState(false);
+  const [isVictoryDayTheme, setIsVictoryDayTheme] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
   const [frozenAt, setFrozenAt] = useState<string | null>(null);
   const [frozenReason, setFrozenReason] = useState<string | null>(null);
@@ -441,7 +445,11 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     window.addEventListener('pagehide', handlePageHide);
 
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
-      if (docSnap.exists()) setIsMaintenance(docSnap.data().maintenanceMode || false);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setIsMaintenance(data.maintenanceMode || false);
+        setIsVictoryDayTheme(data.victoryDayTheme || false);
+      }
     }, (error) => { logListenerError('Settings listener error', error); });
 
     return () => {
@@ -1329,7 +1337,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       isDarkMode, setIsDarkMode: (val: boolean) => { setIsDarkMode(val); localStorage.setItem('housegram_dark_mode', String(val)); },
       passcode, isLocked, setIsLocked, updatePasscode, user, 
       currentUser: user ? { id: user.uid, email: user.email } : null,
-      isAdmin, isMaintenance, isFrozen, frozenAt, frozenReason, logout, setTypingStatus,
+      isAdmin, isMaintenance, isVictoryDayTheme, isFrozen, frozenAt, frozenReason, logout, setTypingStatus,
       isPremium, premiumExpiry, aiRequestsToday, maxAiRequests,
       aiTrialStart, startAiTrial, isAiTrialActive, aiTrialMsLeft
     }}>

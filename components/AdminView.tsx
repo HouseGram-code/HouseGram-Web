@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck, CreditCard, Zap, Clock, CheckCheck, X, Crown, Gamepad2, Coins } from 'lucide-react';
+import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck, CreditCard, Zap, Clock, CheckCheck, X, Crown, Gamepad2, Coins, Star } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 
@@ -14,6 +14,7 @@ export default function AdminView() {
   const [activeTab, setActiveTab] = useState<TabType>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [isMaintenance, setIsMaintenance] = useState(false);
+  const [isVictoryDayTheme, setIsVictoryDayTheme] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'user'>('all');
@@ -46,7 +47,9 @@ export default function AdminView() {
 
     const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
-        setIsMaintenance(docSnap.data().maintenanceMode || false);
+        const data = docSnap.data();
+        setIsMaintenance(data.maintenanceMode || false);
+        setIsVictoryDayTheme(data.victoryDayTheme || false);
       }
     });
 
@@ -330,6 +333,21 @@ export default function AdminView() {
     } catch (err) {
       console.error('Error toggling maintenance', err);
       alert('Ошибка при изменении режима тех. работ');
+    }
+  };
+
+  // Праздничный режим "День Победы 9 мая". Запись попадает в settings/global,
+  // ChatContext подписан на этот документ через onSnapshot и моментально
+  // включает оверлей (георгиевская лента, звёзды, плашка) у всех клиентов —
+  // включая других админов.
+  const toggleVictoryDayTheme = async () => {
+    try {
+      await setDoc(doc(db, 'settings', 'global'), {
+        victoryDayTheme: !isVictoryDayTheme
+      }, { merge: true });
+    } catch (err) {
+      console.error('Error toggling victory day theme', err);
+      alert('Ошибка при изменении праздничной темы');
     }
   };
 
@@ -1206,6 +1224,27 @@ export default function AdminView() {
                   </div>
                   <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isMaintenance ? 'bg-orange-500' : 'bg-gray-300'}`}>
                     <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isMaintenance ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </div>
+                </div>
+
+                {/* Праздничная тема "9 мая — День Победы". Включается для
+                    всех пользователей (и админов): георгиевская лента сверху
+                    и снизу, праздничная плашка, декоративные звёзды и салют. */}
+                <div
+                  className="flex items-center px-4 py-3 gap-4 cursor-pointer hover:bg-gray-50 transition-colors border-t border-gray-100"
+                  onClick={toggleVictoryDayTheme}
+                >
+                  <div className="text-red-600"><Star size={24} fill="currentColor" /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Тема «День Победы 9 мая»</span>
+                    <span className="text-[13px] text-gray-500">
+                      {isVictoryDayTheme
+                        ? 'Включена для всех пользователей'
+                        : 'Выключена'}
+                    </span>
+                  </div>
+                  <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isVictoryDayTheme ? 'bg-red-600' : 'bg-gray-300'}`}>
+                    <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isVictoryDayTheme ? 'translate-x-4' : 'translate-x-0'}`} />
                   </div>
                 </div>
               </div>

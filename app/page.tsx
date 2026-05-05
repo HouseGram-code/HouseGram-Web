@@ -135,6 +135,7 @@ const BotMasterView = dynamic(() => import('@/components/BotMasterView'), {
 });
 const ConnectionLoader = dynamic(() => import('@/components/ConnectionLoader'));
 const FrozenAccountScreen = dynamic(() => import('@/components/FrozenAccountScreen'));
+const VictoryDayTheme = dynamic(() => import('@/components/VictoryDayTheme'), { ssr: false });
 
 function LoadingSpinner() {
   return (
@@ -470,12 +471,23 @@ function AppContent() {
   );
 }
 
+// Глобальные оверлеи, которые должны показываться поверх ВСЕХ экранов
+// (auth, locked, чат-лист, чат, настройки и т.д.). Сидят отдельным узлом
+// внутри ChatProvider, чтобы один раз подписаться на context и не дублировать
+// рендер во всех ветках AppContent.
+function GlobalOverlays() {
+  const { isVictoryDayTheme } = useChat();
+  if (!isVictoryDayTheme) return null;
+  return <VictoryDayTheme />;
+}
+
 export default function Page() {
   return (
     <>
       <DemoBanner />
       <ChatProvider>
         <AppContent />
+        <GlobalOverlays />
       </ChatProvider>
     </>
   );

@@ -18,6 +18,7 @@ export async function initializeFirebaseSettings() {
       
       await setDoc(settingsRef, {
         maintenanceMode: false,
+        victoryDayTheme: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
