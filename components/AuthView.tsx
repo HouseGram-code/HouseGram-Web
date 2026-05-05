@@ -8,6 +8,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthP
 import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { getDeviceInfo } from '@/utils/deviceInfo';
 import { AlertCircle, Clock, Shield } from 'lucide-react';
+import { WELCOME_BONUS_STARS } from '@/lib/gifts';
 
 export default function AuthView() {
   const { themeColor } = useChat();
@@ -94,7 +95,11 @@ export default function AuthView() {
           isBanned: false,
           createdAt: serverTimestamp(),
           status: 'online',
-          lastSeen: serverTimestamp()
+          lastSeen: serverTimestamp(),
+          // Приветственный бонус: 250 молний за регистрацию.
+          stars: WELCOME_BONUS_STARS,
+          giftsSent: 0,
+          giftsReceived: 0,
         });
         
         // Сохраняем информацию о сессии
@@ -164,7 +169,12 @@ export default function AuthView() {
           isBanned: false,
           createdAt: serverTimestamp(),
           status: 'online',
-          lastSeen: serverTimestamp()
+          lastSeen: serverTimestamp(),
+          // Приветственный бонус: 250 молний за первый вход через Google.
+          stars: WELCOME_BONUS_STARS,
+          giftsSent: 0,
+          giftsReceived: 0,
+          avatarUrl: user.photoURL || '',
         });
       }
       

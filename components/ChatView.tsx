@@ -894,6 +894,59 @@ export default function ChatView() {
             </div>
           </div>
         )}
+        {/* Empty state для нового личного диалога — без сообщений ещё нечего группировать */}
+        {!contact.isChannel && contact.id !== 'saved_messages' && contact.messages.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex-grow flex items-center justify-center p-4"
+          >
+            <div className="bg-white/85 backdrop-blur-md rounded-2xl p-5 max-w-sm text-center shadow-md border border-black/5">
+              {contact.avatarUrl ? (
+                <NextImage
+                  src={contact.avatarUrl}
+                  alt={contact.name}
+                  width={72}
+                  height={72}
+                  className="rounded-full object-cover mx-auto mb-3 shadow-sm"
+                  referrerPolicy="no-referrer"
+                  unoptimized
+                />
+              ) : (
+                <div
+                  className="w-[72px] h-[72px] rounded-full mx-auto flex items-center justify-center text-white font-semibold text-2xl mb-3 shadow-sm"
+                  style={{ backgroundColor: contact.avatarColor }}
+                >
+                  {contact.initial}
+                </div>
+              )}
+              <h3 className="text-[17px] font-semibold text-gray-900 mb-1">
+                {contact.name}
+              </h3>
+              {contact.username && (
+                <p className="text-[13px] text-gray-500 mb-1">
+                  {contact.username.startsWith('@') ? contact.username : `@${contact.username}`}
+                </p>
+              )}
+              <p className="text-[14px] text-gray-600 leading-relaxed mt-2">
+                Сообщений пока нет. Напишите первым 👋
+              </p>
+              {/* Быстрые приветствия — тап отправляет сообщение сразу */}
+              <div className="flex flex-wrap gap-1.5 justify-center mt-4">
+                {['Привет! 👋', 'Как дела?', '🙂'].map((quick) => (
+                  <button
+                    key={quick}
+                    onClick={() => sendMessage(quick)}
+                    className="text-[13px] text-gray-700 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full px-3 py-1.5 transition-colors"
+                  >
+                    {quick}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {contact.messages.map((msg, index) => {
           const isOwn = msg.type === 'sent';

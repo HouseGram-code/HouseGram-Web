@@ -8,6 +8,7 @@ import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, addDoc, collection, query, orderBy, where, deleteDoc, writeBatch, getDocs, deleteField, FirestoreError } from 'firebase/firestore';
 import { GoogleGenAI } from '@google/genai';
 import { initializeFirebaseSettings } from '@/lib/init-firebase-settings';
+import { WELCOME_BONUS_STARS } from '@/lib/gifts';
 
 // Генерация цвета аватара на основе ID пользователя
 const getAvatarColor = (userId: string) => {
@@ -48,6 +49,24 @@ const getAi = () => {
 // Длительность бесплатного пробного периода для AI исправления
 export const AI_TRIAL_DURATION_MS = 24 * 60 * 60 * 1000;
 const AI_TRIAL_STORAGE_KEY = 'housegram_ai_trial_start';
+
+/**
+ * Логгер для ошибок Firestore-листенеров. permission-denied возникает
+ * транзитивно: при логауте, пока не задеплоены новые firestore.rules или
+ * пока Firebase Auth ещё не прокинул токен в первый snapshot. Чтобы не
+ * спамить красными ошибками в консоль пользователя, такие случаи выводим
+ * как предупреждение с подсказкой, что нужно задеплоить правила.
+ */
+const logListenerError = (label: string, error: unknown) => {
+  const code = (error as FirestoreError | undefined)?.code;
+  if (code === 'permission-denied') {
+    console.warn(
+      `[${label}] permission-denied (возможно, нужно задеплоить firestore.rules: \`firebase deploy --only firestore:rules\`)`,
+    );
+    return;
+  }
+  console.error(`${label}:`, error);
+};
 
 interface ChatContextType {
   view: ViewState;
@@ -316,7 +335,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
                   username: finalUsername.substring(0, 15), bio: '',
                   role: isAdminEmail(currentUser.email) ? 'admin' : 'user',
                   isBanned: false, createdAt: serverTimestamp(), status: 'online', lastSeen: serverTimestamp(),
-                  stars: 0, giftsSent: 0, giftsReceived: 0
+                  // Приветственный бонус: новый пользователь без профиля в Firestore
+                  // (например, после первого входа через Google) получает 250 молний.
+                  stars: WELCOME_BONUS_STARS, giftsSent: 0, giftsReceived: 0
                 });
                 setIsAdmin(isAdminEmail(currentUser.email));
                 setUserProfile({
@@ -421,7 +442,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) setIsMaintenance(docSnap.data().maintenanceMode || false);
-    }, (error) => { console.error('Settings listener error:', error); });
+    }, (error) => { logListenerError('Settings listener error', error); });
 
     return () => {
       // При размонтировании компонента также устанавливаем offline
@@ -1143,7 +1164,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         
         return updated;
       });
-    }, (error) => { console.error('Chats listener error:', error); });
+    }, (error) => { logListenerError('Chats listener error', error); });
 
     return () => unsubscribe();
   }, [user]);
@@ -1202,7 +1223,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         
         return updated;
       });
-    }, (error) => { console.error('Channels listener error:', error); });
+    }, (error) => { logListenerError('Channels listener error', error); });
 
     return () => unsubscribe();
   }, [user]);

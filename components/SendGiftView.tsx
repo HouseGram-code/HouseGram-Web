@@ -2,19 +2,20 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Zap, Check, Sparkles, Star } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, Zap, Check, Sparkles, Star, Search, Users, X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   sendGift, 
   getUserStars, 
   subscribeToUserStars,
-  getGiftCount,
-  subscribeToGiftCount
 } from '@/lib/firebase-gifts';
 import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
 import { GIFTS, getGiftAnimatedUrl } from '@/lib/gifts';
+import Toast, { type ToastState, nextToastId } from './Toast';
+
+const MAX_GREETING_LENGTH = 140;
 
 // Реэкспорт getGiftAnimatedUrl сохранён для обратной совместимости со старыми
 // импортерами; новые потребители должны импортировать его напрямую из
@@ -31,7 +32,19 @@ export default function SendGiftView() {
   const [userStars, setUserStars] = useState(100);
   const [sendToSelf, setSendToSelf] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [may1Remaining, setMay1Remaining] = useState(15);
+  // Новые состояния: поиск получателя, поздравительное сообщение, уведомление.
+  const [userSearch, setUserSearch] = useState('');
+  const [greeting, setGreeting] = useState('');
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  const showToast = (
+    type: ToastState['type'],
+    title: string,
+    description?: string,
+    extras?: Partial<Pick<ToastState, 'actionLabel' | 'onAction'>>,
+  ) => {
+    setToast({ id: nextToastId(), type, title, description, ...extras });
+  };
 
   // Обновляем время каждую минуту
   useEffect(() => {
@@ -44,11 +57,6 @@ export default function SendGiftView() {
   // Проверка доступности подарка
   const isGiftAvailable = (gift: typeof GIFTS[0]) => {
     if (!gift.unlockDate) return true;
-
-    if (gift.limited) {
-      if (gift.id === 'may_1' && may1Remaining <= 0) return false;
-    }
-
     const now = new Date();
     return now >= gift.unlockDate;
   };
@@ -83,9 +91,23 @@ export default function SendGiftView() {
     }
   }, [currentUser]);
 
-  const availableContacts = Object.values(contacts).filter(
-    c => c.id !== 'saved_messages' && c.id !== 'test_bot' && !c.isChannel
+  const availableContacts = useMemo(
+    () => Object.values(contacts).filter(
+      c => c.id !== 'saved_messages' && c.id !== 'test_bot' && !c.isChannel
+    ),
+    [contacts],
   );
+
+  // Список получателей после применения строки поиска (по имени или username).
+  const filteredContacts = useMemo(() => {
+    const q = userSearch.trim().toLowerCase();
+    if (!q) return availableContacts;
+    return availableContacts.filter(c => {
+      const name = (c.name || '').toLowerCase();
+      const username = (c.username || '').toLowerCase();
+      return name.includes(q) || username.includes(q);
+    });
+  }, [availableContacts, userSearch]);
 
   const selectedContact = selectedUserId 
     ? (selectedUserId === currentUser?.id && sendToSelf
@@ -122,16 +144,6 @@ export default function SendGiftView() {
     return unsubscribe;
   }, [currentUser]);
 
-  // Загружаем количество оставшихся лимитированных подарков (один раз при монтировании)
-  useEffect(() => {
-    getGiftCount('may_1').then(sent => {
-      setMay1Remaining(Math.max(0, 15 - sent));
-    });
-
-    // НЕ подписываемся на изменения в реальном времени, чтобы избежать спама обновлений.
-    // Пользователь увидит актуальное количество при открытии страницы.
-  }, []);
-
   const handleSelectUser = (userId: string) => {
     setSelectedUserId(userId);
     setStep('select-gift');
@@ -139,7 +151,12 @@ export default function SendGiftView() {
 
   const handleSelectGift = (gift: typeof GIFTS[0]) => {
     if (userStars < gift.cost) {
-      alert(`Недостаточно молний! У вас ${userStars}, а нужно ${gift.cost}`);
+      showToast(
+        'error',
+        'Недостаточно молний',
+        `Баланс ${userStars} ⚡ • нужно ${gift.cost} ⚡`,
+        { actionLabel: 'Пополнить', onAction: () => setView('buy-stars') },
+      );
       return;
     }
     setSelectedGift(gift);
@@ -153,7 +170,12 @@ export default function SendGiftView() {
     if (sending) return;
 
     if (userStars < selectedGift.cost) {
-      alert(`Недостаточно молний! У вас ${userStars}, а нужно ${selectedGift.cost}`);
+      showToast(
+        'error',
+        'Недостаточно молний',
+        `Баланс ${userStars} ⚡ • нужно ${selectedGift.cost} ⚡`,
+        { actionLabel: 'Пополнить', onAction: () => setView('buy-stars') },
+      );
       return;
     }
 
@@ -170,13 +192,18 @@ export default function SendGiftView() {
       );
 
       if (!result.success) {
-        alert(`Ошибка: ${result.error}`);
+        showToast('error', 'Не удалось отправить подарок', result.error);
         return;
       }
 
       // Отправляем сообщение с подарком в чат
       const chatId = [currentUser.id, selectedUserId].sort().join('_');
       const timestamp = new Date();
+      const trimmedGreeting = greeting.trim().slice(0, MAX_GREETING_LENGTH);
+      const baseLastMessage = `Подарок: ${selectedGift.name}`;
+      const lastMessagePreview = trimmedGreeting
+        ? `${baseLastMessage} — ${trimmedGreeting}`
+        : baseLastMessage;
       
       // Создаем/обновляем чат
       const chatRef = doc(db, 'chats', chatId);
@@ -186,13 +213,13 @@ export default function SendGiftView() {
         await setDoc(chatRef, {
           participants: [currentUser.id, selectedUserId],
           updatedAt: timestamp,
-          lastMessage: `Подарок: ${selectedGift.name}`,
+          lastMessage: lastMessagePreview,
           lastMessageSenderId: currentUser.id
         });
       } else {
         await updateDoc(chatRef, {
           updatedAt: timestamp,
-          lastMessage: `Подарок: ${selectedGift.name}`,
+          lastMessage: lastMessagePreview,
           lastMessageSenderId: currentUser.id
         });
       }
@@ -204,7 +231,9 @@ export default function SendGiftView() {
       await setDoc(doc(db, 'chats', chatId, 'messages', messageId), {
         chatId,
         senderId: currentUser.id,
-        text: `Подарок: ${selectedGift.emoji} ${selectedGift.name}`,
+        text: trimmedGreeting
+          ? `Подарок: ${selectedGift.emoji} ${selectedGift.name} — ${trimmedGreeting}`
+          : `Подарок: ${selectedGift.emoji} ${selectedGift.name}`,
         time: timeString,
         createdAt: serverTimestamp(),
         status: 'sent',
@@ -214,7 +243,8 @@ export default function SendGiftView() {
           name: selectedGift.name,
           emoji: selectedGift.emoji,
           cost: selectedGift.cost,
-          from: currentUser.id
+          from: currentUser.id,
+          ...(trimmedGreeting ? { greeting: trimmedGreeting } : {}),
         }
       });
 
@@ -226,7 +256,11 @@ export default function SendGiftView() {
       }, 1500);
     } catch (e) {
       console.error('Failed to send gift:', e);
-      alert(`Ошибка при отправке подарка: ${e instanceof Error ? e.message : 'Неизвестная ошибка'}`);
+      showToast(
+        'error',
+        'Ошибка при отправке подарка',
+        e instanceof Error ? e.message : 'Неизвестная ошибка',
+      );
     } finally {
       setSending(false);
     }
@@ -261,48 +295,169 @@ export default function SendGiftView() {
         >
           <ArrowLeft size={24} />
         </button>
-        <h1 className="text-[18px] font-medium">
+        <h1 className="text-[18px] font-medium flex-grow">
           {step === 'select-user' && 'Выберите получателя'}
           {step === 'select-gift' && (sendToSelf ? 'Подарок себе' : 'Выберите подарок')}
           {step === 'confirm' && (sendToSelf ? 'Отправить себе' : 'Отправить подарок')}
         </h1>
+        {/* Баланс в хедере — всегда под рукой */}
+        <div
+          className="hidden sm:flex items-center gap-1 text-[13px] font-semibold bg-white/15 hover:bg-white/20 transition-colors rounded-full px-3 py-1 cursor-pointer"
+          onClick={() => setView('buy-stars')}
+          title="Пополнить баланс"
+        >
+          <Zap size={14} fill="currentColor" className="text-yellow-300" />
+          {userStars}
+        </div>
+      </div>
+
+      {/* Step Indicator — прогресс визуально подсказывает 3 шага */}
+      <div className="px-4 pt-3 shrink-0">
+        <div className="flex items-center gap-1.5">
+          {(['select-user', 'select-gift', 'confirm'] as const).map((s, idx) => {
+            const current =
+              step === 'select-user' ? 0 : step === 'select-gift' ? 1 : 2;
+            const isActive = idx <= current;
+            return (
+              <motion.div
+                key={s}
+                className="h-1 flex-grow rounded-full"
+                initial={false}
+                animate={{
+                  backgroundColor: isActive ? themeColor : '#e5e7eb',
+                  opacity: isActive ? 1 : 0.6,
+                }}
+                transition={{ duration: 0.25 }}
+              />
+            );
+          })}
+        </div>
+        <div className="text-[11px] text-gray-400 mt-1 flex items-center justify-between">
+          <span>
+            Шаг {step === 'select-user' ? 1 : step === 'select-gift' ? 2 : 3} из 3
+          </span>
+          <span className="flex items-center gap-1 sm:hidden">
+            <Zap size={11} fill="currentColor" className="text-yellow-500" />
+            <span className="font-semibold text-gray-600">{userStars}</span>
+          </span>
+        </div>
       </div>
 
       {/* Content */}
       <div className="flex-grow overflow-y-auto p-4">
         {/* Select User */}
         {step === 'select-user' && (
-          <div className="space-y-2">
-            {availableContacts.map(contact => (
-              <button
-                key={contact.id}
-                onClick={() => handleSelectUser(contact.id)}
-                className="w-full bg-white rounded-xl p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-              >
-                {contact.avatarUrl ? (
-                  <Image
-                    src={contact.avatarUrl}
-                    alt={contact.name}
-                    width={48}
-                    height={48}
-                    className="rounded-full object-cover"
-                    referrerPolicy="no-referrer"
-                    unoptimized
+          <div>
+            {/* Поиск по контактам — показываем только при наличии 4+ получателей */}
+            {availableContacts.length >= 4 && (
+              <div className="sticky top-0 z-10 mb-3 -mx-1 px-1 pb-2 bg-tg-bg-light">
+                <div className="relative">
+                  <Search
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                   />
-                ) : (
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium text-[18px]"
-                    style={{ backgroundColor: contact.avatarColor }}
-                  >
-                    {contact.initial}
-                  </div>
-                )}
-                <div className="flex-grow text-left">
-                  <div className="text-[16px] font-medium text-gray-900">{contact.name}</div>
-                  <div className="text-[14px] text-gray-500">{contact.statusOffline}</div>
+                  <input
+                    type="text"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Поиск по имени или @username"
+                    className="w-full bg-gray-100 border border-gray-200 rounded-xl pl-9 pr-9 py-2.5 text-[14px] text-gray-900 placeholder-gray-400 outline-none focus:border-gray-300 focus:bg-white transition-colors"
+                  />
+                  {userSearch && (
+                    <button
+                      onClick={() => setUserSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                      aria-label="Очистить"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </div>
-              </button>
-            ))}
+              </div>
+            )}
+
+            {availableContacts.length === 0 ? (
+              // Пусто: нет контактов вообще — подсказка найти кого-то через главный экран
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-16 text-center"
+              >
+                <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                  <Users size={36} className="text-blue-400" />
+                </div>
+                <div className="text-[17px] font-semibold text-gray-800 mb-1">
+                  Пока нет контактов
+                </div>
+                <p className="text-[14px] text-gray-500 max-w-[260px] mb-4">
+                  Чтобы отправить подарок, сначала начните чат с пользователем на главной.
+                </p>
+                <button
+                  onClick={() => setView('menu')}
+                  className="px-5 py-2.5 rounded-full text-white text-[14px] font-medium shadow-sm hover:shadow-md transition-all"
+                  style={{ backgroundColor: themeColor }}
+                >
+                  Найти собеседника
+                </button>
+              </motion.div>
+            ) : filteredContacts.length === 0 ? (
+              // Пусто: по строке поиска никто не нашёлся
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-12 text-center"
+              >
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                  <Search size={28} className="text-gray-400" />
+                </div>
+                <div className="text-[15px] font-medium text-gray-700 mb-1">
+                  Никого не нашли
+                </div>
+                <p className="text-[13px] text-gray-500">
+                  Попробуйте другой запрос
+                </p>
+              </motion.div>
+            ) : (
+              <div className="space-y-2">
+                {filteredContacts.map((contact, index) => (
+                  <motion.button
+                    key={contact.id}
+                    onClick={() => handleSelectUser(contact.id)}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(index * 0.02, 0.2) }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="w-full bg-white rounded-xl p-4 flex items-center gap-3 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-sm"
+                  >
+                    {contact.avatarUrl ? (
+                      <Image
+                        src={contact.avatarUrl}
+                        alt={contact.name}
+                        width={48}
+                        height={48}
+                        className="rounded-full object-cover"
+                        referrerPolicy="no-referrer"
+                        unoptimized
+                      />
+                    ) : (
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium text-[18px]"
+                        style={{ backgroundColor: contact.avatarColor }}
+                      >
+                        {contact.initial}
+                      </div>
+                    )}
+                    <div className="flex-grow text-left min-w-0">
+                      <div className="text-[16px] font-medium text-gray-900 truncate">{contact.name}</div>
+                      <div className="text-[13px] text-gray-500 truncate">
+                        {contact.username || contact.statusOffline}
+                      </div>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -330,11 +485,9 @@ export default function SendGiftView() {
                 const timeUntilUnlock = getTimeUntilUnlock(gift);
                 const isLocked = !available;
                 const canAfford = userStars >= gift.cost;
-                const isSoldOut = gift.limited && (
-                  (gift.id === 'may_1' && may1Remaining <= 0)
-                );
-
-                const remaining = gift.id === 'may_1' ? may1Remaining : 0;
+                // may_1 был единственным лимитированным подарком — снят с продажи.
+                const isSoldOut = false;
+                const remaining = 0;
                 
                 return (
                   <motion.button
@@ -737,6 +890,58 @@ export default function SendGiftView() {
               </motion.div>
             </motion.div>
 
+            {/* Поздравительное сообщение к подарку (опционально) */}
+            {!sendToSelf && (
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+              >
+                <label className="flex items-center justify-between mb-2">
+                  <span className="text-[14px] font-medium text-gray-800">
+                    Поздравление{' '}
+                    <span className="text-gray-400 font-normal">
+                      (необязательно)
+                    </span>
+                  </span>
+                  <span
+                    className={`text-[11px] tabular-nums ${
+                      greeting.length > MAX_GREETING_LENGTH - 20
+                        ? 'text-orange-500'
+                        : 'text-gray-400'
+                    }`}
+                  >
+                    {greeting.length}/{MAX_GREETING_LENGTH}
+                  </span>
+                </label>
+                <textarea
+                  value={greeting}
+                  onChange={(e) =>
+                    setGreeting(e.target.value.slice(0, MAX_GREETING_LENGTH))
+                  }
+                  placeholder={`Напишите ${selectedContact.name} пару тёплых слов…`}
+                  rows={2}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[14px] text-gray-900 placeholder-gray-400 outline-none focus:border-gray-300 focus:bg-white transition-colors resize-none"
+                />
+                {/* Быстрые шаблоны поздравлений для ленивых пальцев */}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {['С праздником! 🎉', 'От души ❤️', 'Ты лучший(ая) ✨'].map(
+                    (t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setGreeting(t)}
+                        className="text-[12px] text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full px-2.5 py-1 transition-colors"
+                      >
+                        {t}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </motion.div>
+            )}
+
             <motion.button
               onClick={handleSendGift}
               disabled={sending}
@@ -920,6 +1125,9 @@ export default function SendGiftView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Глобальный toast для ошибок/успехов отправки подарков */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </motion.div>
   );
 }

@@ -4,6 +4,11 @@
 // getGiftAnimatedUrl без затягивания всего экрана отправки подарка
 // (~950 строк JSX + framer-motion + firebase) в свой бандл.
 
+// Приветственный бонус: каждому новому пользователю при регистрации
+// (e-mail + пароль или первый вход через Google) начисляются молнии,
+// чтобы он сразу мог отправлять подарки.
+export const WELCOME_BONUS_STARS = 250;
+
 export interface Gift {
   id: string;
   name: string;
@@ -103,23 +108,6 @@ export const GIFTS: Gift[] = [
     available: true,
     animated: true,
   },
-  {
-    id: 'may_1',
-    name: '1 Мая',
-    emoji: '🌷',
-    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Tulip.webp',
-    cost: 50,
-    animation: 'may1',
-    available: false,
-    // 1 мая 09:00 МСК = 06:00 UTC.
-    unlockDate: new Date('2026-05-01T06:00:00.000Z'),
-    special: true,
-    description: 'С праздником весны и труда!',
-    limited: true,
-    totalLimit: 15,
-    mayTheme: true,
-    animated: true,
-  },
 ];
 
 // Анимированные URL для подарков, которые сняты с продажи, но всё ещё могут
@@ -131,6 +119,11 @@ const LEGACY_GIFT_ANIMATED_URLS: Record<string, string> = {
     'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Rabbit%20Face.webp',
   cosmonaut:
     'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Travel%20and%20Places/Rocket.webp',
+  // Подарок "1 Мая" снят с продажи, но в истории чатов пользователей может
+  // остаться — сохраняем анимированную картинку тюльпана, чтобы сообщение
+  // отображалось корректно.
+  may_1:
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Animals%20and%20Nature/Tulip.webp',
 };
 
 export function getGiftAnimatedUrl(giftId: string): string | null {

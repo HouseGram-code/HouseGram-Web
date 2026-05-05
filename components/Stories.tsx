@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, addDoc, query, where, getDocs, orderBy, updateDoc, doc, arrayUnion, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, orderBy, updateDoc, doc, arrayUnion, getDoc, onSnapshot, FirestoreError } from 'firebase/firestore';
 import { uploadFile } from '@/lib/storage-wrapper';
 import StoryViewer from './StoryViewer';
 
@@ -114,7 +114,14 @@ export default function Stories() {
       
       setStories(updatedStories);
     } catch (error) {
-      console.error('Error loading stories:', error);
+      const code = (error as FirestoreError)?.code;
+      if (code === 'permission-denied') {
+        console.warn(
+          '[Stories] permission-denied при загрузке (возможно, не задеплоены firestore.rules)',
+        );
+      } else {
+        console.error('Error loading stories:', error);
+      }
     }
   };
 

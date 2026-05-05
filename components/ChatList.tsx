@@ -445,16 +445,51 @@ export default function ChatList() {
             <p className="text-[14px] text-gray-500">Попробуйте изменить запрос</p>
           </motion.div>
         )}
+        {/* Empty state — ни активных чатов, ни поискового запроса */}
+        {!isSearching && sortedContacts.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center justify-center px-8 py-16 text-center"
+          >
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+              className="w-24 h-24 rounded-full flex items-center justify-center mb-5 shadow-md"
+              style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}AA)` }}
+            >
+              <Edit2 size={38} className="text-white" />
+            </motion.div>
+            <h3 className="text-[18px] font-semibold text-tg-text-primary mb-1.5">
+              Пока нет чатов
+            </h3>
+            <p className="text-[14px] text-tg-secondary-text max-w-[280px] leading-relaxed mb-5">
+              Найдите пользователя по имени или @username и начните первую переписку.
+            </p>
+            <button
+              onClick={() => { setIsSearching(true); setSearchQuery(''); }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-[14px] font-medium shadow-sm hover:shadow-md active:scale-[0.98] transition-all"
+              style={{ backgroundColor: themeColor }}
+            >
+              <Search size={16} />
+              Найти людей
+            </button>
+          </motion.div>
+        )}
       </div>
 
       <motion.button
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         whileTap={{ scale: 0.92 }}
+        whileHover={{ scale: 1.05 }}
         transition={{ type: 'spring', bounce: 0.35, duration: 0.25 }}
+        onClick={() => { setIsSearching(true); setSearchQuery(''); }}
         className="absolute bottom-5 right-5 w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl active:shadow-md transition-shadow text-white z-10"
         style={{ backgroundColor: themeColor }}
         aria-label="Новый чат"
+        title="Новый чат — поиск пользователя"
       >
         <Edit2 size={22} />
       </motion.button>

@@ -3,34 +3,35 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Демо конфигурация для работы без настройки
-const demoConfig = {
-  apiKey: "AIzaSyDemo_Key_For_Testing_Only",
-  authDomain: "demo-housegram.firebaseapp.com",
-  projectId: "demo-housegram",
-  storageBucket: "demo-housegram.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:demo",
-  measurementId: "G-DEMO"
+// Реальная конфигурация проекта housegramweb. Эти значения предназначены для
+// клиентского SDK Firebase и не являются секретом — их безопасно публиковать
+// (доступ к данным контролируется через Firestore Rules / App Check).
+const defaultConfig = {
+  apiKey: "AIzaSyCzGlPzYOjZMKG9u5sx1UYTTM08GvywabU",
+  authDomain: "housegramweb.firebaseapp.com",
+  databaseURL: "https://housegramweb-default-rtdb.firebaseio.com",
+  projectId: "housegramweb",
+  storageBucket: "housegramweb.firebasestorage.app",
+  messagingSenderId: "865820988349",
+  appId: "1:865820988349:web:f064ac2fcf646056e6f8d4",
+  measurementId: "G-CSBB5C368G",
 };
 
-// Конфигурация через переменные окружения (с фоллбэком на демо)
+// Конфигурация через переменные окружения (с фоллбэком на дефолтный housegramweb)
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || demoConfig.apiKey,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || demoConfig.authDomain,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || demoConfig.projectId,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || demoConfig.storageBucket,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || demoConfig.messagingSenderId,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || demoConfig.appId,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || demoConfig.measurementId
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || defaultConfig.apiKey,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || defaultConfig.authDomain,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || defaultConfig.databaseURL,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || defaultConfig.projectId,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || defaultConfig.storageBucket,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || defaultConfig.messagingSenderId,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || defaultConfig.appId,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || defaultConfig.measurementId,
 };
 
-// Проверяем используется ли демо режим
-export const isDemoMode = !process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-
-if (isDemoMode && typeof window !== 'undefined') {
-  console.log('🎭 Работа в ДЕМО режиме. Для полной функциональности настройте Firebase.');
-}
+// Демо-режим был удалён вместе с фейковым ключом, чтобы не путать поведение
+// клиента и не падать с auth-ошибками при работе без env-переменных.
+export const isDemoMode = false;
 
 // Инициализируем Firebase
 let app;
