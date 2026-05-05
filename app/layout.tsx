@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Roboto } from 'next/font/google';
 import './globals.css';
 // import MegaStorageProvider from '@/components/MegaStorageProvider'; // Отключено: MEGA требует платный аккаунт
@@ -27,12 +27,33 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/manifest.json',
-  themeColor: '#517da2',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'HouseGram',
   },
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
+};
+
+// Viewport-конфиг вынесен в отдельный export (Next.js 13.4+ API).
+// viewportFit=cover + safe-area-inset-* делают интерфейс корректным
+// на iPhone с notch/Dynamic Island. maximum/user-scalable блокируют
+// случайный pinch-zoom, из-за которого мессенджер плывёт при быстром
+// тапе по полю ввода.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#517da2' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f0f0f' },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

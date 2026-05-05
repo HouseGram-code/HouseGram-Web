@@ -189,7 +189,7 @@ export default function ChatList() {
       className="absolute inset-0 bg-tg-bg-light flex flex-col"
     >
       <div 
-        className={`text-tg-header-text px-3 h-14 flex items-center gap-4 shrink-0 absolute top-0 left-0 w-full z-20 transition-all duration-300 ${isGlassEnabled ? 'backdrop-blur-xl border-b border-white/20 shadow-lg' : 'shadow-md'}`}
+        className={`text-tg-header-text px-3 h-[calc(3.5rem+env(safe-area-inset-top))] pt-safe flex items-center gap-4 shrink-0 absolute top-0 left-0 w-full z-20 transition-all duration-300 ${isGlassEnabled ? 'backdrop-blur-xl border-b border-white/20 shadow-lg' : 'shadow-md'}`}
         style={{ backgroundColor: isGlassEnabled ? themeColor + 'DD' : themeColor }}
       >
         <AnimatePresence mode="wait">
@@ -275,7 +275,7 @@ export default function ChatList() {
         </AnimatePresence>
       </div>
 
-      <div className="flex-grow overflow-y-auto pt-14 no-scrollbar">
+      <div className="flex-grow overflow-y-auto pt-[calc(3.5rem+env(safe-area-inset-top))] no-scrollbar">
         {/* Stories - только когда не в режиме поиска */}
         {!isSearching && <Stories />}
         

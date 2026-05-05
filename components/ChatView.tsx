@@ -717,7 +717,7 @@ export default function ChatView() {
       {/* Header */}
       <motion.div
         initial={false}
-        className={`text-tg-header-text px-2.5 h-12 flex items-center gap-2.5 shrink-0 transition-colors fixed top-0 left-0 right-0 z-30 ${isGlassEnabled ? 'backdrop-blur-xl border-b border-white/20 shadow-xl' : 'shadow-lg'}`}
+        className={`text-tg-header-text px-2.5 h-[calc(3rem+env(safe-area-inset-top))] pt-safe flex items-center gap-2.5 shrink-0 transition-colors absolute top-0 left-0 right-0 z-30 ${isGlassEnabled ? 'backdrop-blur-xl border-b border-white/20 shadow-xl' : 'shadow-lg'}`}
         style={{ backgroundColor: isGlassEnabled ? themeColor + 'DD' : themeColor }}
       >
         <motion.button 
@@ -869,7 +869,7 @@ export default function ChatView() {
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-grow overflow-y-auto p-2.5 pt-14 flex flex-col gap-0.5 no-scrollbar relative z-10"
+        className="flex-grow overflow-y-auto p-2.5 pt-[calc(3.5rem+env(safe-area-inset-top))] flex flex-col gap-0.5 no-scrollbar relative z-10"
         style={{
           backgroundImage: wallpaper && !wallpaper.startsWith('linear') ? `url('${wallpaper}')` : 'none',
           background: wallpaper || 'var(--tg-bg-dark)',

@@ -320,24 +320,77 @@ function AppContent() {
     return () => clearTimeout(t);
   }, [user, isAppReady]);
 
-  // Контейнер-обёртка для мобильной версии
+  // Контейнер-обёртка для мобильной версии: всегда на полный экран.
+  // Раньше на sm+ показывался узкий "фейковый телефон" (max-w-420px,
+  // rounded-24px) — на реальных мобильных и планшетах это выглядело
+  // правильно, но на ПК превращалось в бесполезный каркас посреди
+  // огромного пустого фона. Для десктопа теперь отдельный DesktopLayout.
   const MobileShell = ({ children }: { children: React.ReactNode }) => (
-    <div className={`relative w-full h-[100dvh] overflow-hidden sm:max-w-[420px] sm:shadow-2xl sm:rounded-[24px] sm:h-[800px] sm:max-h-[90vh] ${isDarkMode ? 'bg-[#0f0f0f] dark' : 'bg-tg-bg-light'}`}>
+    <div
+      className={`fixed inset-0 w-full h-[100dvh] overflow-hidden ${
+        isDarkMode ? 'bg-[#0f0f0f] dark' : 'bg-tg-bg-light'
+      }`}
+    >
       {children}
     </div>
   );
 
+  // Заглушка для правой панели на десктопе, когда пользователь ещё не
+  // выбрал чат/раздел. Список чатов уже виден слева, так что здесь —
+  // просто приветствие в духе Telegram/WhatsApp Desktop.
+  const DesktopWelcome = () => (
+    <div
+      className={`h-full w-full flex items-center justify-center p-8 ${
+        isDarkMode ? 'bg-[#0f0f0f] text-gray-400' : 'bg-gray-50 text-gray-500'
+      }`}
+    >
+      <div className="text-center max-w-sm">
+        <div
+          className="w-24 h-24 mx-auto mb-6 rounded-3xl flex items-center justify-center shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, #42a5f5, #1976d2)',
+          }}
+        >
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
+        <h2
+          className={`text-2xl font-semibold mb-2 ${
+            isDarkMode ? 'text-gray-100' : 'text-gray-800'
+          }`}
+        >
+          HouseGram Web
+        </h2>
+        <p className="text-sm leading-relaxed">
+          Выберите чат слева, чтобы начать переписку,
+          <br />
+          или создайте новый через кнопку поиска.
+        </p>
+        <p
+          className={`text-xs mt-6 opacity-60 ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`}
+        >
+          Концы переписки защищены правилами Firestore.
+        </p>
+      </div>
+    </div>
+  );
+
+  // Auth и Locked экраны всегда показываем на весь viewport без
+  // DesktopLayout-сайдбара: пока пользователь не залогинен или заблокирован,
+  // боковая панель со списком чатов либо пустая, либо бессмысленная.
   if (view === 'auth' || !user) {
-    if (isDesktop) {
-      return (
-        <DesktopLayout>
-          <Suspense fallback={<LoadingSpinner />}>
-            <AuthView />
-          </Suspense>
-        </DesktopLayout>
-      );
-    }
-    
     return (
       <MobileShell>
         <Suspense fallback={<LoadingSpinner />}>
@@ -357,16 +410,6 @@ function AppContent() {
   }
 
   if (isLocked) {
-    if (isDesktop) {
-      return (
-        <DesktopLayout>
-          <Suspense fallback={<LoadingSpinner />}>
-            <PasscodeScreen />
-          </Suspense>
-        </DesktopLayout>
-      );
-    }
-    
     return (
       <MobileShell>
         <Suspense fallback={<LoadingSpinner />}>
@@ -381,18 +424,26 @@ function AppContent() {
 
   // Desktop Layout
   if (isDesktop) {
+    // ChatList уже рендерится в средней колонке DesktopLayout. Чтобы не
+    // дублировать его в правой панели при view='menu', показываем здесь
+    // welcome-заглушку — пользователь видит список чатов слева и пустую
+    // область справа, ровно как в Telegram/WhatsApp Desktop.
+    const desktopContent =
+      view === 'menu' ? (
+        <DesktopWelcome key="welcome" />
+      ) : (
+        ActiveView && <ActiveView key={`${view}-${activeChatId || 'none'}`} />
+      );
+
     return (
       <DesktopLayout>
-        {/* Connection Loader */}
-        <ConnectionLoader 
-          isVisible={showConnectionLoader} 
-          onComplete={handleConnectionComplete} 
+        <ConnectionLoader
+          isVisible={showConnectionLoader}
+          onComplete={handleConnectionComplete}
         />
-
-        {/* Main App Content */}
         {isAppReady && (
           <AnimatePresence initial={false} mode="popLayout">
-            {ActiveView && <ActiveView key={`${view}-${activeChatId || 'none'}`} />}
+            {desktopContent}
           </AnimatePresence>
         )}
       </DesktopLayout>

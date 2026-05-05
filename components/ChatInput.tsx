@@ -146,14 +146,14 @@ const ChatInput = memo(forwardRef<ChatInputHandle, ChatInputProps>(function Chat
 
   if (isBlocked) {
     return (
-      <div className={`flex items-center justify-center px-4 py-3 border-t border-gray-200 shrink-0 ${isGlassEnabled ? 'backdrop-blur-xl bg-white/80' : 'bg-white'}`}>
+      <div className={`flex items-center justify-center px-4 py-3 pb-safe border-t border-gray-200 shrink-0 ${isGlassEnabled ? 'backdrop-blur-xl bg-white/80' : 'bg-white'}`}>
         <span className="text-gray-500 text-[15px]">Вы заблокировали этого пользователя</span>
       </div>
     );
   }
 
   return (
-    <div className={`shrink-0 border-t border-gray-200 ${isGlassEnabled ? 'backdrop-blur-xl bg-white/80' : 'bg-white'}`}>
+    <div className={`shrink-0 border-t border-gray-200 pb-safe ${isGlassEnabled ? 'backdrop-blur-xl bg-white/80' : 'bg-white'}`}>
       {/* Reply Preview */}
       <AnimatePresence>
         {replyingTo && (

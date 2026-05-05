@@ -46,10 +46,51 @@
 }
 
 @layer base {
+  html {
+    /* Убираем синий "тап-флеш" на iOS/Android при клике по интерактивным
+       элементам, а также препятствуем автоматическому увеличению шрифта
+       Safari при поворотах экрана. */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     font-family: var(--font-roboto), sans-serif;
-    @apply bg-[#e5e5e5] min-h-[100dvh] m-0 p-0 overflow-hidden sm:flex sm:justify-center sm:items-center;
+    @apply bg-[#e5e5e5] dark:bg-[#0f0f0f] min-h-[100dvh] m-0 p-0 overflow-hidden;
+    /* Отключаем pull-to-refresh и "резинку" на iOS — для мессенджера это
+       ощущается как баг. Внутренние скролл-контейнеры оставляем обычными. */
+    overscroll-behavior-y: none;
   }
+
+  /* Пальцы → клики без 300ms задержки. Применяем только к интерактивам:
+     в input/textarea touch-action должен оставаться auto для выделения. */
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+}
+
+/* Safe-area утилиты для iPhone с notch / Dynamic Island и Android с gesture bar.
+   Используются в хедерах (pt-safe) и в нижних панелях ввода (pb-safe). */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+@utility pr-safe {
+  padding-right: env(safe-area-inset-right);
+}
+@utility h-safe-screen {
+  /* 100dvh учитывает динамическую панель адреса в Safari/Chrome mobile,
+     в отличие от 100vh, из-за которого футер "прыгает" при прокрутке. */
+  height: 100dvh;
+  min-height: 100dvh;
 }
 
 /* Message animations - prevent disappearing flicker */
