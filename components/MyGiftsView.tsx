@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Gift, Star, Loader2, Sparkles, Zap } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { getUserGifts, convertGiftToStars, ReceivedGift } from '@/lib/firebase-gifts';
 import { getGiftAnimatedUrl } from '@/lib/gifts';
 import Image from 'next/image';
@@ -14,23 +16,48 @@ export default function MyGiftsView() {
   const [loading, setLoading] = useState(true);
   const [converting, setConverting] = useState<string | null>(null);
 
+  // Реальное время: подписываемся на свою subcollection received_gifts, чтобы
+  // только что присланный подарок появлялся моментально, без перехода
+  // с другого экрана и обратно (раньше был getDocs разовым вызовом).
   useEffect(() => {
-    if (!currentUser?.id) return;
-    
-    loadGifts();
+    if (!currentUser?.id) {
+      setLoading(false);
+      return;
+    }
+
+    const giftsRef = collection(db, 'users', currentUser.id, 'received_gifts');
+    const unsubscribe = onSnapshot(
+      giftsRef,
+      (snapshot) => {
+        const items: ReceivedGift[] = snapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as ReceivedGift,
+        );
+        items.sort((a, b) => {
+          const aTime = a.received_at?.toMillis?.() || 0;
+          const bTime = b.received_at?.toMillis?.() || 0;
+          return bTime - aTime;
+        });
+        setGifts(items);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error subscribing to gifts:', error);
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
   }, [currentUser]);
 
+  // Fallback для кода, который ждёт loadGifts() (при convert снимки
+  // обновятся автоматически через onSnapshot выше).
   const loadGifts = async () => {
     if (!currentUser?.id) return;
-    
-    setLoading(true);
     try {
       const userGifts = await getUserGifts(currentUser.id);
       setGifts(userGifts);
     } catch (error) {
       console.error('Error loading gifts:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

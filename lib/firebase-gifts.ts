@@ -221,9 +221,14 @@ export async function sendGift(
       received_at: serverTimestamp()
     });
     
-    // 6. Добавляем в глобальную коллекцию для статистики
+    // 6. Добавляем в глобальную коллекцию для статистики.
+    // Сохраняем name + emoji прямо в документе, чтобы UserGiftsView
+    // не зависел от захардкоженной мапы подарков (иначе новые подарки
+    // показывались как «Подарок 🎁» вместо настоящего названия).
     await addDoc(collection(db, 'gifts_sent'), {
       gift_id: giftId,
+      gift_name: giftName,
+      gift_emoji: giftEmoji,
       from_user_id: fromUserId,
       to_user_id: toUserId,
       cost: giftCost,

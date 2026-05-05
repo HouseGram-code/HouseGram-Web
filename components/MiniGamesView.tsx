@@ -489,11 +489,11 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
               initial={{ scale: 1.2 }}
               animate={{ scale: 1 }}
             >
-              <span className="break-all">{coins.toFixed(4)}</span>
+              <span className="break-all">{coins.toFixed(2)}</span>
               <Coins size={28} className="text-white shrink-0" />
             </motion.div>
             <div className="text-white/80 text-[12px] sm:text-[13px] mt-1">
-              {coinsPerSecond > 0 && `+${coinsPerSecond.toFixed(4)} HC/сек`}
+              {coinsPerSecond > 0 && `+${coinsPerSecond.toFixed(2)} HC/сек`}
             </div>
           </div>
         </motion.div>

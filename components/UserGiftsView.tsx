@@ -5,13 +5,16 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Gift, User, Loader2, Zap } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { getGiftAnimatedUrl } from '@/lib/gifts';
 import Image from 'next/image';
 
 interface SentGift {
   id: string;
   gift_id: string;
+  /** Приходит из sendGift после фикса — для старых документов может отсутствовать. */
+  gift_name?: string;
+  gift_emoji?: string;
   to_user_id: string;
   cost: number;
   sent_at: any;
@@ -22,37 +25,42 @@ export default function UserGiftsView() {
   const [gifts, setGifts] = useState<SentGift[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Реальное время: отправленный подарок появляется моментально в истории.
+  // Не используем orderBy — чтобы не требовался composite-индекс
+  // (from_user_id + sent_at DESC), сортируем на клиенте.
   useEffect(() => {
-    if (!currentUser?.id) return;
-    
-    loadSentGifts();
-  }, [currentUser]);
-
-  const loadSentGifts = async () => {
-    if (!currentUser?.id) return;
-    
-    setLoading(true);
-    try {
-      const q = query(
-        collection(db, 'gifts_sent'),
-        where('from_user_id', '==', currentUser.id),
-        orderBy('sent_at', 'desc')
-      );
-      
-      const snapshot = await getDocs(q);
-      const sentGifts: SentGift[] = [];
-      
-      snapshot.forEach((doc) => {
-        sentGifts.push({ id: doc.id, ...doc.data() } as SentGift);
-      });
-      
-      setGifts(sentGifts);
-    } catch (error) {
-      console.error('Error loading sent gifts:', error);
-    } finally {
+    if (!currentUser?.id) {
       setLoading(false);
+      return;
     }
-  };
+
+    const q = query(
+      collection(db, 'gifts_sent'),
+      where('from_user_id', '==', currentUser.id),
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items: SentGift[] = snapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as SentGift,
+        );
+        items.sort((a, b) => {
+          const aTime = a.sent_at?.toMillis?.() || 0;
+          const bTime = b.sent_at?.toMillis?.() || 0;
+          return bTime - aTime;
+        });
+        setGifts(items);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error subscribing to sent gifts:', error);
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return '';
@@ -71,7 +79,18 @@ export default function UserGiftsView() {
     return contact?.name || 'Пользователь';
   };
 
-  const getGiftInfo = (giftId: string) => {
+  // Берём name/emoji сначала из сохранённых полей в документе (новый
+  // формат после фикса sendGift); для старых записей — фолбэк на
+  // захардкоженную мапу, чтобы уже отправленные подарки не превратились
+  // в безымянные «Подарок 🎁».
+  const getGiftInfo = (gift: SentGift) => {
+    if (gift.gift_name || gift.gift_emoji) {
+      return {
+        name: gift.gift_name || 'Подарок',
+        emoji: gift.gift_emoji || '🎁',
+      };
+    }
+
     const giftMap: Record<string, { name: string; emoji: string }> = {
       'teddy_bear': { name: 'Плюшевый мишка', emoji: '🧸' },
       'red_heart': { name: 'Красное сердце', emoji: '❤️' },
@@ -83,10 +102,10 @@ export default function UserGiftsView() {
       'crown': { name: 'Корона', emoji: '👑' },
       'easter_bunny': { name: 'Пасхальный заяц', emoji: '🐰🥚' },
       'cosmonaut': { name: 'Космонавт', emoji: '👨‍🚀🚀' },
-      'may_1': { name: '1 Мая', emoji: '🌷' }
+      'may_1': { name: '1 Мая', emoji: '🌷' },
     };
-    
-    return giftMap[giftId] || { name: 'Подарок', emoji: '🎁' };
+
+    return giftMap[gift.gift_id] || { name: 'Подарок', emoji: '🎁' };
   };
 
   return (
@@ -140,7 +159,7 @@ export default function UserGiftsView() {
           <div className="grid grid-cols-1 gap-3">
             <AnimatePresence>
               {gifts.map((gift, index) => {
-                const giftInfo = getGiftInfo(gift.gift_id);
+                const giftInfo = getGiftInfo(gift);
                 
                 return (
                   <motion.div

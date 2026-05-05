@@ -1238,12 +1238,15 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!activeChatId || !user) return;
-    
-    // Для initialContacts (бот, избранное) не слушаем Firebase
-    if (initialContacts[activeChatId]) {
+
+    // Для test_bot сохраняем локальное welcome-сообщение из initialContacts
+    // (AI-ответы все равно приходят через listener ниже, поэтому пропускаем
+    // только test_bot, но НЕ saved_messages — туда нужна подписка, иначе
+    // сохранённые сообщения не читаются обратно из Firestore и чат пустой).
+    if (activeChatId === 'test_bot') {
       return;
     }
-    
+
     const contact = contacts[activeChatId];
     
     // Для каналов загружаем сообщения из коллекции channels

@@ -418,15 +418,20 @@ export default function ProfileView() {
           </div>
         )}
 
-        {/* User Stats — спокойный блок, все числа цветом темы. */}
+        {/* User Stats — спокойный блок, все числа цветом темы.
+            Баланс молний ⚡ это приватная финансовая информация, показываем
+            его ТОЛЬКО на собственном профиле. Для чужих пользователей
+            выводим только публичную статистику подарков (отправлено/получено). */}
         {!displayContact.isChannel && displayContact.id !== 'saved_messages' && displayContact.id !== 'test_bot' && (
           <div className="mx-4 mt-4 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-xl overflow-hidden">
             <div className="px-4 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Статистика</div>
-            <div className="grid grid-cols-3 px-2 pb-3">
-              <div className="p-2 text-center">
-                <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userStats.stars}</div>
-                <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">⚡ Молний</div>
-              </div>
+            <div className={`grid ${isOwnProfile ? 'grid-cols-3' : 'grid-cols-2'} px-2 pb-3`}>
+              {isOwnProfile && (
+                <div className="p-2 text-center">
+                  <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userStats.stars}</div>
+                  <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">⚡ Молний</div>
+                </div>
+              )}
               <div className="p-2 text-center">
                 <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userStats.giftsSent}</div>
                 <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">🎁 Отправлено</div>
