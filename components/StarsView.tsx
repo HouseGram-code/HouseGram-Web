@@ -341,6 +341,15 @@ export default function StarsView() {
               <motion.div
                 animate={{ x: [0, 5, 0] }}
                 transition={{ duration: 0.8, repeat: Infinity }}
+              >
+                <ArrowLeft size={18} className="rotate-180" />
+              </motion.div>
+            </motion.div>
+
+            <motion.div 
+              className="mt-3 text-white/80 text-[13px] font-medium flex items-center justify-center gap-1"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
             >
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
