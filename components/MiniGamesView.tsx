@@ -2,10 +2,16 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Gamepad2, Coins, Zap, TrendingUp, Star, Crown, Gift } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, Gamepad2, Coins, Zap, TrendingUp, Star, Crown, Gift, Wallet, ArrowDownToLine, Loader2, X, CheckCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+
+// Комиссия при выводе HouseCoin из клиeкера в основной кошелёк (walletBalance).
+const WITHDRAW_COMMISSION_RATE = 0.05;
+// Минимальная сумма для вывода — иначе пыль из 0.0001 будет генерировать
+// тысячи микро-транзакций без смысла.
+const MIN_WITHDRAW = 0.01;
 
 export default function MiniGamesView() {
   const { setView, themeColor } = useChat();
@@ -255,11 +261,26 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
   const [clickAnimations, setClickAnimations] = useState<Array<{ id: number; x: number; y: number }>>([]);
   const [showUpgrades, setShowUpgrades] = useState(false);
   const [loading, setLoading] = useState(true);
-  
+
   // Защита от автокликера
   const [clickCount, setClickCount] = useState(0);
   const [clickTimestamp, setClickTimestamp] = useState(Date.now());
   const [isBlocked, setIsBlocked] = useState(false);
+
+  // Вывод средств в основной кошелёк
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawSuccess, setWithdrawSuccess] = useState<{ amount: number; commission: number } | null>(null);
+
+  // Ref на актуальный state для save-функции, которая запускается из
+  // setInterval / visibilitychange / unmount cleanup. Без ref нам пришлось
+  // бы перезапускать interval на каждый клик (как было раньше — отсюда и
+  // баг: debounce-timeout сбрасывался каждым кликом и save НИКОГДА не
+  // срабатывал, если играли быстрее 2 сек).
+  const stateRef = useRef({ coins, coinsPerClick, coinsPerSecond, clickUpgradeLevel, autoUpgradeLevel });
+  useEffect(() => {
+    stateRef.current = { coins, coinsPerClick, coinsPerSecond, clickUpgradeLevel, autoUpgradeLevel };
+  }, [coins, coinsPerClick, coinsPerSecond, clickUpgradeLevel, autoUpgradeLevel]);
 
   // Load game progress from Firestore
   useEffect(() => {
@@ -315,37 +336,111 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
     loadProgress();
   }, [currentUser, onBack]);
 
-  // Save game progress to Firestore
+  // Save game progress to Firestore.
+  // КРИТИЧНО: эффект НЕ должен зависеть от coins — иначе interval/timeout
+  // будет пересоздаваться на каждый клик и save никогда не сработает
+  // (это и был баг «1000 кликов не сохранилось»). Все актуальные значения
+  // читаем из stateRef, который обновляется отдельным эффектом выше.
   useEffect(() => {
     if (!currentUser?.id || loading) return;
-    
+
+    const userId = currentUser.id;
+
     const saveProgress = async () => {
+      const s = stateRef.current;
+      if (s.coins < 0 || isNaN(s.coins)) {
+        console.error('Invalid coins value, skipping save:', s.coins);
+        return;
+      }
       try {
-        // Проверяем, что значения корректны перед сохранением
-        if (coins < 0 || isNaN(coins)) {
-          console.error('Invalid coins value:', coins);
-          return;
-        }
-        
-        await updateDoc(doc(db, 'users', currentUser.id), {
-          'gameProgress.cryptoClicker': {
-            coins,
-            coinsPerClick,
-            coinsPerSecond,
-            clickUpgradeLevel,
-            autoUpgradeLevel,
-            lastSaved: serverTimestamp()
-          }
+        await updateDoc(doc(db, 'users', userId), {
+          'gameProgress.cryptoClicker.coins': s.coins,
+          'gameProgress.cryptoClicker.coinsPerClick': s.coinsPerClick,
+          'gameProgress.cryptoClicker.coinsPerSecond': s.coinsPerSecond,
+          'gameProgress.cryptoClicker.clickUpgradeLevel': s.clickUpgradeLevel,
+          'gameProgress.cryptoClicker.autoUpgradeLevel': s.autoUpgradeLevel,
+          'gameProgress.cryptoClicker.lastSaved': serverTimestamp(),
         });
       } catch (error) {
         console.error('Error saving game progress:', error);
       }
     };
-    
-    // Debounce save - save every 2 seconds
-    const timer = setTimeout(saveProgress, 2000);
-    return () => clearTimeout(timer);
-  }, [coins, coinsPerClick, coinsPerSecond, clickUpgradeLevel, autoUpgradeLevel, currentUser, loading]);
+
+    // 1) Периодический автосейв каждые 3 секунды.
+    const interval = setInterval(saveProgress, 3000);
+
+    // 2) Сохраняем при сворачивании вкладки/закрытии окна — иначе кнопка
+    //    «закрыть» прямо после кликов потеряет последние 3 секунды прогресса.
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveProgress();
+      }
+    };
+    const onBeforeUnload = () => {
+      saveProgress();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      // 3) Финальный flush при размонтировании (выход из мини-игры в меню).
+      saveProgress();
+    };
+  }, [currentUser, loading]);
+
+  // Вывод HouseCoin из клиeкера в основной кошелёк (walletBalance) с комиссией.
+  // Атомарно через runTransaction, чтобы не было гонок: одной транзакцией
+  // обнуляем cryptoClicker.coins и увеличиваем walletBalance на (coins - 5%).
+  const handleWithdraw = async () => {
+    if (!currentUser?.id) return;
+    if (withdrawing) return;
+    if (coins < MIN_WITHDRAW) {
+      alert(`Минимум для вывода: ${MIN_WITHDRAW.toFixed(2)} HC`);
+      return;
+    }
+
+    const withdrawAmount = coins;
+    const commission = withdrawAmount * WITHDRAW_COMMISSION_RATE;
+    const finalAmount = withdrawAmount - commission;
+    const userId = currentUser.id;
+
+    setWithdrawing(true);
+    try {
+      await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, 'users', userId);
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) {
+          throw new Error('Пользователь не найден');
+        }
+        const data = userDoc.data();
+        const currentWallet = data.walletBalance || 0;
+        const prevTotalWithdrawn = data.gameProgress?.cryptoClicker?.totalWithdrawn || 0;
+
+        transaction.update(userRef, {
+          walletBalance: currentWallet + finalAmount,
+          'gameProgress.cryptoClicker.coins': 0,
+          'gameProgress.cryptoClicker.lastWithdrawAt': serverTimestamp(),
+          'gameProgress.cryptoClicker.totalWithdrawn': prevTotalWithdrawn + finalAmount,
+        });
+      });
+
+      // Обнуляем локальный баланс — UI и stateRef обновятся синхронно,
+      // следующий автосейв просто перезапишет coins=0 (что уже и так в БД).
+      setCoins(0);
+      setShowWithdrawModal(false);
+      setWithdrawSuccess({ amount: finalAmount, commission });
+      // Скрываем тост успеха через 4 секунды.
+      setTimeout(() => setWithdrawSuccess(null), 4000);
+    } catch (error) {
+      console.error('Withdraw failed:', error);
+      alert('Ошибка при выводе: ' + (error instanceof Error ? error.message : 'Unknown'));
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   // Auto-earn coins
   useEffect(() => {
@@ -495,6 +590,32 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
             <div className="text-white/80 text-[12px] sm:text-[13px] mt-1">
               {coinsPerSecond > 0 && `+${coinsPerSecond.toFixed(2)} HC/сек`}
             </div>
+            {/* Кнопка вывода в основной кошелёк. Активна только когда
+                накоплен минимум; иначе показываем подсказку. */}
+            <motion.button
+              type="button"
+              onClick={() => setShowWithdrawModal(true)}
+              disabled={coins < MIN_WITHDRAW || withdrawing}
+              whileHover={coins >= MIN_WITHDRAW ? { scale: 1.03 } : {}}
+              whileTap={coins >= MIN_WITHDRAW ? { scale: 0.97 } : {}}
+              className={`mt-3 sm:mt-4 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-[13px] sm:text-[14px] font-semibold transition-colors ${
+                coins >= MIN_WITHDRAW && !withdrawing
+                  ? 'bg-white text-orange-600 hover:bg-yellow-50 shadow-lg'
+                  : 'bg-white/30 text-white/70 cursor-not-allowed'
+              }`}
+            >
+              {withdrawing ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <ArrowDownToLine size={16} />
+              )}
+              <span>Вывести в кошелёк</span>
+            </motion.button>
+            {coins > 0 && coins < MIN_WITHDRAW && (
+              <div className="text-white/70 text-[10px] sm:text-[11px] mt-1.5">
+                Минимум {MIN_WITHDRAW.toFixed(2)} HC для вывода
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -652,6 +773,123 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
           )}
         </AnimatePresence>
       </div>
+
+      {/* Withdraw Modal: подтверждение перевода HouseCoin в кошелёк.
+          Показываем сумму, комиссию (5%) и итог; всё считаем от текущего coins. */}
+      <AnimatePresence>
+        {showWithdrawModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            onClick={() => !withdrawing && setShowWithdrawModal(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 40, opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md bg-white rounded-3xl p-5 sm:p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-lg">
+                    <Wallet size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-[17px] font-bold text-gray-900 leading-tight">Вывод в кошелёк</h3>
+                    <p className="text-[12px] text-gray-500">HouseCoin → walletBalance</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !withdrawing && setShowWithdrawModal(false)}
+                  className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Закрыть"
+                >
+                  <X size={18} className="text-gray-500" />
+                </button>
+              </div>
+
+              {/* Сумма к выводу / комиссия / итог — три ряда табличкой */}
+              <div className="bg-gray-50 rounded-2xl divide-y divide-gray-200 overflow-hidden mb-4">
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <span className="text-[13px] text-gray-500">Доступно</span>
+                  <span className="text-[15px] font-semibold text-gray-900 tabular-nums">{coins.toFixed(2)} HC</span>
+                </div>
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <span className="text-[13px] text-gray-500">Комиссия 5%</span>
+                  <span className="text-[15px] font-semibold text-orange-600 tabular-nums">−{(coins * WITHDRAW_COMMISSION_RATE).toFixed(2)} HC</span>
+                </div>
+                <div className="px-4 py-3 flex items-center justify-between bg-white">
+                  <span className="text-[13px] text-gray-700 font-medium">К зачислению</span>
+                  <span className="text-[18px] font-bold text-green-600 tabular-nums">{(coins * (1 - WITHDRAW_COMMISSION_RATE)).toFixed(2)} HC</span>
+                </div>
+              </div>
+
+              <div className="text-[12px] text-gray-500 leading-relaxed mb-4">
+                После вывода баланс клиeкера обнулится, а монеты появятся в основном кошельке. Операция атомарная — отменить нельзя.
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWithdrawModal(false)}
+                  disabled={withdrawing}
+                  className="flex-1 h-11 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300 disabled:opacity-50 text-gray-800 font-semibold text-[14px] transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  onClick={handleWithdraw}
+                  disabled={withdrawing || coins < MIN_WITHDRAW}
+                  className="flex-1 h-11 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 active:from-purple-800 active:to-blue-800 disabled:opacity-50 text-white font-semibold text-[14px] inline-flex items-center justify-center gap-2 shadow-lg transition-all"
+                >
+                  {withdrawing ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Перевод…</span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownToLine size={16} />
+                      <span>Вывести</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success Toast: краткое уведомление об успешном выводе. */}
+      <AnimatePresence>
+        {withdrawSuccess && (
+          <motion.div
+            initial={{ y: -60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -60, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-white rounded-2xl shadow-2xl border border-green-200 px-4 py-3 flex items-center gap-3 max-w-[92%]"
+          >
+            <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <CheckCircle size={20} className="text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[14px] font-semibold text-gray-900 leading-tight">
+                +{withdrawSuccess.amount.toFixed(2)} HC в кошелёк
+              </div>
+              <div className="text-[12px] text-gray-500 mt-0.5">
+                Комиссия {withdrawSuccess.commission.toFixed(2)} HC удержана
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
