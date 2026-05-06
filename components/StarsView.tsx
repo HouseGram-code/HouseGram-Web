@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Zap, TrendingUp, Gift, Sparkles, Star } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, runTransaction } from 'firebase/firestore';
 
 
 export default function StarsView() {
@@ -18,6 +18,10 @@ export default function StarsView() {
     starsReceived: 0,
     starsSent: 0
   });
+  
+  const [promocode, setPromocode] = useState('');
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [promoMessage, setPromoMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     loadStarsBalance();
@@ -56,6 +60,61 @@ export default function StarsView() {
       console.error('Failed to load stars:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApplyPromo = async () => {
+    const code = promocode.trim().toUpperCase();
+    if (!code || !auth.currentUser) return;
+
+    setIsApplyingPromo(true);
+    setPromoMessage({ type: '', text: '' });
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        if (!auth.currentUser) return;
+        const promoRef = doc(db, 'promocodes', code);
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+
+        const promoDoc = await transaction.get(promoRef);
+        if (!promoDoc.exists()) {
+          throw new Error('Промокод не найден');
+        }
+
+        const promoData = promoDoc.data();
+        if (!promoData.active) {
+          throw new Error('Этот промокод отключён');
+        }
+        if (promoData.usesCount >= promoData.maxUses) {
+          throw new Error('Количество активаций исчерпано');
+        }
+        if (promoData.usedBy?.includes(auth.currentUser.uid)) {
+          throw new Error('Вы уже использовали этот промокод');
+        }
+
+        const userDoc = await transaction.get(userRef);
+        const currentStars = userDoc.exists() ? (userDoc.data().stars || 0) : 0;
+        const currentStarsReceived = userDoc.exists() ? (userDoc.data().starsReceived || 0) : 0;
+
+        transaction.update(promoRef, {
+          usesCount: (promoData.usesCount || 0) + 1,
+          usedBy: [...(promoData.usedBy || []), auth.currentUser.uid]
+        });
+
+        transaction.update(userRef, {
+          stars: currentStars + promoData.rewardStars,
+          starsReceived: currentStarsReceived + promoData.rewardStars
+        });
+
+        setPromoMessage({ type: 'success', text: `Вы получили ${promoData.rewardStars} молний!` });
+        setStars(currentStars + promoData.rewardStars);
+        setPromocode('');
+      });
+    } catch (e: any) {
+      console.error('Failed to apply promo:', e);
+      setPromoMessage({ type: 'error', text: e.message || 'Ошибка активации' });
+    } finally {
+      setIsApplyingPromo(false);
     }
   };
 
@@ -282,17 +341,6 @@ export default function StarsView() {
               <motion.div
                 animate={{ x: [0, 5, 0] }}
                 transition={{ duration: 0.8, repeat: Infinity }}
-              >
-                →
-              </motion.div>
-            </motion.div>
-
-            {/* Timer */}
-            <motion.div
-              className="mt-4 flex items-center gap-2 text-yellow-300 text-[13px] font-bold"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
             >
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}

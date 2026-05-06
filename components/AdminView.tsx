@@ -7,12 +7,17 @@ import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Da
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 
-type TabType = 'users' | 'stats' | 'system' | 'database' | 'payments' | 'premium' | 'minigames';
+type TabType = 'users' | 'stats' | 'system' | 'database' | 'payments' | 'premium' | 'minigames' | 'promocodes';
 
 export default function AdminView() {
   const { setView, themeColor, isGlassEnabled, isAdmin } = useChat();
   const [activeTab, setActiveTab] = useState<TabType>('users');
   const [users, setUsers] = useState<any[]>([]);
+  const [promocodes, setPromocodes] = useState<any[]>([]);
+  const [newPromoCode, setNewPromoCode] = useState('');
+  const [newPromoReward, setNewPromoReward] = useState(50);
+  const [newPromoMaxUses, setNewPromoMaxUses] = useState(100);
+  const [isCreatingPromo, setIsCreatingPromo] = useState(false);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [isVictoryDayTheme, setIsVictoryDayTheme] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -53,11 +58,18 @@ export default function AdminView() {
       }
     });
 
+    // Load promocodes
+    const promoQuery = query(collection(db, 'promocodes'), orderBy('createdAt', 'desc'));
+    const unsubscribePromo = onSnapshot(promoQuery, (snapshot: any) => {
+      const promos = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+      setPromocodes(promos);
+    });
+
     // Подписка на заявки в реальном времени
     const unsubscribeRequests = onSnapshot(
       collection(db, 'payment_requests'),
-      (snapshot) => {
-        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      (snapshot: any) => {
+        const requests = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as any[];
         setPaymentRequests(requests.sort((a, b) => {
           if (a.status === 'pending' && b.status !== 'pending') return -1;
           if (a.status !== 'pending' && b.status === 'pending') return 1;
@@ -69,8 +81,8 @@ export default function AdminView() {
     // Подписка на заявки премиума в реальном времени
     const unsubscribePremiumRequests = onSnapshot(
       collection(db, 'premium_requests'),
-      (snapshot) => {
-        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      (snapshot: any) => {
+        const requests = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as any[];
         setPremiumRequests(requests.sort((a, b) => {
           if (a.status === 'pending' && b.status !== 'pending') return -1;
           if (a.status !== 'pending' && b.status === 'pending') return 1;
@@ -83,8 +95,56 @@ export default function AdminView() {
       unsubscribe();
       unsubscribeRequests();
       unsubscribePremiumRequests();
+      unsubscribePromo();
     };
   }, [isAdmin, setView]);
+
+  const handleCreatePromo = async () => {
+    if (!newPromoCode.trim() || newPromoReward <= 0 || newPromoMaxUses <= 0) {
+      alert('Заполните все поля корректно');
+      return;
+    }
+    const code = newPromoCode.trim().toUpperCase();
+    setIsCreatingPromo(true);
+    try {
+      await setDoc(doc(db, 'promocodes', code), {
+        code,
+        rewardStars: newPromoReward,
+        maxUses: newPromoMaxUses,
+        usesCount: 0,
+        active: true,
+        createdAt: new Date().toISOString(),
+        usedBy: []
+      });
+      setNewPromoCode('');
+      setNewPromoReward(50);
+      setNewPromoMaxUses(100);
+      alert(`Промокод ${code} успешно создан!`);
+    } catch (e) {
+      console.error('Failed to create promo code', e);
+      alert('Ошибка при создании промокода');
+    } finally {
+      setIsCreatingPromo(false);
+    }
+  };
+
+  const handleTogglePromo = async (code: string, active: boolean) => {
+    try {
+      await updateDoc(doc(db, 'promocodes', code), { active: !active });
+    } catch (e) {
+      console.error('Failed to toggle promo code', e);
+    }
+  };
+
+  const handleDeletePromo = async (code: string) => {
+    if (!confirm(`Точно удалить промокод ${code}?`)) return;
+    try {
+      const { deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(doc(db, 'promocodes', code));
+    } catch (e) {
+      console.error('Failed to delete promo', e);
+    }
+  };
 
   const checkFirebaseConnection = async () => {
     try {
@@ -487,6 +547,12 @@ export default function AdminView() {
           onClick={() => setActiveTab('minigames')}
           icon={<Gamepad2 size={18} />}
           label="Мини-игры"
+        />
+        <TabButton 
+          active={activeTab === 'promocodes'} 
+          onClick={() => setActiveTab('promocodes')}
+          icon={<Zap size={18} />}
+          label="Промокоды"
         />
         <TabButton 
           active={activeTab === 'stats'} 
@@ -1133,6 +1199,119 @@ export default function AdminView() {
                         )}
                       </div>
                     ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'promocodes' && (
+            <motion.div
+              key="promocodes"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4 space-y-6"
+            >
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600">
+                    <Zap size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Создать промокод</h2>
+                    <p className="text-[13px] text-gray-500">Генерация промокодов на молнии</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 mt-6">
+                  <div>
+                    <label className="text-[13px] font-medium text-gray-700 mb-1.5 block">Код промокода</label>
+                    <input
+                      type="text"
+                      value={newPromoCode}
+                      onChange={(e) => setNewPromoCode(e.target.value)}
+                      placeholder="Например: FREE50"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-yellow-400 focus:bg-white transition-all uppercase"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[13px] font-medium text-gray-700 mb-1.5 block">Награда (молний)</label>
+                      <input
+                        type="number"
+                        value={newPromoReward}
+                        onChange={(e) => setNewPromoReward(parseInt(e.target.value) || 0)}
+                        min="1"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-yellow-400 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[13px] font-medium text-gray-700 mb-1.5 block">Кол-во активаций</label>
+                      <input
+                        type="number"
+                        value={newPromoMaxUses}
+                        onChange={(e) => setNewPromoMaxUses(parseInt(e.target.value) || 0)}
+                        min="1"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-yellow-400 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCreatePromo}
+                    disabled={isCreatingPromo}
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-3 rounded-xl transition-colors mt-2"
+                  >
+                    {isCreatingPromo ? 'Создание...' : 'Создать промокод'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100">
+                  <h2 className="text-lg font-bold text-gray-900">Активные промокоды</h2>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {promocodes.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 text-[15px]">Нет созданных промокодов</div>
+                  ) : (
+                    promocodes.map(promo => (
+                      <div key={promo.id} className="p-5">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded-md text-[15px]">{promo.code}</span>
+                              {!promo.active && <span className="text-[12px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">Отключён</span>}
+                              {promo.usesCount >= promo.maxUses && <span className="text-[12px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Исчерпан</span>}
+                            </div>
+                            <div className="text-[13px] text-gray-500 flex items-center gap-3">
+                              <span className="flex items-center gap-1 text-yellow-600"><Zap size={14} /> +{promo.rewardStars} молний</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[14px] font-medium text-gray-900 mb-1">{promo.usesCount} / {promo.maxUses}</div>
+                            <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-yellow-500" style={{ width: `${Math.min(100, (promo.usesCount / promo.maxUses) * 100)}%` }}></div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-end gap-3 mt-4">
+                          <button
+                            onClick={() => handleTogglePromo(promo.code, promo.active)}
+                            className={`text-[13px] font-medium px-3 py-1.5 rounded-lg transition-colors ${promo.active ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+                          >
+                            {promo.active ? 'Отключить' : 'Включить'}
+                          </button>
+                          <button
+                            onClick={() => handleDeletePromo(promo.code)}
+                            className="text-[13px] font-medium px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                          >
+                            Удалить
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </motion.div>
