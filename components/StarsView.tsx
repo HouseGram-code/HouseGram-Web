@@ -629,6 +629,41 @@ export default function StarsView() {
           </motion.button>
         </motion.div>
 
+        {/* Promocode Block */}
+        <div className="bg-white rounded-3xl p-5 mb-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-500">
+              <Zap size={20} fill="currentColor" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Промокод</h3>
+              <p className="text-[13px] text-gray-500">Ввести код на молнии</p>
+            </div>
+          </div>
+          
+          <div className="flex gap-2 relative">
+            <input
+              type="text"
+              value={promocode}
+              onChange={(e) => { setPromocode(e.target.value); setPromoMessage({ type: '', text: '' }); }}
+              placeholder="Например: FREE50"
+              className="flex-grow bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 focus:bg-white transition-all uppercase"
+            />
+            <button
+              onClick={handleApplyPromo}
+              disabled={isApplyingPromo || !promocode.trim()}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {isApplyingPromo ? '...' : 'Применить'}
+            </button>
+          </div>
+          {promoMessage.text && (
+            <p className={`text-[13px] mt-2 font-medium ${promoMessage.type === 'error' ? 'text-red-500' : 'text-green-500'}`}>
+              {promoMessage.text}
+            </p>
+          )}
+        </div>
+
         {/* Statistics */}
         <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
