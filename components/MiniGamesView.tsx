@@ -59,6 +59,77 @@ const getAutoUpgradeCost = (lvl: number): number =>
 const getMultiplierUpgradeCost = (lvl: number): number =>
   MULTIPLIER_UPGRADE_BASE_COST * Math.pow(MULTIPLIER_UPGRADE_GROWTH, lvl);
 
+// === Save / Load helpers ==========================================
+// Снимок прогресса, который сохраняется и в localStorage, и в Firestore.
+type ClickerSnapshot = {
+  coins: number;
+  clickUpgradeLevel: number;
+  autoUpgradeLevel: number;
+  multiplierUpgradeLevel: number;
+};
+
+const localKeyFor = (uid: string) => `cryptoClicker:${uid}`;
+
+// Сохраняет снимок СИНХРОННО в localStorage и АСИНХРОННО в Firestore.
+// localStorage служит страховкой на случай, если Firestore-запрос не
+// успеет уйти при закрытии вкладки (это и был корень бага «100 → 0.92»:
+// async updateDoc не успевал отправиться при beforeunload).
+function persistProgress(uid: string, snapshot: ClickerSnapshot): void {
+  if (snapshot.coins < 0 || isNaN(snapshot.coins)) return;
+
+  // 1) localStorage — синхронно, переживает любой close/refresh.
+  try {
+    localStorage.setItem(
+      localKeyFor(uid),
+      JSON.stringify({ ...snapshot, savedAt: Date.now() })
+    );
+  } catch {
+    // QuotaExceeded или приватный режим — игнор, есть Firestore.
+  }
+
+  // 2) Firestore — async fire-and-forget. Вычисляем coinsPerClick/Second
+  //    из уровней, чтобы остальное приложение могло читать без пересчёта.
+  updateDoc(doc(db, 'users', uid), {
+    'gameProgress.cryptoClicker.coins': snapshot.coins,
+    'gameProgress.cryptoClicker.coinsPerClick': computeCoinsPerClick(snapshot.clickUpgradeLevel),
+    'gameProgress.cryptoClicker.coinsPerSecond': computeCoinsPerSecond(snapshot.autoUpgradeLevel),
+    'gameProgress.cryptoClicker.clickUpgradeLevel': snapshot.clickUpgradeLevel,
+    'gameProgress.cryptoClicker.autoUpgradeLevel': snapshot.autoUpgradeLevel,
+    'gameProgress.cryptoClicker.multiplierUpgradeLevel': snapshot.multiplierUpgradeLevel,
+    'gameProgress.cryptoClicker.lastSaved': serverTimestamp(),
+  }).catch((err: unknown) => {
+    console.error('persistProgress: Firestore write failed', err);
+  });
+}
+
+// Читает резервную копию из localStorage; возвращает null если её нет
+// или она битая. Включает поле savedAt (ms) для сравнения свежести.
+function readLocalSnapshot(uid: string): (ClickerSnapshot & { savedAt: number }) | null {
+  try {
+    const raw = localStorage.getItem(localKeyFor(uid));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      !parsed ||
+      typeof parsed.coins !== 'number' ||
+      typeof parsed.savedAt !== 'number' ||
+      parsed.coins < 0 ||
+      isNaN(parsed.coins)
+    ) {
+      return null;
+    }
+    return {
+      coins: parsed.coins,
+      clickUpgradeLevel: parsed.clickUpgradeLevel || 0,
+      autoUpgradeLevel: parsed.autoUpgradeLevel || 0,
+      multiplierUpgradeLevel: parsed.multiplierUpgradeLevel || 0,
+      savedAt: parsed.savedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function MiniGamesView() {
   const { setView, themeColor } = useChat();
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
@@ -341,123 +412,133 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
     stateRef.current = { coins, clickUpgradeLevel, autoUpgradeLevel, multiplierUpgradeLevel };
   }, [coins, clickUpgradeLevel, autoUpgradeLevel, multiplierUpgradeLevel]);
 
-  // Load game progress from Firestore
+  // Load game progress: пытаемся вытянуть свежий снимок из Firestore,
+  // ПОСЛЕ ЧЕГО сравниваем с резервной копией в localStorage и выбираем
+  // более свежий по timestamp. Это ключевое исправление бага «100 → 0.92»:
+  // если предыдущая сессия не успела дозаписать в Firestore при закрытии
+  // вкладки, мы восстановим прогресс из localStorage.
   useEffect(() => {
     if (!currentUser?.id) return;
-    
+    const uid = currentUser.id;
+
     const loadProgress = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.id));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          if (data.gameProgress?.cryptoClicker) {
-            const progress = data.gameProgress.cryptoClicker;
-            
-            // Проверка на бан
-            if (progress.banned) {
-              // Обнуляем баланс забаненного пользователя на новые дефолты.
-              await updateDoc(doc(db, 'users', currentUser.id), {
-                'gameProgress.cryptoClicker.coins': 0,
-                'gameProgress.cryptoClicker.coinsPerClick': BASE_CLICK,
-                'gameProgress.cryptoClicker.coinsPerSecond': 0,
-                'gameProgress.cryptoClicker.clickUpgradeLevel': 0,
-                'gameProgress.cryptoClicker.autoUpgradeLevel': 0,
-                'gameProgress.cryptoClicker.multiplierUpgradeLevel': 0,
-                'gameProgress.cryptoClicker.balanceResetAt': serverTimestamp()
-              });
-              
-              alert(`❌ Вы заблокированы в мини-играх!\nПричина: ${progress.bannedReason || 'Нарушение правил'}\n\nВаш игровой прогресс был сброшен.`);
-              onBack();
-              return;
-            }
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        const data = userDoc.exists() ? userDoc.data() : null;
+        const progress = data?.gameProgress?.cryptoClicker;
 
-            // Проверяем корректность загруженного баланса
-            const loadedCoins = progress.coins || 0;
-            if (loadedCoins < 0 || isNaN(loadedCoins)) {
-              console.error('Invalid coins value loaded:', loadedCoins);
-              setCoins(0);
-            } else {
-              setCoins(loadedCoins);
-            }
-
-            // Загружаем ТОЛЬКО уровни — coinsPerClick/coinsPerSecond больше не
-            // хранятся в state, а считаются из уровней по новым формулам.
-            // Это служит автоматической миграцией со старой экономики
-            // (0.0001 за клик) на новую (0.01 за клик).
-            setClickUpgradeLevel(progress.clickUpgradeLevel || 0);
-            setAutoUpgradeLevel(progress.autoUpgradeLevel || 0);
-            setMultiplierUpgradeLevel(progress.multiplierUpgradeLevel || 0);
-          }
+        // Проверка на бан — приоритет над всем остальным.
+        if (progress?.banned) {
+          await updateDoc(doc(db, 'users', uid), {
+            'gameProgress.cryptoClicker.coins': 0,
+            'gameProgress.cryptoClicker.coinsPerClick': BASE_CLICK,
+            'gameProgress.cryptoClicker.coinsPerSecond': 0,
+            'gameProgress.cryptoClicker.clickUpgradeLevel': 0,
+            'gameProgress.cryptoClicker.autoUpgradeLevel': 0,
+            'gameProgress.cryptoClicker.multiplierUpgradeLevel': 0,
+            'gameProgress.cryptoClicker.balanceResetAt': serverTimestamp(),
+          });
+          // На бане чистим и localStorage, чтобы не восстановить из резерва.
+          try { localStorage.removeItem(localKeyFor(uid)); } catch {}
+          alert(`❌ Вы заблокированы в мини-играх!\nПричина: ${progress.bannedReason || 'Нарушение правил'}\n\nВаш игровой прогресс был сброшен.`);
+          onBack();
+          return;
         }
+
+        // Стартуем с дефолтов, если в Firestore вообще ничего нет.
+        let chosen: ClickerSnapshot = {
+          coins: 0,
+          clickUpgradeLevel: 0,
+          autoUpgradeLevel: 0,
+          multiplierUpgradeLevel: 0,
+        };
+        let firestoreTimeMs = 0;
+
+        if (progress) {
+          const fsCoins = typeof progress.coins === 'number' ? progress.coins : 0;
+          if (fsCoins >= 0 && !isNaN(fsCoins)) {
+            chosen = {
+              coins: fsCoins,
+              clickUpgradeLevel: progress.clickUpgradeLevel || 0,
+              autoUpgradeLevel: progress.autoUpgradeLevel || 0,
+              multiplierUpgradeLevel: progress.multiplierUpgradeLevel || 0,
+            };
+          }
+          // lastSaved может быть Firestore Timestamp или null — нормализуем.
+          firestoreTimeMs =
+            (typeof progress.lastSaved?.toMillis === 'function' && progress.lastSaved.toMillis()) ||
+            (typeof progress.lastSaved?.seconds === 'number' && progress.lastSaved.seconds * 1000) ||
+            0;
+        }
+
+        // Если в localStorage есть СВЕЖАЯ копия (savedAt > firestoreTimeMs),
+        // значит предыдущая сессия успела записать в LS, но не в Firestore —
+        // восстанавливаем из LS и сразу пушим обратно в Firestore.
+        const local = readLocalSnapshot(uid);
+        if (local && local.savedAt > firestoreTimeMs && local.coins >= chosen.coins - 0.0001) {
+          chosen = {
+            coins: local.coins,
+            clickUpgradeLevel: local.clickUpgradeLevel,
+            autoUpgradeLevel: local.autoUpgradeLevel,
+            multiplierUpgradeLevel: local.multiplierUpgradeLevel,
+          };
+          console.info('[CryptoClicker] восстановлено из localStorage:', chosen);
+          // Догоняем Firestore — fire-and-forget.
+          persistProgress(uid, chosen);
+        }
+
+        setCoins(chosen.coins);
+        setClickUpgradeLevel(chosen.clickUpgradeLevel);
+        setAutoUpgradeLevel(chosen.autoUpgradeLevel);
+        setMultiplierUpgradeLevel(chosen.multiplierUpgradeLevel);
       } catch (error) {
         console.error('Error loading game progress:', error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadProgress();
   }, [currentUser, onBack]);
 
-  // Save game progress to Firestore.
-  // КРИТИЧНО: эффект НЕ должен зависеть от coins — иначе interval/timeout
-  // будет пересоздаваться на каждый клик и save никогда не сработает
-  // (это и был баг «1000 кликов не сохранилось»). Все актуальные значения
-  // читаем из stateRef, который обновляется отдельным эффектом выше.
+  // Save game progress: localStorage (синхронно) + Firestore (async).
+  // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ бага «100 → 0.92»:
+  //   — Раньше в onBeforeUnload пытались вызвать async updateDoc, но
+  //     браузер не ждёт Promise и запрос часто не успевал уйти.
+  //   — Теперь persistProgress СНАЧАЛА пишет в localStorage (синхронно,
+  //     всегда успевает), ПОТОМ файрит Firestore.
+  //   — Интервал уменьшен до 2с (было 3с) — меньше риск потерять клики.
+  //   — Добавлен pagehide — надёжнее beforeunload на мобильных браузерах.
+  // КРИТИЧНО: эффект НЕ должен зависеть от coins — иначе interval
+  // будет пересоздаваться на каждый клик. Читаем из stateRef.
   useEffect(() => {
     if (!currentUser?.id || loading) return;
+    const uid = currentUser.id;
 
-    const userId = currentUser.id;
+    const tick = () => persistProgress(uid, stateRef.current);
 
-    const saveProgress = async () => {
-      const s = stateRef.current;
-      if (s.coins < 0 || isNaN(s.coins)) {
-        console.error('Invalid coins value, skipping save:', s.coins);
-        return;
-      }
-      // coinsPerClick/coinsPerSecond больше не хранятся в state — считаем их
-      // из уровней по новым формулам и пишем в Firestore как «снимок»,
-      // чтобы другие части приложения (напр. AdminView) могли
-      // прочитать быстро без пересчёта.
-      const computedClick = computeCoinsPerClick(s.clickUpgradeLevel);
-      const computedSecond = computeCoinsPerSecond(s.autoUpgradeLevel);
-      try {
-        await updateDoc(doc(db, 'users', userId), {
-          'gameProgress.cryptoClicker.coins': s.coins,
-          'gameProgress.cryptoClicker.coinsPerClick': computedClick,
-          'gameProgress.cryptoClicker.coinsPerSecond': computedSecond,
-          'gameProgress.cryptoClicker.clickUpgradeLevel': s.clickUpgradeLevel,
-          'gameProgress.cryptoClicker.autoUpgradeLevel': s.autoUpgradeLevel,
-          'gameProgress.cryptoClicker.multiplierUpgradeLevel': s.multiplierUpgradeLevel,
-          'gameProgress.cryptoClicker.lastSaved': serverTimestamp(),
-        });
-      } catch (error) {
-        console.error('Error saving game progress:', error);
-      }
-    };
+    // 1) Периодический автосейв каждые 2 секунды.
+    const interval = setInterval(tick, 2000);
 
-    // 1) Периодический автосейв каждые 3 секунды.
-    const interval = setInterval(saveProgress, 3000);
-
-    // 2) Сохраняем при сворачивании вкладки/закрытии окна — иначе кнопка
-    //    «закрыть» прямо после кликов потеряет последние 3 секунды прогресса.
+    // 2) При сворачивании вкладки / смене приложения на мобильном.
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        saveProgress();
-      }
+      if (document.visibilityState === 'hidden') tick();
     };
-    const onBeforeUnload = () => {
-      saveProgress();
-    };
+    // pagehide — более надёжный аналог beforeunload, работает на iOS Safari.
+    const onPageHide = () => tick();
+    const onBeforeUnload = () => tick();
+
     document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', onPageHide);
     window.addEventListener('beforeunload', onBeforeUnload);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('beforeunload', onBeforeUnload);
-      // 3) Финальный flush при размонтировании (выход из мини-игры в меню).
-      saveProgress();
+      // 3) Финальный flush при размонтировании (выход в меню мини-игр).
+      tick();
     };
   }, [currentUser, loading]);
 
@@ -497,9 +578,16 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
         });
       });
 
-      // Обнуляем локальный баланс — UI и stateRef обновятся синхронно,
-      // следующий автосейв просто перезапишет coins=0 (что уже и так в БД).
+      // Обнуляем локальный баланс; СРАЗУ синхронизируем localStorage,
+      // иначе при открытии в следующий раз LS-бекап может вернуть выведённые
+      // монеты обратно из-за более «свежего» savedAt.
       setCoins(0);
+      persistProgress(userId, {
+        coins: 0,
+        clickUpgradeLevel,
+        autoUpgradeLevel,
+        multiplierUpgradeLevel,
+      });
       setShowWithdrawModal(false);
       setWithdrawSuccess({ amount: finalAmount, commission });
       // Скрываем тост успеха через 4 секунды.
@@ -583,28 +671,52 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
 
   // Покупки апгрейдов: повышаем только уровень, coinsPerClick/Second
   // автоматически пересчитаются на следующем рендере (они derived).
+  // ВАЖНО: после покупки сразу же делаем force-save снимком с НОВЫМИ
+  // значениями — иначе если игрок купит апгрейд и тут же закроет вкладку
+  // быстрее следующего интервального tick'а, апгрейд может потеряться.
   const buyClickUpgrade = () => {
     const cost = getClickUpgradeCost(clickUpgradeLevel);
-    if (coins >= cost) {
-      setCoins(prev => prev - cost);
-      setClickUpgradeLevel(prev => prev + 1);
-    }
+    if (coins < cost || !currentUser?.id) return;
+    const newCoins = coins - cost;
+    const newLvl = clickUpgradeLevel + 1;
+    setCoins(newCoins);
+    setClickUpgradeLevel(newLvl);
+    persistProgress(currentUser.id, {
+      coins: newCoins,
+      clickUpgradeLevel: newLvl,
+      autoUpgradeLevel,
+      multiplierUpgradeLevel,
+    });
   };
 
   const buyAutoUpgrade = () => {
     const cost = getAutoUpgradeCost(autoUpgradeLevel);
-    if (coins >= cost) {
-      setCoins(prev => prev - cost);
-      setAutoUpgradeLevel(prev => prev + 1);
-    }
+    if (coins < cost || !currentUser?.id) return;
+    const newCoins = coins - cost;
+    const newLvl = autoUpgradeLevel + 1;
+    setCoins(newCoins);
+    setAutoUpgradeLevel(newLvl);
+    persistProgress(currentUser.id, {
+      coins: newCoins,
+      clickUpgradeLevel,
+      autoUpgradeLevel: newLvl,
+      multiplierUpgradeLevel,
+    });
   };
 
   const buyMultiplierUpgrade = () => {
     const cost = getMultiplierUpgradeCost(multiplierUpgradeLevel);
-    if (coins >= cost) {
-      setCoins(prev => prev - cost);
-      setMultiplierUpgradeLevel(prev => prev + 1);
-    }
+    if (coins < cost || !currentUser?.id) return;
+    const newCoins = coins - cost;
+    const newLvl = multiplierUpgradeLevel + 1;
+    setCoins(newCoins);
+    setMultiplierUpgradeLevel(newLvl);
+    persistProgress(currentUser.id, {
+      coins: newCoins,
+      clickUpgradeLevel,
+      autoUpgradeLevel,
+      multiplierUpgradeLevel: newLvl,
+    });
   };
 
   // Удобные шорткаты к стоимостям текущих уровней — чтобы не повторяться
