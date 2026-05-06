@@ -834,45 +834,11 @@ export default function ChatView() {
                         : 'bg-white'
                     }`}
                   >
-                    {/* Dummy buttons to simulate Telegram functionality */}
                     <button 
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
-                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
-                      }`}
-                    >
-                      <Phone size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
-                      Позвонить
-                    </button>
-                    <button 
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
-                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
-                      }`}
-                    >
-                      <Video size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
-                      Видеозвонок
-                    </button>
-                    <button 
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
-                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
-                      }`}
-                    >
-                      <Search size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
-                      Поиск
-                    </button>
-                    <button 
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
-                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
-                      }`}
-                    >
-                      <BellOff size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
-                      Отключить уведомления
-                    </button>
-                    <button 
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setView('chat-settings');
+                      }}
                       className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
                         isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
                       }`}
