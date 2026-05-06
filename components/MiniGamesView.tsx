@@ -9,9 +9,55 @@ import { doc, getDoc, updateDoc, runTransaction, serverTimestamp } from 'firebas
 
 // Комиссия при выводе HouseCoin из клиeкера в основной кошелёк (walletBalance).
 const WITHDRAW_COMMISSION_RATE = 0.05;
-// Минимальная сумма для вывода — иначе пыль из 0.0001 будет генерировать
-// тысячи микро-транзакций без смысла.
-const MIN_WITHDRAW = 0.01;
+// Минимальная сумма для вывода — иначе пыль будет генерировать кучу
+// микро-транзакций. С новой экономикой (0.01 за клик) копится быстро.
+const MIN_WITHDRAW = 0.10;
+
+// === Экономика Crypto Clicker =====================================
+// Базовая награда за клик: 0.01 HC (1000 кликов = 10 HC). Раньше было
+// 0.0001 — слишком медленно, поэтому повышено в 100 раз.
+const BASE_CLICK = 0.01;
+// Базовая прибавка автокликера на 1-м уровне: 0.02 HC/сек.
+const BASE_AUTO = 0.02;
+// Каждый уровень мощного клика удваивает награду за клик. Стоимость
+// первого уровня — 0.15 HC, далее ×2.5 за уровень.
+const CLICK_UPGRADE_BASE_COST = 0.15;
+const CLICK_UPGRADE_GROWTH = 2.5;
+// Автокликер: первый уровень 0.50 HC, далее ×3. Каждый уровень
+// добавляет BASE_AUTO * 1.5^level к доходу в секунду.
+const AUTO_UPGRADE_BASE_COST = 0.50;
+const AUTO_UPGRADE_GROWTH = 3;
+const AUTO_INCOME_GROWTH = 1.5;
+// Золотой множитель: первый уровень 2.00 HC, далее ×4. Каждый уровень
+// даёт +20% к ИТОГОВЫМ начислениям (и за клик, и за секунду).
+const MULTIPLIER_UPGRADE_BASE_COST = 2.00;
+const MULTIPLIER_UPGRADE_GROWTH = 4;
+const MULTIPLIER_PER_LEVEL = 0.20;
+
+// Деривации — единый источник истины. coinsPerClick/coinsPerSecond
+// рассчитываются ИЗ уровней (миграция со старых значений происходит
+// автоматически при загрузке, потому что мы перетираем сохранённые
+// числа на формулу с новой базой).
+const computeCoinsPerClick = (clickLvl: number): number =>
+  BASE_CLICK * Math.pow(2, clickLvl);
+
+const computeCoinsPerSecond = (autoLvl: number): number => {
+  let total = 0;
+  for (let i = 0; i < autoLvl; i++) {
+    total += BASE_AUTO * Math.pow(AUTO_INCOME_GROWTH, i);
+  }
+  return total;
+};
+
+const computeMultiplier = (multLvl: number): number =>
+  1 + MULTIPLIER_PER_LEVEL * multLvl;
+
+const getClickUpgradeCost = (lvl: number): number =>
+  CLICK_UPGRADE_BASE_COST * Math.pow(CLICK_UPGRADE_GROWTH, lvl);
+const getAutoUpgradeCost = (lvl: number): number =>
+  AUTO_UPGRADE_BASE_COST * Math.pow(AUTO_UPGRADE_GROWTH, lvl);
+const getMultiplierUpgradeCost = (lvl: number): number =>
+  MULTIPLIER_UPGRADE_BASE_COST * Math.pow(MULTIPLIER_UPGRADE_GROWTH, lvl);
 
 export default function MiniGamesView() {
   const { setView, themeColor } = useChat();
@@ -254,13 +300,26 @@ export default function MiniGamesView() {
 function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeColor: string }) {
   const { currentUser } = useChat();
   const [coins, setCoins] = useState(0);
-  const [coinsPerClick, setCoinsPerClick] = useState(0.0001);
-  const [coinsPerSecond, setCoinsPerSecond] = useState(0);
   const [clickUpgradeLevel, setClickUpgradeLevel] = useState(0);
   const [autoUpgradeLevel, setAutoUpgradeLevel] = useState(0);
+  // Новый апгрейд «Золотой множитель» — +20% к итоговым начислениям за уровень.
+  const [multiplierUpgradeLevel, setMultiplierUpgradeLevel] = useState(0);
   const [clickAnimations, setClickAnimations] = useState<Array<{ id: number; x: number; y: number }>>([]);
   const [showUpgrades, setShowUpgrades] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Деривации — всё считаем из уровней, чтобы быть уверенными в консистентности.
+  // Отдельных useState для coinsPerClick / coinsPerSecond больше не держим —
+  // именно это обеспечивает «миграцию» со старой экономики (0.0001 → 0.01):
+  // сохранённые числа больше не влияют, формула всегда пересчитывает от уровня.
+  const coinsPerClick = computeCoinsPerClick(clickUpgradeLevel);
+  const coinsPerSecond = computeCoinsPerSecond(autoUpgradeLevel);
+  const multiplier = computeMultiplier(multiplierUpgradeLevel);
+  // Итоговые значения после применения «Золотого множителя». Их видит игрок,
+  // ими и начисляем монеты. Сами coinsPerClick/coinsPerSecond — базовые,
+  // без множителя.
+  const effectiveClick = coinsPerClick * multiplier;
+  const effectiveSecond = coinsPerSecond * multiplier;
 
   // Защита от автокликера
   const [clickCount, setClickCount] = useState(0);
@@ -277,10 +336,10 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
   // бы перезапускать interval на каждый клик (как было раньше — отсюда и
   // баг: debounce-timeout сбрасывался каждым кликом и save НИКОГДА не
   // срабатывал, если играли быстрее 2 сек).
-  const stateRef = useRef({ coins, coinsPerClick, coinsPerSecond, clickUpgradeLevel, autoUpgradeLevel });
+  const stateRef = useRef({ coins, clickUpgradeLevel, autoUpgradeLevel, multiplierUpgradeLevel });
   useEffect(() => {
-    stateRef.current = { coins, coinsPerClick, coinsPerSecond, clickUpgradeLevel, autoUpgradeLevel };
-  }, [coins, coinsPerClick, coinsPerSecond, clickUpgradeLevel, autoUpgradeLevel]);
+    stateRef.current = { coins, clickUpgradeLevel, autoUpgradeLevel, multiplierUpgradeLevel };
+  }, [coins, clickUpgradeLevel, autoUpgradeLevel, multiplierUpgradeLevel]);
 
   // Load game progress from Firestore
   useEffect(() => {
@@ -296,13 +355,14 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
             
             // Проверка на бан
             if (progress.banned) {
-              // Обнуляем баланс забаненного пользователя
+              // Обнуляем баланс забаненного пользователя на новые дефолты.
               await updateDoc(doc(db, 'users', currentUser.id), {
                 'gameProgress.cryptoClicker.coins': 0,
-                'gameProgress.cryptoClicker.coinsPerClick': 0.0001,
+                'gameProgress.cryptoClicker.coinsPerClick': BASE_CLICK,
                 'gameProgress.cryptoClicker.coinsPerSecond': 0,
                 'gameProgress.cryptoClicker.clickUpgradeLevel': 0,
                 'gameProgress.cryptoClicker.autoUpgradeLevel': 0,
+                'gameProgress.cryptoClicker.multiplierUpgradeLevel': 0,
                 'gameProgress.cryptoClicker.balanceResetAt': serverTimestamp()
               });
               
@@ -310,8 +370,8 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
               onBack();
               return;
             }
-            
-            // Проверяем корректность загруженных данных
+
+            // Проверяем корректность загруженного баланса
             const loadedCoins = progress.coins || 0;
             if (loadedCoins < 0 || isNaN(loadedCoins)) {
               console.error('Invalid coins value loaded:', loadedCoins);
@@ -319,11 +379,14 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
             } else {
               setCoins(loadedCoins);
             }
-            
-            setCoinsPerClick(progress.coinsPerClick || 0.0001);
-            setCoinsPerSecond(progress.coinsPerSecond || 0);
+
+            // Загружаем ТОЛЬКО уровни — coinsPerClick/coinsPerSecond больше не
+            // хранятся в state, а считаются из уровней по новым формулам.
+            // Это служит автоматической миграцией со старой экономики
+            // (0.0001 за клик) на новую (0.01 за клик).
             setClickUpgradeLevel(progress.clickUpgradeLevel || 0);
             setAutoUpgradeLevel(progress.autoUpgradeLevel || 0);
+            setMultiplierUpgradeLevel(progress.multiplierUpgradeLevel || 0);
           }
         }
       } catch (error) {
@@ -352,13 +415,20 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
         console.error('Invalid coins value, skipping save:', s.coins);
         return;
       }
+      // coinsPerClick/coinsPerSecond больше не хранятся в state — считаем их
+      // из уровней по новым формулам и пишем в Firestore как «снимок»,
+      // чтобы другие части приложения (напр. AdminView) могли
+      // прочитать быстро без пересчёта.
+      const computedClick = computeCoinsPerClick(s.clickUpgradeLevel);
+      const computedSecond = computeCoinsPerSecond(s.autoUpgradeLevel);
       try {
         await updateDoc(doc(db, 'users', userId), {
           'gameProgress.cryptoClicker.coins': s.coins,
-          'gameProgress.cryptoClicker.coinsPerClick': s.coinsPerClick,
-          'gameProgress.cryptoClicker.coinsPerSecond': s.coinsPerSecond,
+          'gameProgress.cryptoClicker.coinsPerClick': computedClick,
+          'gameProgress.cryptoClicker.coinsPerSecond': computedSecond,
           'gameProgress.cryptoClicker.clickUpgradeLevel': s.clickUpgradeLevel,
           'gameProgress.cryptoClicker.autoUpgradeLevel': s.autoUpgradeLevel,
+          'gameProgress.cryptoClicker.multiplierUpgradeLevel': s.multiplierUpgradeLevel,
           'gameProgress.cryptoClicker.lastSaved': serverTimestamp(),
         });
       } catch (error) {
@@ -442,24 +512,25 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
     }
   };
 
-  // Auto-earn coins
+  // Auto-earn coins. Используем effectiveSecond (с «Золотым множителем»).
   useEffect(() => {
-    if (coinsPerSecond <= 0) return;
-    
+    if (effectiveSecond <= 0) return;
+
     const interval = setInterval(() => {
       setCoins(prev => {
-        const newValue = prev + coinsPerSecond / 10;
-        // Проверяем на переполнение и некорректные значения
-        if (newValue < 0 || isNaN(newValue) || newValue > 1000000) {
+        const newValue = prev + effectiveSecond / 10;
+        // Санитарный лимит поднят до 1e9 (раньше был 1 000 000) — на высоких
+        // уровнях автокликер + множитель легко может выходить за 1М.
+        if (newValue < 0 || isNaN(newValue) || newValue > 1e9) {
           console.error('Invalid auto-earn value:', newValue);
           return prev;
         }
         return newValue;
       });
     }, 100);
-    
+
     return () => clearInterval(interval);
-  }, [coinsPerSecond]);
+  }, [effectiveSecond]);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Защита от автокликера
@@ -498,10 +569,11 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
-    setCoins(prev => prev + coinsPerClick);
-    
-    // Add click animation
+
+    // Начисляем effectiveClick — это базовая награда * (1 + 0.2 * lvl_множителя).
+    setCoins(prev => prev + effectiveClick);
+
+    // Анимация всплывающего «+X.XX» при клике.
     const id = Date.now() + Math.random();
     setClickAnimations(prev => [...prev, { id, x, y }]);
     setTimeout(() => {
@@ -509,26 +581,37 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
     }, 1000);
   };
 
+  // Покупки апгрейдов: повышаем только уровень, coinsPerClick/Second
+  // автоматически пересчитаются на следующем рендере (они derived).
   const buyClickUpgrade = () => {
-    const cost = Math.pow(2.5, clickUpgradeLevel) * 0.01; // Увеличена сложность с 1.5 до 2.5
+    const cost = getClickUpgradeCost(clickUpgradeLevel);
     if (coins >= cost) {
       setCoins(prev => prev - cost);
       setClickUpgradeLevel(prev => prev + 1);
-      setCoinsPerClick(prev => prev * 2); // Увеличен множитель с 1.5 до 2
     }
   };
 
   const buyAutoUpgrade = () => {
-    const cost = Math.pow(3, autoUpgradeLevel) * 0.05; // Увеличена стоимость с 2 до 3, базовая с 0.01 до 0.05
+    const cost = getAutoUpgradeCost(autoUpgradeLevel);
     if (coins >= cost) {
       setCoins(prev => prev - cost);
       setAutoUpgradeLevel(prev => prev + 1);
-      setCoinsPerSecond(prev => prev + (0.001 * Math.pow(1.5, autoUpgradeLevel))); // Экспоненциальный рост дохода
     }
   };
 
-  const getClickUpgradeCost = () => Math.pow(2.5, clickUpgradeLevel) * 0.01;
-  const getAutoUpgradeCost = () => Math.pow(3, autoUpgradeLevel) * 0.05;
+  const buyMultiplierUpgrade = () => {
+    const cost = getMultiplierUpgradeCost(multiplierUpgradeLevel);
+    if (coins >= cost) {
+      setCoins(prev => prev - cost);
+      setMultiplierUpgradeLevel(prev => prev + 1);
+    }
+  };
+
+  // Удобные шорткаты к стоимостям текущих уровней — чтобы не повторяться
+  // в JSX. Все три используют module-level функции с уровнем как аргументом.
+  const clickCost = getClickUpgradeCost(clickUpgradeLevel);
+  const autoCost = getAutoUpgradeCost(autoUpgradeLevel);
+  const multiplierCost = getMultiplierUpgradeCost(multiplierUpgradeLevel);
 
   if (loading) {
     return (
@@ -588,7 +671,12 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
               <Coins size={28} className="text-white shrink-0" />
             </motion.div>
             <div className="text-white/80 text-[12px] sm:text-[13px] mt-1">
-              {coinsPerSecond > 0 && `+${coinsPerSecond.toFixed(2)} HC/сек`}
+              {effectiveSecond > 0 && `+${effectiveSecond.toFixed(2)} HC/сек`}
+              {multiplier > 1 && (
+                <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] sm:text-[11px] font-semibold">
+                  ×{multiplier.toFixed(2)}
+                </span>
+              )}
             </div>
             {/* Кнопка вывода в основной кошелёк. Активна только когда
                 накоплен минимум; иначе показываем подсказку. */}
@@ -668,7 +756,7 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
                   className="absolute pointer-events-none text-yellow-600 font-bold text-[16px] sm:text-[20px]"
                   style={{ left: anim.x, top: anim.y }}
                 >
-                  +{coinsPerClick.toFixed(4)}
+                  +{effectiveClick >= 1 ? effectiveClick.toFixed(2) : effectiveClick.toFixed(3)}
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -688,15 +776,20 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
           </motion.div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+        {/* Stats: выводим итоговые значения с ×множителем, иначе игрок
+            не видит эффекта апгрейда. Третья колонка — сам множитель. */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div className="bg-white rounded-xl p-2.5 sm:p-3 shadow-sm">
             <div className="text-[11px] sm:text-[12px] text-gray-500 mb-1">За клик</div>
-            <div className="text-[16px] sm:text-[18px] font-bold text-gray-900 break-all">{coinsPerClick.toFixed(4)}</div>
+            <div className="text-[14px] sm:text-[16px] font-bold text-gray-900 break-all tabular-nums">{effectiveClick >= 1 ? effectiveClick.toFixed(2) : effectiveClick.toFixed(3)}</div>
           </div>
           <div className="bg-white rounded-xl p-2.5 sm:p-3 shadow-sm">
             <div className="text-[11px] sm:text-[12px] text-gray-500 mb-1">В секунду</div>
-            <div className="text-[16px] sm:text-[18px] font-bold text-gray-900 break-all">{coinsPerSecond.toFixed(4)}</div>
+            <div className="text-[14px] sm:text-[16px] font-bold text-gray-900 break-all tabular-nums">{effectiveSecond >= 1 ? effectiveSecond.toFixed(2) : effectiveSecond.toFixed(3)}</div>
+          </div>
+          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-2.5 sm:p-3 shadow-sm border border-amber-200">
+            <div className="text-[11px] sm:text-[12px] text-amber-700 mb-1">Множитель</div>
+            <div className="text-[14px] sm:text-[16px] font-bold text-amber-700 break-all tabular-nums">×{multiplier.toFixed(2)}</div>
           </div>
         </div>
 
@@ -713,7 +806,10 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
           </div>
         </motion.button>
 
-        {/* Upgrades Panel */}
+        {/* Upgrades Panel — три апгрейда:
+            1) Мощный клик (база 0.15 HC, ×2.5 за уровень, удваивает клик),
+            2) Автокликер (база 0.50 HC, ×3 за уровень, растущий пассив),
+            3) Золотой множитель (база 2.00 HC, ×4 за уровень, +20% ко всему). */}
         <AnimatePresence>
           {showUpgrades && (
             <motion.div
@@ -722,49 +818,81 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
               exit={{ height: 0, opacity: 0 }}
               className="space-y-2 sm:space-y-3 overflow-hidden"
             >
-              {/* Click Upgrade */}
+              {/* 1. Мощный клик */}
               <motion.button
                 onClick={buyClickUpgrade}
-                disabled={coins < getClickUpgradeCost()}
+                disabled={coins < clickCost}
                 className={`w-full bg-white rounded-2xl p-3 sm:p-4 shadow-sm ${
-                  coins >= getClickUpgradeCost() ? 'cursor-pointer active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
+                  coins >= clickCost ? 'cursor-pointer active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
                 }`}
-                whileHover={coins >= getClickUpgradeCost() ? { scale: 1.02 } : {}}
+                whileHover={coins >= clickCost ? { scale: 1.02 } : {}}
               >
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center shrink-0 shadow-md">
                     <Zap size={20} className="sm:w-6 sm:h-6 text-white" fill="white" />
                   </div>
                   <div className="flex-grow text-left min-w-0">
                     <div className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Мощный клик</div>
-                    <div className="text-[11px] sm:text-[12px] text-gray-500">Уровень {clickUpgradeLevel}</div>
+                    <div className="text-[11px] sm:text-[12px] text-gray-500">
+                      Ур. {clickUpgradeLevel} · +{coinsPerClick.toFixed(coinsPerClick >= 1 ? 2 : 3)} → +{(coinsPerClick * 2).toFixed(coinsPerClick * 2 >= 1 ? 2 : 3)} HC/клик
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900">{getClickUpgradeCost().toFixed(4)}</div>
+                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900 tabular-nums">{clickCost >= 100 ? clickCost.toFixed(0) : clickCost.toFixed(2)}</div>
                     <div className="text-[10px] sm:text-[11px] text-gray-500">HC</div>
                   </div>
                 </div>
               </motion.button>
 
-              {/* Auto Upgrade */}
+              {/* 2. Автокликер */}
               <motion.button
                 onClick={buyAutoUpgrade}
-                disabled={coins < getAutoUpgradeCost()}
+                disabled={coins < autoCost}
                 className={`w-full bg-white rounded-2xl p-3 sm:p-4 shadow-sm ${
-                  coins >= getAutoUpgradeCost() ? 'cursor-pointer active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
+                  coins >= autoCost ? 'cursor-pointer active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
                 }`}
-                whileHover={coins >= getAutoUpgradeCost() ? { scale: 1.02 } : {}}
+                whileHover={coins >= autoCost ? { scale: 1.02 } : {}}
               >
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-400 to-emerald-400 rounded-xl flex items-center justify-center shrink-0">
-                    <Star size={20} className="sm:w-6 sm:h-6 text-white" fill="white" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-green-400 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                    <Gamepad2 size={20} className="sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div className="flex-grow text-left min-w-0">
-                    <div className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Авто-фарм</div>
-                    <div className="text-[11px] sm:text-[12px] text-gray-500">Уровень {autoUpgradeLevel}</div>
+                    <div className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Автокликер</div>
+                    <div className="text-[11px] sm:text-[12px] text-gray-500">
+                      Ур. {autoUpgradeLevel} · +{(BASE_AUTO * Math.pow(AUTO_INCOME_GROWTH, autoUpgradeLevel)).toFixed(3)} HC/сек
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900">{getAutoUpgradeCost().toFixed(4)}</div>
+                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900 tabular-nums">{autoCost >= 100 ? autoCost.toFixed(0) : autoCost.toFixed(2)}</div>
+                    <div className="text-[10px] sm:text-[11px] text-gray-500">HC</div>
+                  </div>
+                </div>
+              </motion.button>
+
+              {/* 3. Золотой множитель — «премиальный» апгрейд, иначе выделенный визуально */}
+              <motion.button
+                onClick={buyMultiplierUpgrade}
+                disabled={coins < multiplierCost}
+                className={`relative w-full rounded-2xl p-3 sm:p-4 shadow-md overflow-hidden ${
+                  coins >= multiplierCost
+                    ? 'cursor-pointer active:scale-[0.98] bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border border-amber-300'
+                    : 'opacity-50 cursor-not-allowed bg-white border border-gray-200'
+                }`}
+                whileHover={coins >= multiplierCost ? { scale: 1.02 } : {}}
+              >
+                <div className="flex items-center gap-2 sm:gap-3 relative z-10">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                    <Crown size={20} className="sm:w-6 sm:h-6 text-white" fill="white" />
+                  </div>
+                  <div className="flex-grow text-left min-w-0">
+                    <div className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Золотой множитель</div>
+                    <div className="text-[11px] sm:text-[12px] text-amber-700">
+                      Ур. {multiplierUpgradeLevel} · ×{multiplier.toFixed(2)} → ×{(multiplier + MULTIPLIER_PER_LEVEL).toFixed(2)} ко всему
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900 tabular-nums">{multiplierCost >= 100 ? multiplierCost.toFixed(0) : multiplierCost.toFixed(2)}</div>
                     <div className="text-[10px] sm:text-[11px] text-gray-500">HC</div>
                   </div>
                 </div>
