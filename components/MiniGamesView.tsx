@@ -806,101 +806,158 @@ function CryptoClickerGame({ onBack, themeColor }: { onBack: () => void; themeCo
           </div>
         </motion.button>
 
-        {/* Upgrades Panel — три апгрейда:
-            1) Мощный клик (база 0.15 HC, ×2.5 за уровень, удваивает клик),
-            2) Автокликер (база 0.50 HC, ×3 за уровень, растущий пассив),
-            3) Золотой множитель (база 2.00 HC, ×4 за уровень, +20% ко всему). */}
-        <AnimatePresence>
-          {showUpgrades && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="space-y-2 sm:space-y-3 overflow-hidden"
-            >
-              {/* 1. Мощный клик */}
-              <motion.button
-                onClick={buyClickUpgrade}
-                disabled={coins < clickCost}
-                className={`w-full bg-white rounded-2xl p-3 sm:p-4 shadow-sm ${
-                  coins >= clickCost ? 'cursor-pointer active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
-                }`}
-                whileHover={coins >= clickCost ? { scale: 1.02 } : {}}
-              >
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center shrink-0 shadow-md">
-                    <Zap size={20} className="sm:w-6 sm:h-6 text-white" fill="white" />
-                  </div>
-                  <div className="flex-grow text-left min-w-0">
-                    <div className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Мощный клик</div>
-                    <div className="text-[11px] sm:text-[12px] text-gray-500">
-                      Ур. {clickUpgradeLevel} · +{coinsPerClick.toFixed(coinsPerClick >= 1 ? 2 : 3)} → +{(coinsPerClick * 2).toFixed(coinsPerClick * 2 >= 1 ? 2 : 3)} HC/клик
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900 tabular-nums">{clickCost >= 100 ? clickCost.toFixed(0) : clickCost.toFixed(2)}</div>
-                    <div className="text-[10px] sm:text-[11px] text-gray-500">HC</div>
-                  </div>
-                </div>
-              </motion.button>
-
-              {/* 2. Автокликер */}
-              <motion.button
-                onClick={buyAutoUpgrade}
-                disabled={coins < autoCost}
-                className={`w-full bg-white rounded-2xl p-3 sm:p-4 shadow-sm ${
-                  coins >= autoCost ? 'cursor-pointer active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
-                }`}
-                whileHover={coins >= autoCost ? { scale: 1.02 } : {}}
-              >
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-green-400 rounded-xl flex items-center justify-center shrink-0 shadow-md">
-                    <Gamepad2 size={20} className="sm:w-6 sm:h-6 text-white" />
-                  </div>
-                  <div className="flex-grow text-left min-w-0">
-                    <div className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Автокликер</div>
-                    <div className="text-[11px] sm:text-[12px] text-gray-500">
-                      Ур. {autoUpgradeLevel} · +{(BASE_AUTO * Math.pow(AUTO_INCOME_GROWTH, autoUpgradeLevel)).toFixed(3)} HC/сек
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900 tabular-nums">{autoCost >= 100 ? autoCost.toFixed(0) : autoCost.toFixed(2)}</div>
-                    <div className="text-[10px] sm:text-[11px] text-gray-500">HC</div>
-                  </div>
-                </div>
-              </motion.button>
-
-              {/* 3. Золотой множитель — «премиальный» апгрейд, иначе выделенный визуально */}
-              <motion.button
-                onClick={buyMultiplierUpgrade}
-                disabled={coins < multiplierCost}
-                className={`relative w-full rounded-2xl p-3 sm:p-4 shadow-md overflow-hidden ${
-                  coins >= multiplierCost
-                    ? 'cursor-pointer active:scale-[0.98] bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border border-amber-300'
-                    : 'opacity-50 cursor-not-allowed bg-white border border-gray-200'
-                }`}
-                whileHover={coins >= multiplierCost ? { scale: 1.02 } : {}}
-              >
-                <div className="flex items-center gap-2 sm:gap-3 relative z-10">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 rounded-xl flex items-center justify-center shrink-0 shadow-md">
-                    <Crown size={20} className="sm:w-6 sm:h-6 text-white" fill="white" />
-                  </div>
-                  <div className="flex-grow text-left min-w-0">
-                    <div className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Золотой множитель</div>
-                    <div className="text-[11px] sm:text-[12px] text-amber-700">
-                      Ур. {multiplierUpgradeLevel} · ×{multiplier.toFixed(2)} → ×{(multiplier + MULTIPLIER_PER_LEVEL).toFixed(2)} ко всему
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[13px] sm:text-[14px] font-bold text-gray-900 tabular-nums">{multiplierCost >= 100 ? multiplierCost.toFixed(0) : multiplierCost.toFixed(2)}</div>
-                    <div className="text-[10px] sm:text-[11px] text-gray-500">HC</div>
-                  </div>
-                </div>
-              </motion.button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Панель апгрейдов вынесена в отдельную bottom-sheet модалку ниже —
+            раньше она была инлайн под кнопкой и часто оказывалась за пределами
+            видимой области внутри overflow-y-auto, из-за чего пользователь
+            считал, что «окно не появляется». */}
       </div>
+
+      {/* Upgrades Modal: bottom-sheet с тремя апгрейдами. Раньше панель
+          была инлайн внутри overflow-y-auto и не помещалась на экран —
+          игрок не видел «окна». Теперь это полноценная модалка поверх. */}
+      <AnimatePresence>
+        {showUpgrades && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-40 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowUpgrades(false)}
+          >
+            <motion.div
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 32 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col"
+            >
+              {/* Drag handle (только на мобиле) */}
+              <div className="sm:hidden pt-2 pb-1 flex justify-center">
+                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              </div>
+
+              {/* Header */}
+              <div className="px-5 pt-3 sm:pt-5 pb-3 flex items-center justify-between border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg">
+                    <TrendingUp size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-[17px] font-bold text-gray-900 leading-tight">Улучшения</h3>
+                    <p className="text-[12px] text-gray-500">Прокачай свой клиeкер</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowUpgrades(false)}
+                  className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Закрыть"
+                >
+                  <X size={18} className="text-gray-500" />
+                </button>
+              </div>
+
+              {/* Текущий баланс — чтобы было видно сразу при покупке */}
+              <div className="px-5 py-3 bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-amber-100 flex items-center justify-between">
+                <span className="text-[12px] text-gray-600">Ваш баланс</span>
+                <span className="text-[15px] font-bold text-orange-600 tabular-nums inline-flex items-center gap-1">
+                  {coins.toFixed(2)}
+                  <Coins size={14} />
+                </span>
+              </div>
+
+              {/* Список апгрейдов — скроллится если не помещается */}
+              <div className="overflow-y-auto p-4 space-y-2.5 flex-1">
+                {/* 1. Мощный клик */}
+                <motion.button
+                  onClick={buyClickUpgrade}
+                  disabled={coins < clickCost}
+                  className={`w-full bg-white rounded-2xl p-3.5 shadow-sm border ${
+                    coins >= clickCost ? 'cursor-pointer active:scale-[0.98] border-blue-200 hover:border-blue-400 hover:shadow-md' : 'opacity-50 cursor-not-allowed border-gray-200'
+                  } transition-all`}
+                  whileHover={coins >= clickCost ? { scale: 1.02 } : {}}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                      <Zap size={22} className="text-white" fill="white" />
+                    </div>
+                    <div className="flex-grow text-left min-w-0">
+                      <div className="text-[15px] font-semibold text-gray-900">Мощный клик</div>
+                      <div className="text-[12px] text-gray-500">
+                        Ур. {clickUpgradeLevel} · +{coinsPerClick.toFixed(coinsPerClick >= 1 ? 2 : 3)} → +{(coinsPerClick * 2).toFixed(coinsPerClick * 2 >= 1 ? 2 : 3)} HC
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[14px] font-bold text-gray-900 tabular-nums">{clickCost >= 100 ? clickCost.toFixed(0) : clickCost.toFixed(2)}</div>
+                      <div className="text-[11px] text-gray-500">HC</div>
+                    </div>
+                  </div>
+                </motion.button>
+
+                {/* 2. Автокликер */}
+                <motion.button
+                  onClick={buyAutoUpgrade}
+                  disabled={coins < autoCost}
+                  className={`w-full bg-white rounded-2xl p-3.5 shadow-sm border ${
+                    coins >= autoCost ? 'cursor-pointer active:scale-[0.98] border-emerald-200 hover:border-emerald-400 hover:shadow-md' : 'opacity-50 cursor-not-allowed border-gray-200'
+                  } transition-all`}
+                  whileHover={coins >= autoCost ? { scale: 1.02 } : {}}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-400 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                      <Gamepad2 size={22} className="text-white" />
+                    </div>
+                    <div className="flex-grow text-left min-w-0">
+                      <div className="text-[15px] font-semibold text-gray-900">Автокликер</div>
+                      <div className="text-[12px] text-gray-500">
+                        Ур. {autoUpgradeLevel} · +{(BASE_AUTO * Math.pow(AUTO_INCOME_GROWTH, autoUpgradeLevel)).toFixed(3)} HC/сек
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[14px] font-bold text-gray-900 tabular-nums">{autoCost >= 100 ? autoCost.toFixed(0) : autoCost.toFixed(2)}</div>
+                      <div className="text-[11px] text-gray-500">HC</div>
+                    </div>
+                  </div>
+                </motion.button>
+
+                {/* 3. Золотой множитель — премиальный */}
+                <motion.button
+                  onClick={buyMultiplierUpgrade}
+                  disabled={coins < multiplierCost}
+                  className={`relative w-full rounded-2xl p-3.5 shadow-md border-2 overflow-hidden transition-all ${
+                    coins >= multiplierCost
+                      ? 'cursor-pointer active:scale-[0.98] bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-amber-300 hover:border-amber-500 hover:shadow-lg'
+                      : 'opacity-50 cursor-not-allowed bg-white border-gray-200'
+                  }`}
+                  whileHover={coins >= multiplierCost ? { scale: 1.02 } : {}}
+                >
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                      <Crown size={22} className="text-white" fill="white" />
+                    </div>
+                    <div className="flex-grow text-left min-w-0">
+                      <div className="text-[15px] font-semibold text-gray-900">Золотой множитель</div>
+                      <div className="text-[12px] text-amber-700">
+                        Ур. {multiplierUpgradeLevel} · ×{multiplier.toFixed(2)} → ×{(multiplier + MULTIPLIER_PER_LEVEL).toFixed(2)} ко всему
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[14px] font-bold text-gray-900 tabular-nums">{multiplierCost >= 100 ? multiplierCost.toFixed(0) : multiplierCost.toFixed(2)}</div>
+                      <div className="text-[11px] text-gray-500">HC</div>
+                    </div>
+                  </div>
+                </motion.button>
+
+                {/* Подсказка внизу */}
+                <div className="text-[11px] text-center text-gray-400 pt-2 pb-1 px-2 leading-relaxed">
+                  Покупка списывает HC с баланса мгновенно. Уровень растёт навсегда — даже после вывода в кошелёк.
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Withdraw Modal: подтверждение перевода HouseCoin в кошелёк.
           Показываем сумму, комиссию (5%) и итог; всё считаем от текущего coins. */}
