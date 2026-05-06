@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, Sparkles, Lock } from 'lucide-react';
+import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, Sparkles, Lock, Phone, Video, BellOff, Palette, UserMinus } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import NextImage from 'next/image';
 import { auth, db } from '@/lib/firebase';
@@ -828,33 +828,74 @@ export default function ChatView() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className={`absolute right-2 top-full mt-1 w-48 rounded-xl shadow-2xl py-1 z-[110] overflow-hidden ${
+                    className={`absolute right-2 top-full mt-1 w-56 rounded-[14px] shadow-2xl py-2 z-[110] overflow-hidden origin-top-right ${
                       isDarkMode 
-                        ? 'bg-[#1a1a1a] border border-gray-800' 
+                        ? 'bg-[#212121] border border-gray-800' 
                         : 'bg-white'
                     }`}
                   >
+                    {/* Dummy buttons to simulate Telegram functionality */}
+                    <button 
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
+                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <Phone size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      Позвонить
+                    </button>
+                    <button 
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
+                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <Video size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      Видеозвонок
+                    </button>
+                    <button 
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
+                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <Search size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      Поиск
+                    </button>
+                    <button 
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
+                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <BellOff size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      Отключить уведомления
+                    </button>
+                    <button 
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
+                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <Palette size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      Изменить цвета
+                    </button>
                     <button 
                       onClick={() => { setShowClearModal(true); setIsMenuOpen(false); }} 
-                      className={`w-full text-left px-4 py-3 text-[15px] transition-colors flex items-center gap-3 ${
-                        isDarkMode 
-                          ? 'hover:bg-gray-800 text-gray-200' 
-                          : 'hover:bg-gray-100 text-black'
+                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
+                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
                       }`}
                     >
-                      <Trash2 size={18} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      <Trash2 size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
                       Очистить историю
                     </button>
-                    <div className={`h-px mx-2 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`} />
                     <button 
                       onClick={() => { setShowDeleteModal(true); setIsMenuOpen(false); }} 
-                      className={`w-full text-left px-4 py-3 text-[15px] text-red-500 transition-colors flex items-center gap-3 ${
-                        isDarkMode 
-                          ? 'hover:bg-red-500/10' 
-                          : 'hover:bg-red-50'
+                      className={`w-full text-left px-4 py-3 text-[16px] text-red-500 transition-colors flex items-center gap-5 ${
+                        isDarkMode ? 'hover:bg-red-500/10' : 'hover:bg-red-50'
                       }`}
                     >
-                      <X size={18} className="text-red-500" />
+                      <UserMinus size={22} className="text-red-500" />
                       Удалить чат
                     </button>
                   </motion.div>
