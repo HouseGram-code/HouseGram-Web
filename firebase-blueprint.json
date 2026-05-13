@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "username": { "type": "string" },
+        "bio": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "isBanned": { "type": "boolean" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["uid", "email", "name", "role", "isBanned", "createdAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "A conversation between users",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "timestamp" },
+        "lastMessage": { "type": "string" }
+      },
+      "required": ["participants", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single message in a chat",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "status": { "type": "string", "enum": ["sent", "read"] }
+      },
+      "required": ["chatId", "senderId", "text", "createdAt", "status"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global app settings",
+      "type": "object",
+      "properties": {
+        "maintenanceMode": { "type": "boolean" }
+      },
+      "required": ["maintenanceMode"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles"
+    },
+    "chats/{chatId}": {
+      "schema": { "$ref": "#/entities/Chat" },
+      "description": "Stores chat metadata"
+    },
+    "messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Stores messages"
+    },
+    "settings/global": {
+      "schema": { "$ref": "#/entities/Settings" },
+      "description": "Stores global settings like maintenance mode"
+    }
+  }
+}

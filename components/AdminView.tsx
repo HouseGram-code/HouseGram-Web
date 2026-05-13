@@ -1,0 +1,1724 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useChat } from '@/context/ChatContext';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Shield, Users, Settings, Ban, CheckCircle, AlertTriangle, Database, Activity, MessageSquare, TrendingUp, Eye, Search, Filter, Download, RefreshCw, BadgeCheck, CreditCard, Zap, Clock, CheckCheck, X, Crown, Gamepad2, Coins, Star } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
+
+type TabType = 'users' | 'stats' | 'system' | 'database' | 'payments' | 'premium' | 'minigames' | 'promocodes';
+
+export default function AdminView() {
+  const { setView, themeColor, isGlassEnabled, isAdmin } = useChat();
+  const [activeTab, setActiveTab] = useState<TabType>('users');
+  const [users, setUsers] = useState<any[]>([]);
+  const [promocodes, setPromocodes] = useState<any[]>([]);
+  const [newPromoCode, setNewPromoCode] = useState('');
+  const [newPromoReward, setNewPromoReward] = useState(50);
+  const [newPromoMaxUses, setNewPromoMaxUses] = useState(100);
+  const [isCreatingPromo, setIsCreatingPromo] = useState(false);
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [isVictoryDayTheme, setIsVictoryDayTheme] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'user'>('all');
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    onlineUsers: 0,
+    totalMessages: 0,
+    totalChats: 0,
+    bannedUsers: 0
+  });
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [starsAmount, setStarsAmount] = useState(100);
+  const [paymentRequests, setPaymentRequests] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [premiumRequests, setPremiumRequests] = useState<any[]>([]);
+  const [loadingPremiumRequests, setLoadingPremiumRequests] = useState(false);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setView('menu');
+      return;
+    }
+
+    checkFirebaseConnection();
+    fetchUsers();
+    fetchStats();
+    fetchPaymentRequests();
+    fetchPremiumRequests();
+
+    const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setIsMaintenance(data.maintenanceMode || false);
+        setIsVictoryDayTheme(data.victoryDayTheme || false);
+      }
+    });
+
+    // Load promocodes
+    const promoQuery = query(collection(db, 'promocodes'), orderBy('createdAt', 'desc'));
+    const unsubscribePromo = onSnapshot(promoQuery, (snapshot: any) => {
+      const promos = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+      setPromocodes(promos);
+    });
+
+    // Подписка на заявки в реальном времени
+    const unsubscribeRequests = onSnapshot(
+      collection(db, 'payment_requests'),
+      (snapshot: any) => {
+        const requests = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as any[];
+        setPaymentRequests(requests.sort((a, b) => {
+          if (a.status === 'pending' && b.status !== 'pending') return -1;
+          if (a.status !== 'pending' && b.status === 'pending') return 1;
+          return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+        }));
+      }
+    );
+
+    // Подписка на заявки премиума в реальном времени
+    const unsubscribePremiumRequests = onSnapshot(
+      collection(db, 'premium_requests'),
+      (snapshot: any) => {
+        const requests = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as any[];
+        setPremiumRequests(requests.sort((a, b) => {
+          if (a.status === 'pending' && b.status !== 'pending') return -1;
+          if (a.status !== 'pending' && b.status === 'pending') return 1;
+          return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+        }));
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      unsubscribeRequests();
+      unsubscribePremiumRequests();
+      unsubscribePromo();
+    };
+  }, [isAdmin, setView]);
+
+  const handleCreatePromo = async () => {
+    if (!newPromoCode.trim() || newPromoReward <= 0 || newPromoMaxUses <= 0) {
+      alert('Заполните все поля корректно');
+      return;
+    }
+    const code = newPromoCode.trim().toUpperCase();
+    setIsCreatingPromo(true);
+    try {
+      await setDoc(doc(db, 'promocodes', code), {
+        code,
+        rewardStars: newPromoReward,
+        maxUses: newPromoMaxUses,
+        usesCount: 0,
+        active: true,
+        createdAt: new Date().toISOString(),
+        usedBy: []
+      });
+      setNewPromoCode('');
+      setNewPromoReward(50);
+      setNewPromoMaxUses(100);
+      alert(`Промокод ${code} успешно создан!`);
+    } catch (e) {
+      console.error('Failed to create promo code', e);
+      alert('Ошибка при создании промокода');
+    } finally {
+      setIsCreatingPromo(false);
+    }
+  };
+
+  const handleTogglePromo = async (code: string, active: boolean) => {
+    try {
+      await updateDoc(doc(db, 'promocodes', code), { active: !active });
+    } catch (e) {
+      console.error('Failed to toggle promo code', e);
+    }
+  };
+
+  const handleDeletePromo = async (code: string) => {
+    if (!confirm(`Точно удалить промокод ${code}?`)) return;
+    try {
+      const { deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(doc(db, 'promocodes', code));
+    } catch (e) {
+      console.error('Failed to delete promo', e);
+    }
+  };
+
+  const checkFirebaseConnection = async () => {
+    try {
+      // Проверяем подключение к Firebase
+      const testDoc = await getDocs(query(collection(db, 'users'), limit(1)));
+      console.log('Firebase connected successfully');
+    } catch (err) {
+      console.error('Firebase connection error:', err);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsers(usersList);
+    } catch (err) {
+      console.error('Error fetching users', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const users = usersSnapshot.docs.map(doc => doc.data());
+      
+      const chatsSnapshot = await getDocs(collection(db, 'chats'));
+      
+      setStats({
+        totalUsers: users.length,
+        onlineUsers: users.filter(u => u.status === 'online').length,
+        totalMessages: 0, // Подсчитывается отдельно
+        totalChats: chatsSnapshot.size,
+        bannedUsers: users.filter(u => u.isBanned).length
+      });
+    } catch (err) {
+      console.error('Error fetching stats', err);
+    }
+  };
+
+  const fetchPremiumRequests = async () => {
+    try {
+      setLoadingPremiumRequests(true);
+      const snapshot = await getDocs(collection(db, 'premium_requests'));
+      const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      setPremiumRequests(requests.sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      }));
+    } catch (err) {
+      console.error('Error fetching premium requests', err);
+    } finally {
+      setLoadingPremiumRequests(false);
+    }
+  };
+
+  const approvePremium = async (requestId: string, userId: string, days: number = 30) => {
+    try {
+      // Выдаем премиум на указанное количество дней
+      const userRef = doc(db, 'users', userId);
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + days);
+      
+      await updateDoc(userRef, {
+        premium: true,
+        premiumExpiry: expiryDate
+      });
+
+      // Обновляем статус заявки
+      await updateDoc(doc(db, 'premium_requests', requestId), {
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+        premiumDays: days
+      });
+
+      alert(`✅ Premium выдан на ${days} дней!`);
+    } catch (err) {
+      console.error('Error approving premium:', err);
+      alert('Ошибка при выдаче Premium');
+    }
+  };
+
+  const rejectPremium = async (requestId: string) => {
+    try {
+      await updateDoc(doc(db, 'premium_requests', requestId), {
+        status: 'rejected',
+        rejectedAt: new Date().toISOString()
+      });
+      alert('❌ Заявка на Premium отклонена');
+    } catch (err) {
+      console.error('Error rejecting premium:', err);
+      alert('Ошибка при отклонении заявки');
+    }
+  };
+
+  const givePremium = async (userId: string, days: number) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + days);
+      
+      await updateDoc(userRef, {
+        premium: true,
+        premiumExpiry: expiryDate
+      });
+
+      alert(`✅ Premium выдан пользователю ${selectedUser?.name} на ${days} дней`);
+      setShowUserModal(false);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error giving premium:', err);
+      alert('Ошибка при выдаче Premium');
+    }
+  };
+
+  const removePremium = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        premium: false,
+        premiumExpiry: null
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, premium: false, premiumExpiry: null } : u));
+      alert(`✅ Premium убран у ${selectedUser?.name}`);
+      setShowUserModal(false);
+    } catch (err) {
+      console.error('Error removing premium:', err);
+      alert('Ошибка при удалении Premium');
+    }
+  };
+
+  const fetchPaymentRequests = async () => {
+    try {
+      setLoadingRequests(true);
+      const snapshot = await getDocs(collection(db, 'payment_requests'));
+      const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      setPaymentRequests(requests.sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      }));
+    } catch (err) {
+      console.error('Error fetching payment requests', err);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  const approvePayment = async (requestId: string, userId: string, stars: number) => {
+    try {
+      // Начисляем молнии
+      const userRef = doc(db, 'users', userId);
+      const userSnap = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
+      
+      if (!userSnap.empty) {
+        const currentStars = userSnap.docs[0].data().stars || 0;
+        await updateDoc(userRef, {
+          stars: currentStars + stars
+        });
+      }
+
+      // Обновляем статус заявки
+      await updateDoc(doc(db, 'payment_requests', requestId), {
+        status: 'approved',
+        approvedAt: new Date().toISOString()
+      });
+
+      alert(`✅ Заявка одобрена! Начислено ${stars} ⚡`);
+    } catch (err) {
+      console.error('Error approving payment:', err);
+      alert('Ошибка при одобрении заявки');
+    }
+  };
+
+  const rejectPayment = async (requestId: string) => {
+    try {
+      await updateDoc(doc(db, 'payment_requests', requestId), {
+        status: 'rejected',
+        rejectedAt: new Date().toISOString()
+      });
+      alert('❌ Заявка отклонена');
+    } catch (err) {
+      console.error('Error rejecting payment:', err);
+      alert('Ошибка при отклонении заявки');
+    }
+  };
+
+  const toggleBan = async (userId: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        isBanned: !currentStatus
+      });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isBanned: !currentStatus } : u));
+      fetchStats();
+    } catch (err) {
+      console.error('Error toggling ban', err);
+      alert('Ошибка при изменении статуса блокировки');
+    }
+  };
+
+  const freezeAccount = async (userId: string, reason?: string) => {
+    try {
+      const freezeReason = reason || prompt('Причина заморозки:', 'Нарушение правил использования');
+      if (!freezeReason) return;
+
+      await updateDoc(doc(db, 'users', userId), {
+        isFrozen: true,
+        frozenAt: new Date().toISOString(),
+        frozenReason: freezeReason
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isFrozen: true, frozenAt: new Date().toISOString(), frozenReason: freezeReason } : u));
+      alert(`✅ Аккаунт заморожен! У пользователя есть 7 дней для связи с поддержкой.`);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error freezing account:', err);
+      alert('Ошибка при заморозке аккаунта');
+    }
+  };
+
+  const unfreezeAccount = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        isFrozen: false,
+        frozenAt: null,
+        frozenReason: null
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isFrozen: false, frozenAt: null, frozenReason: null } : u));
+      alert(`✅ Аккаунт разморожен!`);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error unfreezing account:', err);
+      alert('Ошибка при разморозке аккаунта');
+    }
+  };
+
+  const toggleMaintenance = async () => {
+    try {
+      await setDoc(doc(db, 'settings', 'global'), {
+        maintenanceMode: !isMaintenance
+      }, { merge: true });
+    } catch (err) {
+      console.error('Error toggling maintenance', err);
+      alert('Ошибка при изменении режима тех. работ');
+    }
+  };
+
+  // Праздничный режим "День Победы 9 мая". Запись попадает в settings/global,
+  // ChatContext подписан на этот документ через onSnapshot и моментально
+  // включает оверлей (георгиевская лента, звёзды, плашка) у всех клиентов —
+  // включая других админов.
+  const toggleVictoryDayTheme = async () => {
+    try {
+      await setDoc(doc(db, 'settings', 'global'), {
+        victoryDayTheme: !isVictoryDayTheme
+      }, { merge: true });
+    } catch (err) {
+      console.error('Error toggling victory day theme', err);
+      alert('Ошибка при изменении праздничной темы');
+    }
+  };
+
+  const giveStars = async (userId: string, amount: number) => {
+    try {
+      // Обновляем в Firebase
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
+      
+      if (!userDoc.empty) {
+        const currentStars = userDoc.docs[0].data().stars || 0;
+        await updateDoc(userRef, {
+          stars: currentStars + amount
+        });
+      }
+
+      alert(`✅ Выдано ${amount} ⚡ пользователю ${selectedUser?.name}`);
+      setShowUserModal(false);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error giving stars:', err);
+      alert('Ошибка при выдаче молний');
+    }
+  };
+
+  const toggleOfficialBadge = async (userId: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        isOfficial: !currentStatus
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isOfficial: !currentStatus } : u));
+      alert(`✅ Синий значок ${!currentStatus ? 'выдан' : 'убран'}`);
+      setShowUserModal(false);
+    } catch (err) {
+      console.error('Error toggling badge:', err);
+      alert('Ошибка при изменении значка');
+    }
+  };
+
+  const makeAdmin = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'admin'
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'admin' } : u));
+      alert(`✅ Пользователь ${selectedUser?.name} теперь администратор`);
+      setShowUserModal(false);
+      fetchStats();
+    } catch (err) {
+      console.error('Error making admin:', err);
+      alert('Ошибка при назначении администратором');
+    }
+  };
+
+  const removeAdmin = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'user'
+      });
+      
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'user' } : u));
+      alert(`✅ Права администратора убраны у ${selectedUser?.name}`);
+      setShowUserModal(false);
+      fetchStats();
+    } catch (err) {
+      console.error('Error removing admin:', err);
+      alert('Ошибка при удалении прав администратора');
+    }
+  };
+
+  const exportData = () => {
+    const dataStr = JSON.stringify(users, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `users-export-${new Date().toISOString()}.json`;
+    link.click();
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         user.username?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = filterRole === 'all' || user.role === filterRole;
+    return matchesSearch && matchesRole;
+  });
+
+  if (!isAdmin) return null;
+
+  return (
+    <motion.div 
+      initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className="absolute inset-0 bg-white flex flex-col z-50"
+    >
+      <div 
+        className={`text-white px-2.5 h-14 flex items-center gap-4 shrink-0 relative z-30 transition-colors ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
+        style={{ backgroundColor: isGlassEnabled ? themeColor + 'CC' : themeColor }}
+      >
+        <button onClick={() => setView('menu')} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+          <ArrowLeft size={24} />
+        </button>
+        <div className="flex-grow text-[18px] font-medium flex items-center gap-2">
+          <Shield size={20} />
+          Админ Панель
+        </div>
+        <button onClick={fetchStats} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+          <RefreshCw size={20} />
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 bg-white px-2 shrink-0 overflow-x-auto">
+        <TabButton 
+          active={activeTab === 'users'} 
+          onClick={() => setActiveTab('users')}
+          icon={<Users size={18} />}
+          label="Пользователи"
+        />
+        <TabButton 
+          active={activeTab === 'payments'} 
+          onClick={() => setActiveTab('payments')}
+          icon={<CreditCard size={18} />}
+          label="Пополнения"
+        />
+        <TabButton 
+          active={activeTab === 'premium'} 
+          onClick={() => setActiveTab('premium')}
+          icon={<Crown size={18} />}
+          label="Premium"
+        />
+        <TabButton 
+          active={activeTab === 'minigames'} 
+          onClick={() => setActiveTab('minigames')}
+          icon={<Gamepad2 size={18} />}
+          label="Мини-игры"
+        />
+        <TabButton 
+          active={activeTab === 'promocodes'} 
+          onClick={() => setActiveTab('promocodes')}
+          icon={<Zap size={18} />}
+          label="Промокоды"
+        />
+        <TabButton 
+          active={activeTab === 'stats'} 
+          onClick={() => setActiveTab('stats')}
+          icon={<TrendingUp size={18} />}
+          label="Статистика"
+        />
+        <TabButton 
+          active={activeTab === 'system'} 
+          onClick={() => setActiveTab('system')}
+          icon={<Settings size={18} />}
+          label="Система"
+        />
+        <TabButton 
+          active={activeTab === 'database'} 
+          onClick={() => setActiveTab('database')}
+          icon={<Database size={18} />}
+          label="База данных"
+        />
+      </div>
+
+      <div className="flex-grow overflow-y-auto pt-4 pb-10 no-scrollbar bg-gray-50">
+        <AnimatePresence mode="wait">
+          {activeTab === 'users' && (
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              {/* Search and Filter */}
+              <div className="px-4 mb-4 space-y-3">
+                <div className="relative">
+                  <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Поиск по имени, email или username..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setFilterRole('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      filterRole === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Все ({users.length})
+                  </button>
+                  <button
+                    onClick={() => setFilterRole('admin')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      filterRole === 'admin' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Админы ({users.filter(u => u.role === 'admin').length})
+                  </button>
+                  <button
+                    onClick={() => setFilterRole('user')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      filterRole === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Пользователи ({users.filter(u => u.role === 'user').length})
+                  </button>
+                  <button
+                    onClick={exportData}
+                    className="ml-auto px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center gap-2"
+                  >
+                    <Download size={16} />
+                    Экспорт
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white border-y border-gray-100">
+                {loading ? (
+                  <div className="p-4 text-center text-gray-500">Загрузка...</div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">Пользователи не найдены</div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {filteredUsers.map(user => (
+                      <div key={user.id} className="flex items-center px-4 py-3 gap-3 hover:bg-gray-50 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium shrink-0">
+                          {user.name?.charAt(0) || '?'}
+                        </div>
+                        <div className="flex flex-col flex-grow min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[16px] text-black font-medium truncate">{user.name}</span>
+                            {user.role === 'admin' && <Shield size={14} className="text-blue-500 shrink-0" />}
+                            {user.status === 'online' && (
+                              <span className="w-2 h-2 bg-green-500 rounded-full shrink-0"></span>
+                            )}
+                            {user.isBanned && (
+                              <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full shrink-0">
+                                Забанен
+                              </span>
+                            )}
+                            {user.isFrozen && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded-full shrink-0 flex items-center gap-1">
+                                🧊 Заморожен
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[13px] text-gray-500 truncate">{user.email}</span>
+                          <span className="text-[12px] text-gray-400 truncate">{user.username}</span>
+                        </div>
+                        
+                        {user.role !== 'admin' && (
+                          <div className="flex gap-2 shrink-0">
+                            {!user.isFrozen ? (
+                              <>
+                                <button
+                                  onClick={() => freezeAccount(user.id)}
+                                  className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                  title="Заморозить аккаунт"
+                                >
+                                  🧊
+                                </button>
+                                <button
+                                  onClick={() => toggleBan(user.id, user.isBanned)}
+                                  className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                                    user.isBanned 
+                                      ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                      : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                  }`}
+                                >
+                                  {user.isBanned ? (
+                                    <><CheckCircle size={16} /> Разбанить</>
+                                  ) : (
+                                    <><Ban size={16} /> Забанить</>
+                                  )}
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => unfreezeAccount(user.id)}
+                                className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors bg-green-100 text-green-700 hover:bg-green-200"
+                              >
+                                <CheckCircle size={16} /> Разморозить
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'payments' && (
+            <motion.div
+              key="payments"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4"
+            >
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Заявки на пополнение</h2>
+                <p className="text-sm text-gray-600">
+                  Управление заявками на покупку молний от пользователей
+                </p>
+              </div>
+
+              {paymentRequests.length === 0 ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <CreditCard size={48} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-500">Нет заявок на пополнение</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {paymentRequests.map((request: any) => (
+                    <div
+                      key={request.id}
+                      className={`bg-white rounded-xl p-4 border-2 ${
+                        request.status === 'pending'
+                          ? 'border-yellow-300 bg-yellow-50'
+                          : request.status === 'approved'
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-red-300 bg-red-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">
+                              {request.userName || 'Пользователь'}
+                            </span>
+                            {request.status === 'pending' && (
+                              <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <Clock size={12} />
+                                Ожидает
+                              </span>
+                            )}
+                            {request.status === 'approved' && (
+                              <span className="px-2 py-0.5 bg-green-200 text-green-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <CheckCheck size={12} />
+                                Одобрено
+                              </span>
+                            )}
+                            {request.status === 'rejected' && (
+                              <span className="px-2 py-0.5 bg-red-200 text-red-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <X size={12} />
+                                Отклонено
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">{request.userEmail}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            ID: {request.id.slice(0, 8)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-yellow-600 font-bold text-lg">
+                            <Zap size={20} fill="currentColor" />
+                            {request.stars}
+                          </div>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {request.price} ₽
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500 mb-3">
+                        {request.createdAt && new Date(request.createdAt.seconds * 1000).toLocaleString('ru-RU')}
+                      </div>
+
+                      {request.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => approvePayment(request.id, request.userId, request.stars)}
+                            className="flex-1 bg-green-500 text-white py-2 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle size={18} />
+                            Одобрить
+                          </button>
+                          <button
+                            onClick={() => rejectPayment(request.id)}
+                            className="flex-1 bg-red-500 text-white py-2 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Ban size={18} />
+                            Отклонить
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'premium' && (
+            <motion.div
+              key="premium"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4"
+            >
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <Crown size={24} className="text-purple-500" />
+                  Заявки на Premium
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Управление заявками на Premium подписку
+                </p>
+              </div>
+
+              {premiumRequests.length === 0 ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <Crown size={48} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-500">Нет заявок на Premium</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {premiumRequests.map((request: any) => (
+                    <div
+                      key={request.id}
+                      className={`bg-white rounded-xl p-4 border-2 ${
+                        request.status === 'pending'
+                          ? 'border-purple-300 bg-purple-50'
+                          : request.status === 'approved'
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-red-300 bg-red-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">
+                              {request.userName || 'Пользователь'}
+                            </span>
+                            {request.status === 'pending' && (
+                              <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <Clock size={12} />
+                                Ожидает
+                              </span>
+                            )}
+                            {request.status === 'approved' && (
+                              <span className="px-2 py-0.5 bg-green-200 text-green-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <CheckCheck size={12} />
+                                Одобрено
+                              </span>
+                            )}
+                            {request.status === 'rejected' && (
+                              <span className="px-2 py-0.5 bg-red-200 text-red-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                <X size={12} />
+                                Отклонено
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">{request.userEmail}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            ID: {request.id.slice(0, 8)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-purple-600 font-bold text-lg">
+                            <Crown size={20} />
+                            Premium
+                          </div>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {request.price} ₽
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500 mb-3">
+                        {request.createdAt && new Date(request.createdAt.seconds * 1000).toLocaleString('ru-RU')}
+                      </div>
+
+                      {request.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => approvePremium(request.id, request.userId, 30)}
+                            className="flex-1 bg-purple-500 text-white py-2 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle size={18} />
+                            Выдать на 30 дней
+                          </button>
+                          <button
+                            onClick={() => rejectPremium(request.id)}
+                            className="flex-1 bg-red-500 text-white py-2 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Ban size={18} />
+                            Отклонить
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Manual Premium Management */}
+              <div className="mt-6 bg-white rounded-xl p-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Crown size={20} className="text-purple-500" />
+                  Ручное управление Premium
+                </h3>
+                
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username пользователя (без @):');
+                      if (username) {
+                        const days = prompt('На сколько дней выдать Premium?', '30');
+                        if (days && !isNaN(Number(days))) {
+                          // Найти пользователя по username и выдать премиум
+                          const user = users.find(u => u.username === '@' + username || u.username === username);
+                          if (user) {
+                            givePremium(user.id, Number(days));
+                          } else {
+                            alert('Пользователь не найден');
+                          }
+                        }
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  >
+                    <Crown size={20} />
+                    Выдать Premium по username
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username пользователя для удаления Premium (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          removePremium(user.id);
+                        } else {
+                          alert('Пользователь не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <X size={20} />
+                    Убрать Premium по username
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'minigames' && (
+            <motion.div
+              key="minigames"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4"
+            >
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <Gamepad2 size={24} className="text-orange-500" />
+                  Управление мини-играми
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Управление балансами игроков и борьба с читерами
+                </p>
+              </div>
+
+              {/* Search User */}
+              <div className="bg-white rounded-xl p-4 mb-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Search size={20} />
+                  Поиск игрока
+                </h3>
+                <div className="relative mb-3">
+                  <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Введите username или имя..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                {searchQuery && filteredUsers.length > 0 && (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {filteredUsers.slice(0, 5).map(user => (
+                      <button
+                        key={user.id}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowUserModal(true);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-medium shrink-0">
+                          {user.name?.charAt(0) || '?'}
+                        </div>
+                        <div className="flex-grow min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                          <div className="text-sm text-gray-500 truncate">{user.username}</div>
+                        </div>
+                        {user.gameProgress?.cryptoClicker && (
+                          <div className="flex items-center gap-1 text-yellow-600 font-semibold">
+                            <Coins size={16} />
+                            {user.gameProgress.cryptoClicker.coins?.toFixed(2) || '0.00'}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Zap size={20} className="text-yellow-500" />
+                  Быстрые действия
+                </h3>
+                
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username игрока (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          const confirm = window.confirm(`Обнулить баланс игрока ${user.name}?`);
+                          if (confirm) {
+                            updateDoc(doc(db, 'users', user.id), {
+                              'gameProgress.cryptoClicker.coins': 0,
+                              'gameProgress.cryptoClicker.coinsPerClick': 0.0001,
+                              'gameProgress.cryptoClicker.coinsPerSecond': 0,
+                              'gameProgress.cryptoClicker.clickUpgradeLevel': 0,
+                              'gameProgress.cryptoClicker.autoUpgradeLevel': 0
+                            }).then(() => {
+                              alert('✅ Баланс обнулен!');
+                              fetchUsers();
+                            });
+                          }
+                        } else {
+                          alert('Игрок не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <AlertTriangle size={20} />
+                    Обнулить баланс игрока
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username игрока (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          const amount = prompt('Сколько монет выдать?', '1000');
+                          if (amount && !isNaN(Number(amount))) {
+                            const currentCoins = user.gameProgress?.cryptoClicker?.coins || 0;
+                            updateDoc(doc(db, 'users', user.id), {
+                              'gameProgress.cryptoClicker.coins': currentCoins + Number(amount)
+                            }).then(() => {
+                              alert(`✅ Выдано ${amount} монет!`);
+                              fetchUsers();
+                            });
+                          }
+                        } else {
+                          alert('Игрок не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-green-500 text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Coins size={20} />
+                    Выдать монеты игроку
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username игрока для блокировки (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          const reason = prompt('Причина бана:', 'Использование автокликера');
+                          if (reason) {
+                            const confirm = window.confirm(`Заблокировать игрока ${user.name} за: ${reason}?\n\nБаланс будет обнулен!`);
+                            if (confirm) {
+                              updateDoc(doc(db, 'users', user.id), {
+                                'gameProgress.cryptoClicker.banned': true,
+                                'gameProgress.cryptoClicker.bannedReason': reason,
+                                'gameProgress.cryptoClicker.bannedAt': new Date().toISOString(),
+                                'gameProgress.cryptoClicker.coins': 0,
+                                'gameProgress.cryptoClicker.coinsPerClick': 0.0001,
+                                'gameProgress.cryptoClicker.coinsPerSecond': 0,
+                                'gameProgress.cryptoClicker.clickUpgradeLevel': 0,
+                                'gameProgress.cryptoClicker.autoUpgradeLevel': 0,
+                                'gameProgress.cryptoClicker.balanceResetAt': new Date().toISOString()
+                              }).then(() => {
+                                alert('✅ Игрок заблокирован! Баланс обнулен!');
+                                fetchUsers();
+                              });
+                            }
+                          }
+                        } else {
+                          alert('Игрок не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Ban size={20} />
+                    Заблокировать за читерство (обнулить баланс)
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const username = prompt('Введите username игрока для разблокировки (без @):');
+                      if (username) {
+                        const user = users.find(u => u.username === '@' + username || u.username === username);
+                        if (user) {
+                          updateDoc(doc(db, 'users', user.id), {
+                            'gameProgress.cryptoClicker.banned': false,
+                            'gameProgress.cryptoClicker.bannedReason': null,
+                            'gameProgress.cryptoClicker.bannedAt': null
+                          }).then(() => {
+                            alert('✅ Игрок разблокирован!');
+                            fetchUsers();
+                          });
+                        } else {
+                          alert('Игрок не найден');
+                        }
+                      }
+                    }}
+                    className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                    <CheckCircle size={20} />
+                    Разблокировать игрока
+                  </button>
+                </div>
+              </div>
+
+              {/* Top Players */}
+              <div className="mt-4 bg-white rounded-xl p-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <TrendingUp size={20} className="text-green-500" />
+                  Топ игроков
+                </h3>
+                
+                <div className="space-y-2">
+                  {users
+                    .filter(u => u.gameProgress?.cryptoClicker?.coins > 0)
+                    .sort((a, b) => (b.gameProgress?.cryptoClicker?.coins || 0) - (a.gameProgress?.cryptoClicker?.coins || 0))
+                    .slice(0, 10)
+                    .map((user, index) => (
+                      <div key={user.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                          index === 0 ? 'bg-yellow-400 text-white' :
+                          index === 1 ? 'bg-gray-300 text-gray-700' :
+                          index === 2 ? 'bg-orange-400 text-white' :
+                          'bg-gray-200 text-gray-600'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div className="flex-grow min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                          <div className="text-xs text-gray-500 truncate">{user.username}</div>
+                        </div>
+                        <div className="flex items-center gap-1 text-yellow-600 font-bold">
+                          <Coins size={16} />
+                          {user.gameProgress.cryptoClicker.coins.toFixed(2)}
+                        </div>
+                        {user.gameProgress?.cryptoClicker?.banned && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
+                            БАН
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'promocodes' && (
+            <motion.div
+              key="promocodes"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4 space-y-6"
+            >
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600">
+                    <Zap size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Создать промокод</h2>
+                    <p className="text-[13px] text-gray-500">Генерация промокодов на молнии</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 mt-6">
+                  <div>
+                    <label className="text-[13px] font-medium text-gray-700 mb-1.5 block">Код промокода</label>
+                    <input
+                      type="text"
+                      value={newPromoCode}
+                      onChange={(e) => setNewPromoCode(e.target.value)}
+                      placeholder="Например: FREE50"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-yellow-400 focus:bg-white transition-all uppercase"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[13px] font-medium text-gray-700 mb-1.5 block">Награда (молний)</label>
+                      <input
+                        type="number"
+                        value={newPromoReward}
+                        onChange={(e) => setNewPromoReward(parseInt(e.target.value) || 0)}
+                        min="1"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-yellow-400 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[13px] font-medium text-gray-700 mb-1.5 block">Кол-во активаций</label>
+                      <input
+                        type="number"
+                        value={newPromoMaxUses}
+                        onChange={(e) => setNewPromoMaxUses(parseInt(e.target.value) || 0)}
+                        min="1"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-yellow-400 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCreatePromo}
+                    disabled={isCreatingPromo}
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-3 rounded-xl transition-colors mt-2"
+                  >
+                    {isCreatingPromo ? 'Создание...' : 'Создать промокод'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100">
+                  <h2 className="text-lg font-bold text-gray-900">Активные промокоды</h2>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {promocodes.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 text-[15px]">Нет созданных промокодов</div>
+                  ) : (
+                    promocodes.map(promo => (
+                      <div key={promo.id} className="p-5">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded-md text-[15px]">{promo.code}</span>
+                              {!promo.active && <span className="text-[12px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">Отключён</span>}
+                              {promo.usesCount >= promo.maxUses && <span className="text-[12px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Исчерпан</span>}
+                            </div>
+                            <div className="text-[13px] text-gray-500 flex items-center gap-3">
+                              <span className="flex items-center gap-1 text-yellow-600"><Zap size={14} /> +{promo.rewardStars} молний</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[14px] font-medium text-gray-900 mb-1">{promo.usesCount} / {promo.maxUses}</div>
+                            <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-yellow-500" style={{ width: `${Math.min(100, (promo.usesCount / promo.maxUses) * 100)}%` }}></div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-end gap-3 mt-4">
+                          <button
+                            onClick={() => handleTogglePromo(promo.code, promo.active)}
+                            className={`text-[13px] font-medium px-3 py-1.5 rounded-lg transition-colors ${promo.active ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+                          >
+                            {promo.active ? 'Отключить' : 'Включить'}
+                          </button>
+                          <button
+                            onClick={() => handleDeletePromo(promo.code)}
+                            className="text-[13px] font-medium px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                          >
+                            Удалить
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'stats' && (
+            <motion.div
+              key="stats"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="px-4 space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <StatCard
+                  icon={<Users size={24} className="text-blue-500" />}
+                  label="Всего пользователей"
+                  value={stats.totalUsers}
+                  color="bg-blue-50"
+                />
+                <StatCard
+                  icon={<Activity size={24} className="text-green-500" />}
+                  label="Онлайн"
+                  value={stats.onlineUsers}
+                  color="bg-green-50"
+                />
+                <StatCard
+                  icon={<MessageSquare size={24} className="text-purple-500" />}
+                  label="Чатов"
+                  value={stats.totalChats}
+                  color="bg-purple-50"
+                />
+                <StatCard
+                  icon={<Ban size={24} className="text-red-500" />}
+                  label="Забанено"
+                  value={stats.bannedUsers}
+                  color="bg-red-50"
+                />
+              </div>
+
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <TrendingUp size={20} style={{ color: themeColor }} />
+                  Активность
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Процент онлайн</span>
+                    <span className="font-semibold">
+                      {stats.totalUsers > 0 ? Math.round((stats.onlineUsers / stats.totalUsers) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="h-2 rounded-full transition-all"
+                      style={{ 
+                        width: `${stats.totalUsers > 0 ? (stats.onlineUsers / stats.totalUsers) * 100 : 0}%`,
+                        backgroundColor: themeColor
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'system' && (
+            <motion.div
+              key="system"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <div className="bg-white border-y border-gray-100 mb-4">
+                <div className="px-4 py-2 text-[14px] font-medium" style={{ color: themeColor }}>
+                  Управление системой
+                </div>
+                
+                <div 
+                  className="flex items-center px-4 py-3 gap-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={toggleMaintenance}
+                >
+                  <div className="text-orange-500"><Settings size={24} /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Технические работы</span>
+                    <span className="text-[13px] text-gray-500">
+                      {isMaintenance ? 'Включены (пользователи не могут войти)' : 'Выключены'}
+                    </span>
+                  </div>
+                  <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isMaintenance ? 'bg-orange-500' : 'bg-gray-300'}`}>
+                    <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isMaintenance ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </div>
+                </div>
+
+                {/* Праздничная тема "9 мая — День Победы". Включается для
+                    всех пользователей (и админов): георгиевская лента сверху
+                    и снизу, праздничная плашка, декоративные звёзды и салют. */}
+                <div
+                  className="flex items-center px-4 py-3 gap-4 cursor-pointer hover:bg-gray-50 transition-colors border-t border-gray-100"
+                  onClick={toggleVictoryDayTheme}
+                >
+                  <div className="text-red-600"><Star size={24} fill="currentColor" /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Тема «День Победы 9 мая»</span>
+                    <span className="text-[13px] text-gray-500">
+                      {isVictoryDayTheme
+                        ? 'Включена для всех пользователей'
+                        : 'Выключена'}
+                    </span>
+                  </div>
+                  <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isVictoryDayTheme ? 'bg-red-600' : 'bg-gray-300'}`}>
+                    <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isVictoryDayTheme ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border-y border-gray-100 mb-4">
+                <div className="px-4 py-2 text-[14px] font-medium" style={{ color: themeColor }}>
+                  Управление пользователями
+                </div>
+                
+                <button
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setShowUserModal(true);
+                  }}
+                  className="w-full flex items-center px-4 py-3 gap-4 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <div className="text-yellow-500"><Activity size={24} /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Выдать молнии</span>
+                    <span className="text-[13px] text-gray-500">Начислить молнии пользователю</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setShowUserModal(true);
+                  }}
+                  className="w-full flex items-center px-4 py-3 gap-4 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
+                >
+                  <div className="text-blue-500"><CheckCircle size={24} /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Управление значком</span>
+                    <span className="text-[13px] text-gray-500">Выдать или убрать синий значок</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setShowUserModal(true);
+                  }}
+                  className="w-full flex items-center px-4 py-3 gap-4 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
+                >
+                  <div className="text-purple-500"><Shield size={24} /></div>
+                  <div className="flex flex-col flex-grow">
+                    <span className="text-[16px] text-black">Управление правами</span>
+                    <span className="text-[13px] text-gray-500">Назначить или убрать администратора</span>
+                  </div>
+                </button>
+              </div>
+
+              <div className="px-4">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-4 text-white">
+                  <h3 className="text-lg font-semibold mb-2">HouseGram v2.2 Beta</h3>
+                  <p className="text-sm opacity-90">
+                    Система работает стабильно. Все сервисы доступны.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'database' && (
+            <motion.div
+              key="database"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <div className="px-4 space-y-4">
+                <div className="bg-white rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Database size={24} style={{ color: themeColor }} />
+                    <h3 className="text-lg font-semibold">Firebase Firestore</h3>
+                    <span className="ml-auto px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                      Подключено
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Основная база данных для хранения пользователей, сообщений, Premium заявок и настроек.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Crown size={24} className="text-purple-500" />
+                    <h3 className="text-lg font-semibold">Premium система</h3>
+                    <span className="ml-auto px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                      Активна
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Полная система Premium подписок с автоматическим управлением лимитами ИИ и значками.
+                  </p>
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm text-purple-800">
+                    <p className="font-medium mb-1">Возможности Premium:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>Увеличенные лимиты ИИ (5 запросов/день)</li>
+                      <li>Премиум значок как в Telegram</li>
+                      <li>Приоритетная поддержка</li>
+                      <li>Эксклюзивные функции</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* User Management Modal */}
+      <AnimatePresence>
+        {showUserModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowUserModal(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl p-6 z-50 shadow-2xl max-h-[80vh] overflow-y-auto"
+            >
+              <h3 className="text-xl font-bold mb-4">Управление пользователем</h3>
+              
+              {/* User Selection */}
+              {!selectedUser ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <p className="text-sm text-gray-600 mb-3">Выберите пользователя:</p>
+                  {users.map(user => (
+                    <button
+                      key={user.id}
+                      onClick={() => setSelectedUser(user)}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium shrink-0">
+                        {user.name?.charAt(0) || '?'}
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <div className="font-medium truncate">{user.name}</div>
+                        <div className="text-sm text-gray-500 truncate">{user.email}</div>
+                      </div>
+                      {user.isOfficial && (
+                        <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Selected User Info */}
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
+                      {selectedUser.name?.charAt(0) || '?'}
+                    </div>
+                    <div className="flex-grow">
+                      <div className="font-medium flex items-center gap-1">
+                        {selectedUser.name}
+                        {selectedUser.isOfficial && <BadgeCheck size={16} className="text-blue-500 fill-blue-500 text-white" />}
+                      </div>
+                      <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="space-y-3">
+                    {/* Give Stars */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <label className="block text-sm font-medium mb-2">Выдать молнии ⚡</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          value={starsAmount}
+                          onChange={(e) => setStarsAmount(parseInt(e.target.value) || 0)}
+                          className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                          placeholder="Количество"
+                        />
+                        <button
+                          onClick={() => giveStars(selectedUser.id, starsAmount)}
+                          className="px-4 py-2 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors"
+                        >
+                          Выдать
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Toggle Official Badge */}
+                    <button
+                      onClick={() => toggleOfficialBadge(selectedUser.id, selectedUser.isOfficial)}
+                      className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-colors ${
+                        selectedUser.isOfficial
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <CheckCircle size={24} className="text-blue-500" />
+                        <div className="text-left">
+                          <div className="font-medium">Синий значок</div>
+                          <div className="text-sm text-gray-500">
+                            {selectedUser.isOfficial ? 'Убрать значок' : 'Выдать значок'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`w-10 h-6 rounded-full p-1 transition-colors ${selectedUser.isOfficial ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                        <div className={`w-4 h-4 rounded-full bg-white transition-transform ${selectedUser.isOfficial ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                    </button>
+
+                    {/* Toggle Admin */}
+                    {selectedUser.role !== 'admin' ? (
+                      <button
+                        onClick={() => makeAdmin(selectedUser.id)}
+                        className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-purple-200 hover:border-purple-400 transition-colors"
+                      >
+                        <Shield size={24} className="text-purple-500" />
+                        <div className="text-left flex-grow">
+                          <div className="font-medium">Назначить администратором</div>
+                          <div className="text-sm text-gray-500">Полный доступ к панели</div>
+                        </div>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => removeAdmin(selectedUser.id)}
+                        className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-red-200 hover:border-red-400 transition-colors"
+                      >
+                        <Shield size={24} className="text-red-500" />
+                        <div className="text-left flex-grow">
+                          <div className="font-medium">Убрать права администратора</div>
+                          <div className="text-sm text-gray-500">Сделать обычным пользователем</div>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Back Button */}
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    ← Назад к списку
+                  </button>
+                </div>
+              )}
+
+              {/* Close Button */}
+              {!selectedUser && (
+                <button
+                  onClick={() => setShowUserModal(false)}
+                  className="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Закрыть
+                </button>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors relative ${
+        active ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+      }`}
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+      {active && (
+        <motion.div
+          layoutId="activeTab"
+          className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+        />
+      )}
+    </button>
+  );
+}
+
+function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
+  return (
+    <div className={`${color} rounded-xl p-4 border border-gray-200`}>
+      <div className="flex items-center gap-3 mb-2">
+        {icon}
+        <span className="text-sm text-gray-600">{label}</span>
+      </div>
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+    </div>
+  );
+}
