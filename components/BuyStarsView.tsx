@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { auth } from '@/lib/firebase';
 
@@ -33,21 +33,13 @@ function formatCount(n: number) {
   return n.toLocaleString('ru-RU');
 }
 
-type PayMethod = 'telegram-stars' | 'freekassa' | 'yoomoney' | 'robokassa';
-
-const PAY_METHODS: { id: PayMethod; label: string; sub: string }[] = [
-  { id: 'telegram-stars', label: '⭐ Telegram Stars',  sub: 'только токен бота · без регистрации' },
-  { id: 'freekassa',      label: '⚡ FreeKassa',       sub: 'СБП · Сбербанк · карта · ЮМани' },
-  { id: 'yoomoney',       label: '💳 ЮМани / Карта',   sub: 'только кошелёк ЮМани' },
-  { id: 'robokassa',      label: '🏦 Robokassa',        sub: 'нужны ключи магазина' },
-];
+type PayMethod = 'telegram-stars';
 
 export default function BuyStarsView() {
   const { setView } = useChat();
   const [selected, setSelected] = useState<{ list: 'main' | 'extra'; idx: number } | null>(null);
   const [showExtra, setShowExtra] = useState(false);
-  const [payMethod, setPayMethod] = useState<PayMethod>('telegram-stars');
-  const [showMethods, setShowMethods] = useState(false);
+  const payMethod: PayMethod = 'telegram-stars';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -166,7 +158,7 @@ export default function BuyStarsView() {
           }}
           whileTap={{ opacity: 0.7 }}
         >
-          {showExtra ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          <span className="text-[16px]">{showExtra ? '▲' : '▼'}</span>
           <span className="text-[15px] font-medium">Дополнительно</span>
         </motion.button>
 
@@ -241,52 +233,11 @@ export default function BuyStarsView() {
       {/* Нижняя секция */}
       <div className="px-4 pb-6 pt-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
 
-        {/* Переключатель метода оплаты */}
-        <motion.button
-          onClick={() => setShowMethods(v => !v)}
-          className="w-full flex items-center justify-between py-2.5 px-1 mb-3"
-          whileTap={{ opacity: 0.7 }}
-        >
-          <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
-            Способ оплаты:
-          </span>
-          <span className="text-white text-[14px] font-medium flex items-center gap-1.5">
-            {PAY_METHODS.find(m => m.id === payMethod)?.label}
-            {showMethods ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </span>
-        </motion.button>
-
-        <AnimatePresence>
-          {showMethods && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-3 rounded-2xl overflow-hidden"
-              style={{ backgroundColor: '#2C2C2E' }}
-            >
-              {PAY_METHODS.map((m) => (
-                <motion.button
-                  key={m.id}
-                  onClick={() => { setPayMethod(m.id); setShowMethods(false); setError(''); }}
-                  className="w-full flex items-center justify-between px-4 py-3.5"
-                  style={{ borderBottom: m.id !== 'robokassa' ? '1px solid rgba(255,255,255,0.09)' : 'none' }}
-                  whileTap={{ opacity: 0.7 }}
-                >
-                  <div className="text-left">
-                    <div className="text-white text-[15px] font-medium">{m.label}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{m.sub}</div>
-                  </div>
-                  {payMethod === m.id && (
-                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                      <span className="text-white text-[10px]">✓</span>
-                    </div>
-                  )}
-                </motion.button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Метка способа оплаты */}
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Оплата через</span>
+          <span className="text-yellow-400 text-[13px] font-semibold">⭐ Telegram Stars</span>
+        </div>
 
         {/* Кнопка оплаты */}
         <motion.button
@@ -308,18 +259,6 @@ export default function BuyStarsView() {
         </motion.button>
       </div>
 
-      {/* Модальное окно метода оплаты (overlay) */}
-      <AnimatePresence>
-        {showMethods && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-10"
-            onClick={() => setShowMethods(false)}
-          />
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
