@@ -998,10 +998,10 @@ export default function ChatView() {
             return (
               <motion.div
                 key={msg.id}
-                initial={false}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                className={`rounded-2xl p-4 text-white text-center min-w-[200px] relative overflow-hidden mb-1.5 ${
+                initial={{ scale: 0.7, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                className={`rounded-3xl px-4 py-5 text-white text-center min-w-[220px] max-w-[280px] relative overflow-hidden mb-1.5 shadow-lg ${
                   isOwn ? 'self-end' : 'self-start'
                 } ${
                   msg.gift.id === 'cosmonaut'
@@ -1010,7 +1010,7 @@ export default function ChatView() {
                     ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400'
                     : msg.gift.id === 'may_1'
                     ? 'bg-gradient-to-br from-red-500 via-rose-500 to-orange-400'
-                    : 'bg-gradient-to-br from-purple-500 to-pink-500'
+                    : 'bg-gradient-to-br from-violet-600 via-purple-500 to-pink-500'
                 }`}
               >
                 {/* Космический фон для космонавта */}
@@ -1190,24 +1190,45 @@ export default function ChatView() {
                     <span className="text-[80px]">{msg.gift.emoji}</span>
                   )}
                 </motion.div>
-                <div className="text-[16px] font-bold mb-1 relative z-10">{msg.gift.name}</div>
-                <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10">
-                  Подарок от {isOwn ? 'вас' : contact.name}
+                {/* Gift name */}
+                <div className="text-[18px] font-extrabold mb-1.5 relative z-10 tracking-tight">{msg.gift.name}</div>
+
+                {/* Sender → Receiver */}
+                <div className="text-[12px] text-white/75 flex items-center justify-center gap-1.5 mb-2 relative z-10">
+                  <span className="font-medium">{isOwn ? 'Вы' : contact.name}</span>
+                  <span className="opacity-60">→</span>
+                  <span className="font-medium">{isOwn ? contact.name : 'Вам'}</span>
                 </div>
-                {msg.gift.id === 'cosmonaut' && (
-                  <div className="text-[11px] text-cyan-300 mt-1 relative z-10">
-                    🚀 День космонавтики! 🚀
+
+                {/* Greeting message */}
+                {msg.gift.greeting && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-[13px] text-white/90 italic px-3 py-2 bg-white/15 rounded-2xl mb-2.5 relative z-10 leading-relaxed"
+                  >
+                    «{msg.gift.greeting}»
+                  </motion.div>
+                )}
+
+                {/* Cost badge */}
+                <div className="flex items-center justify-center gap-1 relative z-10">
+                  <div className="flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-1">
+                    <Zap size={12} fill="currentColor" className="text-yellow-200" />
+                    <span className="text-[12px] font-bold text-yellow-100">{msg.gift.cost}</span>
                   </div>
+                </div>
+
+                {/* Special labels */}
+                {msg.gift.id === 'cosmonaut' && (
+                  <div className="text-[11px] text-cyan-300 mt-2 relative z-10">🚀 День космонавтики! 🚀</div>
                 )}
                 {msg.gift.id === 'easter_bunny' && (
-                  <div className="text-[11px] text-white/80 mt-1 relative z-10">
-                    ✨ Эксклюзивный пасхальный подарок ✨
-                  </div>
+                  <div className="text-[11px] text-white/80 mt-2 relative z-10">✨ Пасхальный подарок ✨</div>
                 )}
                 {msg.gift.id === 'may_1' && (
-                  <div className="text-[11px] text-yellow-100 mt-1 relative z-10">
-                    🌷 С праздником весны и труда! 🌷
-                  </div>
+                  <div className="text-[11px] text-yellow-100 mt-2 relative z-10">🌷 С праздником весны и труда! 🌷</div>
                 )}
               </motion.div>
             );

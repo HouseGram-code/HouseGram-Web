@@ -790,111 +790,82 @@ export default function SendGiftView() {
           </motion.div>
         )}
 
-        {/* Confirm with Enhanced Animation */}
+        {/* Confirm step */}
         {step === 'confirm' && selectedContact && selectedGift && (
           <motion.div 
             className="space-y-4"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
           >
+            {/* Gift preview card — matches gift theme */}
             <motion.div 
-              className="relative bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-6 text-white text-center overflow-hidden"
-              initial={{ y: -50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 200 }}
+              className={`relative rounded-3xl p-6 text-white text-center overflow-hidden ${
+                selectedGift.spaceTheme
+                  ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black'
+                  : (selectedGift as any).mayTheme
+                  ? 'bg-gradient-to-br from-red-500 via-rose-500 to-orange-400'
+                  : selectedGift.special
+                  ? 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400'
+                  : 'bg-gradient-to-br from-violet-600 via-purple-500 to-pink-500'
+              }`}
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 24 }}
             >
-              {/* Animated Background Stars */}
+              {/* Floating sparkles */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {[...Array(15)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute"
-                    style={{
-                      left: `${Math.random() * 100}%`,
-                      top: `${Math.random() * 100}%`,
-                    }}
-                    animate={{
-                      scale: [0, 1, 0],
-                      opacity: [0, 0.6, 0],
-                      rotate: [0, 360],
-                    }}
-                    transition={{
-                      duration: 2 + Math.random(),
-                      repeat: Infinity,
-                      delay: i * 0.2,
-                    }}
+                {[...Array(12)].map((_, i) => (
+                  <motion.div key={i} className="absolute"
+                    style={{ left: `${(i*17+11)%100}%`, top: `${(i*23+7)%100}%` }}
+                    animate={{ scale: [0,1,0], opacity: [0,0.5,0], rotate: [0,360] }}
+                    transition={{ duration: 2+i*0.15, repeat: Infinity, delay: i*0.18 }}
                   >
-                    <Star size={12} className="text-white/40" fill="white" />
+                    <Star size={10} className="text-white/30" fill="white" />
                   </motion.div>
                 ))}
               </div>
 
+              {/* Recipient avatar */}
+              <div className="flex items-center justify-center mb-4 relative z-10">
+                <div className="flex flex-col items-center gap-1.5">
+                  {selectedContact.avatarUrl ? (
+                    <Image src={selectedContact.avatarUrl} alt={selectedContact.name} width={52} height={52} className="rounded-full ring-2 ring-white/40 shadow-lg" referrerPolicy="no-referrer" unoptimized />
+                  ) : (
+                    <div className="w-13 h-13 w-[52px] h-[52px] rounded-full flex items-center justify-center text-white font-bold text-[20px] ring-2 ring-white/40" style={{ backgroundColor: selectedContact.avatarColor || '#7c3aed' }}>
+                      {selectedContact.initial || selectedContact.name?.charAt(0)}
+                    </div>
+                  )}
+                  <div className="text-[13px] text-white/80 font-medium">{sendToSelf ? 'Себе' : selectedContact.name}</div>
+                </div>
+              </div>
+
+              {/* Gift emoji */}
               <motion.div 
-                className="mb-4 relative z-10 flex items-center justify-center"
-                initial={{ scale: 0, rotate: -180 }}
+                className="mb-3 relative z-10 flex items-center justify-center"
+                initial={{ scale: 0, rotate: -90 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ 
-                  type: "spring", 
-                  stiffness: 200,
-                  delay: 0.2 
-                }}
-                whileHover={{
-                  scale: 1.1,
-                  rotate: [0, -10, 10, -10, 0],
-                  transition: { duration: 0.5 }
-                }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.15 }}
+                whileHover={{ scale: 1.1, rotate: [0,-8,8,-4,0], transition: { duration: 0.4 } }}
               >
                 {selectedGift.animated && selectedGift.animatedUrl ? (
-                  <Image
-                    src={selectedGift.animatedUrl}
-                    alt={selectedGift.name}
-                    width={100}
-                    height={100}
-                    className="object-contain"
-                    unoptimized
-                  />
+                  <Image src={selectedGift.animatedUrl} alt={selectedGift.name} width={96} height={96} className="object-contain" unoptimized />
                 ) : (
-                  <span className="text-[100px]">{selectedGift.emoji}</span>
+                  <span className="text-[96px]">{selectedGift.emoji}</span>
                 )}
               </motion.div>
               
-              <motion.h3 
-                className="text-[20px] font-bold mb-2 relative z-10"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
+              <motion.h3 className="text-[20px] font-extrabold mb-1 relative z-10" initial={{ y:10,opacity:0 }} animate={{ y:0,opacity:1 }} transition={{ delay:0.25 }}>
                 {selectedGift.name}
               </motion.h3>
-              
-              <motion.p 
-                className="text-white/90 text-[14px] mb-4 relative z-10"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-              >
-                Для: {selectedContact.name}
-              </motion.p>
-              
-              <motion.div 
-                className="flex items-center justify-center gap-2 text-[18px] font-bold relative z-10"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.5, type: "spring" }}
-              >
-                <motion.div
-                  animate={{ 
-                    rotate: [0, -15, 15, -15, 0],
-                    scale: [1, 1.2, 1]
-                  }}
-                  transition={{ 
-                    duration: 1.5,
-                    repeat: Infinity
-                  }}
-                >
-                  <Zap size={20} fill="currentColor" />
-                </motion.div>
-                {selectedGift.cost}
+
+              {/* Cost pill */}
+              <motion.div className="flex items-center justify-center mt-2 relative z-10" initial={{ scale:0 }} animate={{ scale:1 }} transition={{ delay:0.35, type:'spring' }}>
+                <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-3 py-1.5">
+                  <motion.div animate={{ rotate:[0,-15,15,-15,0], scale:[1,1.2,1] }} transition={{ duration:1.5, repeat:Infinity }}>
+                    <Zap size={16} fill="currentColor" className="text-yellow-200" />
+                  </motion.div>
+                  <span className="text-[16px] font-extrabold">{selectedGift.cost}</span>
+                </div>
               </motion.div>
             </motion.div>
 
@@ -953,51 +924,54 @@ export default function SendGiftView() {
             <motion.button
               onClick={handleSendGift}
               disabled={sending}
-              className="w-full bg-blue-500 text-white rounded-xl p-4 font-medium text-[16px] relative overflow-hidden disabled:opacity-50"
+              className="w-full text-white rounded-2xl p-4 font-bold text-[17px] relative overflow-hidden disabled:opacity-50 shadow-lg"
+              style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}bb)` }}
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.5 }}
               whileHover={!sending ? { scale: 1.02 } : {}}
-              whileTap={!sending ? { scale: 0.98 } : {}}
+              whileTap={!sending ? { scale: 0.97 } : {}}
             >
               {sending ? (
-                <motion.span
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                >
+                <span className="flex items-center justify-center gap-2">
+                  <motion.div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
                   Отправка...
-                </motion.span>
+                </span>
               ) : (
-                'Отправить подарок'
+                <span className="flex items-center justify-center gap-2">
+                  🎁 Отправить подарок
+                </span>
               )}
-              
-              {/* Shimmer Effect */}
               {!sending && (
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '200%' }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    repeatDelay: 1,
-                  }}
-                />
+                <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent" initial={{ x: '-100%' }} animate={{ x: '200%' }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 0.5 }} />
               )}
             </motion.button>
 
+            {/* Balance info */}
             <motion.div 
-              className="bg-gray-50 rounded-xl p-4 text-center"
-              initial={{ y: 20, opacity: 0 }}
+              className="bg-gray-50 dark:bg-[#1c1c1d] rounded-2xl overflow-hidden"
+              initial={{ y: 16, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.6 }}
             >
-              <p className="text-[13px] text-gray-600">
-                После отправки с вашего баланса будет списано {selectedGift.cost} ⚡
-              </p>
-              <p className="text-[13px] text-gray-600 mt-1">
-                Текущий баланс: {userStars} ⚡
-              </p>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e]">
+                <span className="text-[14px] text-gray-500 dark:text-gray-400">Спишется</span>
+                <span className="text-[14px] font-semibold text-gray-900 dark:text-white flex items-center gap-1">
+                  {selectedGift.cost} <Zap size={13} fill="currentColor" className="text-yellow-500" />
+                </span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e]">
+                <span className="text-[14px] text-gray-500 dark:text-gray-400">Баланс</span>
+                <span className="text-[14px] font-semibold text-gray-900 dark:text-white flex items-center gap-1">
+                  {userStars} <Zap size={13} fill="currentColor" className="text-yellow-500" />
+                </span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-[14px] text-gray-500 dark:text-gray-400">Остаток</span>
+                <span className={`text-[14px] font-bold flex items-center gap-1 ${userStars - selectedGift.cost < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                  {userStars - selectedGift.cost} <Zap size={13} fill="currentColor" className="text-yellow-500" />
+                </span>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -1095,13 +1069,23 @@ export default function SendGiftView() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.7, type: "spring" }}
+                className="space-y-2"
               >
-                <p className="text-[16px] text-gray-600 mb-2">
+                <p className="text-[18px] font-bold text-gray-900">
                   {selectedGift?.emoji} {selectedGift?.name}
                 </p>
                 <p className="text-[14px] text-gray-500">
-                  для {selectedContact?.name}
+                  → {sendToSelf ? 'Себе' : selectedContact?.name}
                 </p>
+                {greeting && (
+                  <p className="text-[13px] text-gray-500 italic max-w-[200px] mx-auto leading-relaxed">
+                    «{greeting}»
+                  </p>
+                )}
+                <div className="flex items-center justify-center gap-1 mt-1 text-amber-500">
+                  <Zap size={14} fill="currentColor" />
+                  <span className="text-[13px] font-semibold">−{selectedGift?.cost}</span>
+                </div>
               </motion.div>
 
               {/* Sparkles around */}
