@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Search, MoreVertical, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, Calendar, MessageSquare, Moon, Sun, Palette, Globe } from 'lucide-react';
+import { ArrowLeft, Camera, Bell, Lock, Database, MessageCircle, Layers, User, Check, ShieldCheck, BadgeCheck, Info, Server, Zap, Gift, Calendar, Moon, Sun, Palette, Globe, Pencil, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { storage, auth, db } from '@/lib/firebase';
@@ -32,7 +32,6 @@ export default function SettingsView() {
   const [accountStats, setAccountStats] = useState({ messages: 0, chats: 0, days: 0 });
   const [showThemeSelector, setShowThemeSelector] = useState(false);
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentProfile = isEditing ? editProfile : userProfile;
@@ -164,161 +163,164 @@ export default function SettingsView() {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className={`absolute inset-0 flex flex-col z-20 ${isDarkMode ? 'bg-[#0f0f0f] text-white' : 'bg-white text-black'}`}
     >
-      {/* Header - Fixed */}
+      {/* Header */}
       <div 
-        className="text-white px-2.5 h-14 flex items-center gap-4 shrink-0 sticky top-0 z-30"
+        className="text-white px-3 h-14 flex items-center gap-3 shrink-0 sticky top-0 z-30"
         style={{ backgroundColor: themeColor }}
       >
-        <button onClick={() => setView('menu')} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
-          <ArrowLeft size={24} />
+        <button onClick={() => setView('menu')} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/15 active:bg-white/25 transition-all">
+          <ArrowLeft size={22} />
         </button>
-        <div className="flex-grow text-[18px] font-medium">Настройки</div>
-        {isEditing ? (
-          <button onClick={handleSave} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
-            <Check size={24} />
+        <div className="flex-grow text-[18px] font-semibold tracking-tight">Настройки</div>
+        {isEditing && (
+          <button onClick={handleSave} className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-[14px] font-medium px-4 py-1.5 rounded-full transition-all">
+            <Check size={16} />
+            Сохранить
           </button>
-        ) : (
-          <>
-            <button className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
-              <Search size={24} />
-            </button>
-            <div className="relative">
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
-                <MoreVertical size={24} />
-              </button>
-              {isMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
-                  <div className={`absolute right-0 top-full mt-1 w-48 rounded-md shadow-lg py-1 z-50 ${isDarkMode ? 'bg-[#1c1c1d]' : 'bg-white'}`}>
-                    <button 
-                      onClick={() => { setIsEditing(true); setIsMenuOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-[15px] ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-black'}`}
-                    >
-                      Изменить
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </>
         )}
       </div>
 
       {/* Scrollable Content */}
-      <div className={`flex-grow overflow-y-auto no-scrollbar ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}>
-        {/* Profile Info Area */}
+      <div className={`flex-grow overflow-y-auto no-scrollbar ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-[#f2f2f7]'}`}>
+        {/* Profile Header — centered card style */}
         <div 
-          className="text-white px-6 pb-6 pt-2 relative"
-          style={{ backgroundColor: themeColor }}
+          className="text-white px-6 pt-10 pb-7 relative flex flex-col items-center overflow-hidden"
+          style={{ background: `linear-gradient(155deg, ${themeColor} 0%, ${themeColor}dd 60%, ${themeColor}99 100%)` }}
         >
-          <div className="flex items-center gap-4">
-            <div className={`w-[72px] h-[72px] rounded-full flex items-center justify-center text-3xl font-medium overflow-hidden relative ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-300 text-gray-500'}`}>
+          {/* Decorative blobs */}
+          <div className="absolute -top-10 -right-10 w-52 h-52 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+          <div className="absolute top-16 -left-8 w-32 h-32 rounded-full bg-white/8 blur-2xl pointer-events-none" />
+
+          {/* File input */}
+          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarUpload} />
+
+          {/* Avatar */}
+          <div className="relative mb-4">
+            <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-white/30 shadow-2xl relative" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
               {currentProfile.avatarUrl ? (
                 <Image src={currentProfile.avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
               ) : (
-                <User size={40} className="text-white" fill="currentColor" />
-              )}
-            </div>
-            <div className="flex flex-col flex-grow">
-              {isEditing ? (
-                <input 
-                  type="text" 
-                  value={editProfile.name}
-                  onChange={e => setEditProfile({...editProfile, name: e.target.value})}
-                  maxLength={45}
-                  className="bg-white/20 text-white placeholder-white/50 border-none outline-none rounded px-2 py-1 text-[20px] font-medium w-full"
-                  placeholder="Имя"
-                />
-              ) : (
-                <div className="text-[24px] font-medium leading-tight flex items-center gap-1">
-                  {userProfile.name}
-                  {userProfile.isFounder && <FounderBadge size={28} />}
-                  {userProfile.isOfficial && !userProfile.isFounder && <BadgeCheck size={24} className="text-white fill-blue-500" />}
+                <div className="w-full h-full flex items-center justify-center">
+                  <User size={44} className="text-white/90" />
                 </div>
               )}
-              <div className="text-[14px] text-white/70 mt-1">{getStatusText()}</div>
             </div>
-          </div>
-          
-          {/* Floating Camera Button */}
-          {isEditing && (
-            <>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handleAvatarUpload} 
-              />
-              <button 
+            {/* Camera overlay button */}
+            {isEditing && (
+              <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="absolute -bottom-7 right-6 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors border border-gray-100 z-10"
+                className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border-2 transition-all hover:scale-110 active:scale-95"
+                style={{ borderColor: themeColor }}
               >
-                {isUploading ? (
-                  <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <Camera size={28} strokeWidth={1.5} />
-                )}
+                {isUploading
+                  ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  : <Camera size={15} className="text-gray-500" strokeWidth={2} />}
               </button>
-            </>
+            )}
+          </div>
+
+          {/* Name */}
+          {isEditing ? (
+            <input
+              type="text"
+              value={editProfile.name}
+              onChange={e => setEditProfile({...editProfile, name: e.target.value})}
+              maxLength={45}
+              className="bg-white/20 text-white text-center text-[20px] font-bold placeholder-white/50 outline-none rounded-2xl px-4 py-1.5 mb-1 w-full max-w-xs"
+              placeholder="Имя"
+            />
+          ) : (
+            <h1 className="text-[22px] font-bold text-center flex items-center gap-1.5 mb-0.5">
+              <span>{userProfile.name}</span>
+              {userProfile.isFounder && <FounderBadge size={24} />}
+              {userProfile.isOfficial && !userProfile.isFounder && <BadgeCheck size={20} className="text-white fill-blue-400" />}
+            </h1>
+          )}
+
+          {/* Username */}
+          {userProfile.username && (
+            <div className="text-[13px] text-white/70 font-medium mb-0.5">
+              {userProfile.username.startsWith('@') ? userProfile.username : `@${userProfile.username}`}
+            </div>
+          )}
+
+          {/* Status */}
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-300" />
+            <span className="text-[12px] text-white/65">{getStatusText()}</span>
+          </div>
+
+          {/* Action buttons */}
+          {isEditing ? (
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-2 bg-white text-[14px] font-semibold px-5 py-2 rounded-full shadow transition-all hover:scale-[1.02] active:scale-[0.97]"
+                style={{ color: themeColor }}
+              >
+                <Check size={16} /> Сохранить
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white text-[14px] font-medium px-4 py-2 rounded-full transition-all"
+              >
+                <X size={16} /> Отмена
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="mt-4 flex items-center gap-2 bg-white/20 hover:bg-white/30 active:bg-white/40 text-white text-[14px] font-medium px-5 py-2 rounded-full transition-all"
+            >
+              <Pencil size={14} />
+              Редактировать профиль
+            </button>
           )}
         </div>
 
-        <div className={`pt-4 pb-10 ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}>
-        {/* Account Section */}
-        <div className="px-4 py-2">
-          <div className="text-[12px] font-semibold mb-2 uppercase tracking-wider" style={{ color: themeColor }}>Аккаунт</div>
-          
-          <div className={`py-2.5 border-b ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
-            {isEditing ? (
-              <div>
-                <input 
-                  type="text" 
-                  value={editProfile.username.startsWith('@') ? editProfile.username : '@' + editProfile.username}
-                  onChange={e => {
-                    let val = e.target.value;
-                    if (!val.startsWith('@')) val = '@' + val.replace(/@/g, '');
-                    val = val.replace(/[^@a-zA-Z0-9_]/g, '');
-                    setEditProfile({...editProfile, username: val});
-                  }}
-                  maxLength={16}
-                  className={`w-full text-[16px] outline-none border-b pb-1 ${isDarkMode ? 'text-white border-[#2c2c2e] bg-[#0f0f0f]' : 'text-black border-blue-300'}`}
-                  placeholder="@username"
-                />
-                <div className="flex justify-between items-center mt-1">
-                  <div className={`text-[12px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>Только английские буквы, цифры и _</div>
-                  <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>{editProfile.username.length}/16</div>
-                </div>
-              </div>
-            ) : (
-              <div className={`text-[16px] ${isDarkMode ? 'text-white' : 'text-black'}`}>{userProfile.username}</div>
-            )}
-            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Имя пользователя</div>
+        <div className={`pt-5 pb-10 ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-[#f2f2f7]'}`}>
+        {/* Account edit fields — only when editing */}
+        {isEditing && (
+          <div className={`mx-4 mb-4 rounded-2xl overflow-hidden shadow-sm ${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'}`}>
+            <div className="px-4 pt-4 pb-3">
+              <div className={`text-[11px] font-bold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>Имя пользователя</div>
+              <input
+                type="text"
+                value={editProfile.username.startsWith('@') ? editProfile.username : '@' + editProfile.username}
+                onChange={e => {
+                  let val = e.target.value;
+                  if (!val.startsWith('@')) val = '@' + val.replace(/@/g, '');
+                  val = val.replace(/[^@a-zA-Z0-9_]/g, '');
+                  setEditProfile({...editProfile, username: val});
+                }}
+                maxLength={16}
+                className={`w-full text-[16px] font-medium outline-none rounded-xl px-3 py-2.5 ${isDarkMode ? 'text-white bg-white/8 placeholder-gray-500' : 'text-gray-900 bg-gray-50 placeholder-gray-400'}`}
+                placeholder="@username"
+              />
+              <div className={`text-[11px] mt-1.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Только A-Z, 0-9 и _  •  {editProfile.username.length}/16</div>
+            </div>
+            <div className={`border-t ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'} px-4 pt-4 pb-3`}>
+              <div className={`text-[11px] font-bold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>О себе</div>
+              <textarea
+                value={editProfile.bio}
+                onChange={e => setEditProfile({...editProfile, bio: e.target.value})}
+                maxLength={70}
+                rows={3}
+                className={`w-full text-[15px] outline-none rounded-xl px-3 py-2.5 resize-none ${isDarkMode ? 'text-white bg-white/8 placeholder-gray-500' : 'text-gray-900 bg-gray-50 placeholder-gray-400'}`}
+                placeholder="Расскажите о себе…"
+              />
+              <div className={`text-[11px] mt-1 text-right ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{editProfile.bio.length}/70</div>
+            </div>
           </div>
-          
-          <div className={`py-2.5 border-b ${isDarkMode ? 'border-[#2c2c2e]' : 'border-gray-100'}`}>
-            {isEditing ? (
-              <div>
-                <textarea 
-                  value={editProfile.bio}
-                  onChange={e => setEditProfile({...editProfile, bio: e.target.value})}
-                  maxLength={70}
-                  rows={2}
-                  className={`w-full text-[16px] outline-none border-b pb-1 resize-none ${isDarkMode ? 'text-white border-[#2c2c2e] bg-[#0f0f0f]' : 'text-black border-blue-300'}`}
-                  placeholder="О себе"
-                />
-                <div className="flex justify-between items-center mt-1">
-                  <div className={`text-[12px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>Расскажите о себе</div>
-                  <div className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>{editProfile.bio.length}/70</div>
-                </div>
-              </div>
-            ) : (
-              <div className={`text-[16px] ${isDarkMode ? 'text-white' : 'text-black'}`}>{userProfile.bio || 'Не указано'}</div>
-            )}
-            <div className={`text-[13px] mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>О себе</div>
+        )}
+        {/* Read-only profile info */}
+        {!isEditing && (
+          <div className={`mx-4 mb-4 rounded-2xl overflow-hidden shadow-sm ${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'}`}>
+            <InfoRow label="Имя пользователя" value={userProfile.username || '—'} isDarkMode={isDarkMode} />
+            <InfoRow label="О себе" value={userProfile.bio || 'Не указано'} isDarkMode={isDarkMode} border />
           </div>
-        </div>
+        )}
 
         {/* Account Stats — спокойный блок, без плавающих шаров и вращательных
             иконок. По стилю близко к Telegram Premium бэннеру. */}
@@ -370,10 +372,10 @@ export default function SettingsView() {
 
         {/* Settings Section */}
         <div className="px-4 py-2">
-          <div className={`text-[12px] font-semibold mb-2 uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Настройки</div>
+          <div className={`text-[11px] font-bold mb-2 uppercase tracking-widest px-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Настройки</div>
           
           {/* Группа: Персонализация */}
-          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-xl overflow-hidden mb-3`}>
+          <div className={`${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'} rounded-2xl overflow-hidden mb-3 shadow-sm`}>
             {/* Цветовая тема */}
             <div
               className={`flex items-center px-4 py-3.5 gap-4 cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`}
@@ -717,32 +719,40 @@ export default function SettingsView() {
   );
 }
 
+function InfoRow({ label, value, isDarkMode, border }: { label: string; value: string; isDarkMode?: boolean; border?: boolean }) {
+  const dark = isDarkMode || false;
+  return (
+    <div className={`px-4 py-3 ${border ? `border-t ${dark ? 'border-[#2c2c2e]' : 'border-gray-100'}` : ''}`}>
+      <div className={`text-[13px] mb-0.5 ${dark ? 'text-gray-500' : 'text-gray-400'}`}>{label}</div>
+      <div className={`text-[15px] font-medium ${dark ? 'text-white' : 'text-gray-900'}`}>{value}</div>
+    </div>
+  );
+}
+
 function SettingsItem({ icon, text, subtitle, onClick, soon, divider, isDarkMode }: { icon: React.ReactNode; text: string; subtitle?: string; onClick?: () => void; soon?: boolean; divider?: boolean; isDarkMode?: boolean }) {
   const dark = isDarkMode || false;
   return (
     <div className={divider ? `border-t ${dark ? 'border-[#2c2c2e]' : 'border-gray-100'}` : ''}>
       <div
-        className={`flex items-center px-4 py-3 gap-3.5 transition-colors ${
+        className={`flex items-center px-4 py-3 gap-3 transition-colors ${
           soon
-            ? 'opacity-50 cursor-not-allowed'
-            : `cursor-pointer ${dark ? 'hover:bg-white/5 active:bg-white/10' : 'hover:bg-gray-50 active:bg-gray-100'}`
+            ? 'opacity-40 cursor-not-allowed'
+            : `cursor-pointer ${dark ? 'hover:bg-white/5 active:bg-white/8' : 'hover:bg-gray-50 active:bg-gray-100'}`
         }`}
         onClick={!soon ? onClick : undefined}
       >
-        <div className="w-8 h-8 flex items-center justify-center shrink-0">
+        {/* Icon bubble */}
+        <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 ${dark ? 'bg-white/8' : 'bg-gray-100'}`}>
           {icon}
         </div>
         <div className="flex-grow min-w-0">
-          <div className={`text-[15px] font-normal truncate ${dark ? 'text-tg-text-primary' : 'text-gray-900'}`}>{text}</div>
-          {subtitle && <div className={`text-[13px] mt-0.5 truncate ${dark ? 'text-tg-text-secondary' : 'text-gray-500'}`}>{subtitle}</div>}
+          <div className={`text-[15px] font-medium truncate ${dark ? 'text-white' : 'text-gray-900'}`}>{text}</div>
+          {subtitle && <div className={`text-[13px] mt-0.5 truncate ${dark ? 'text-gray-400' : 'text-gray-500'}`}>{subtitle}</div>}
         </div>
         {soon ? (
-          <div className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full shrink-0 ${dark ? 'text-tg-text-secondary bg-white/5' : 'text-gray-400 bg-gray-100'}`}>
-            <span>soon!</span>
-            <Lock size={10} />
-          </div>
+          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${dark ? 'text-gray-400 bg-white/8' : 'text-gray-400 bg-gray-100'}`}>Скоро</span>
         ) : onClick ? (
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className={`shrink-0 ${dark ? 'text-gray-500' : 'text-gray-400'}`}>
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor" className={`shrink-0 ${dark ? 'text-gray-600' : 'text-gray-300'}`}>
             <path d="M7.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L11.586 10 7.293 5.707a1 1 0 010-1.414z" />
           </svg>
         ) : null}
