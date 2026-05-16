@@ -1201,14 +1201,14 @@ export default function ChatView() {
                 </div>
 
                 {/* Greeting message */}
-                {msg.gift.greeting && (
+                {(msg.gift as any).greeting && (
                   <motion.div
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                     className="text-[13px] text-white/90 italic px-3 py-2 bg-white/15 rounded-2xl mb-2.5 relative z-10 leading-relaxed"
                   >
-                    «{msg.gift.greeting}»
+                    «{(msg.gift as any).greeting}»
                   </motion.div>
                 )}
 
