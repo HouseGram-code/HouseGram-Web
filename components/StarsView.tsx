@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, runTransaction } from 'firebase/firestore';
 
+const REPLENISHMENT_ENABLED = false;
+
 export default function StarsView() {
   const { setView } = useChat();
   const [stars, setStars] = useState(0);
@@ -207,22 +209,35 @@ export default function StarsView() {
         </motion.p>
 
         {/* Кнопка Пополнить баланс */}
-        <motion.button
-          onClick={() => setView('buy-stars')}
-          className="w-full max-w-sm text-white py-4 rounded-2xl font-semibold text-[17px] flex items-center justify-center gap-2.5 mb-5 shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg, #b91c1c, #dc2626)',
-            boxShadow: '0 8px 30px rgba(185,28,28,0.4)'
-          }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28 }}
-        >
-          <span className="text-[22px] font-light leading-none mt-[-2px]">+</span>
-          Пополнить баланс
-        </motion.button>
+        {REPLENISHMENT_ENABLED ? (
+          <motion.button
+            onClick={() => setView('buy-stars')}
+            className="w-full max-w-sm text-white py-4 rounded-2xl font-semibold text-[17px] flex items-center justify-center gap-2.5 mb-5 shadow-xl"
+            style={{
+              background: 'linear-gradient(135deg, #b91c1c, #dc2626)',
+              boxShadow: '0 8px 30px rgba(185,28,28,0.4)'
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 }}
+          >
+            <span className="text-[22px] font-light leading-none mt-[-2px]">+</span>
+            Пополнить баланс
+          </motion.button>
+        ) : (
+          <motion.div
+            className="w-full max-w-sm py-4 rounded-2xl mb-5 flex flex-col items-center justify-center gap-1"
+            style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 }}
+          >
+            <span className="text-white font-semibold text-[16px]">Пополнение временно недоступно</span>
+            <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>Скоро откроем — следите за обновлениями</span>
+          </motion.div>
+        )}
 
         {/* Баланс */}
         <motion.div

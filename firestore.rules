@@ -59,6 +59,8 @@ service cloud.firestore {
              (!('stars' in data) || data.stars == null || data.stars is int || data.stars is number) &&
              (!('giftsSent' in data) || data.giftsSent == null || data.giftsSent is int || data.giftsSent is number) &&
              (!('giftsReceived' in data) || data.giftsReceived == null || data.giftsReceived is int || data.giftsReceived is number) &&
+             (!('starsReceived' in data) || data.starsReceived == null || data.starsReceived is int || data.starsReceived is number) &&
+             (!('starsSent' in data) || data.starsSent == null || data.starsSent is int || data.starsSent is number) &&
              (!('premium' in data) || data.premium == null || data.premium is bool) &&
              (!('premiumExpiry' in data) || data.premiumExpiry == null || data.premiumExpiry is timestamp) &&
              (!('aiRequestsToday' in data) || data.aiRequestsToday == null || data.aiRequestsToday is map) &&
@@ -454,6 +456,28 @@ service cloud.firestore {
       allow delete: if isAuthenticated() &&
                     exists(/databases/$(database)/documents/bots/$(botId)) &&
                     get(/databases/$(database)/documents/bots/$(botId)).data.ownerId == request.auth.uid;
+    }
+    
+    // ===============================================================
+    // Promocodes Rules
+    // ===============================================================
+    
+    match /promocodes/{code} {
+      // Все авторизованные пользователи могут читать промокоды (для применения)
+      allow read: if isAuthenticated();
+      
+      // Только админы могут создавать промокоды
+      allow create: if isAdmin();
+      
+      // Пользователи могут обновлять только usesCount и usedBy (при активации)
+      // Админы могут обновлять всё
+      allow update: if isAdmin() || (
+        isAuthenticated() && isNotBanned() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usesCount', 'usedBy'])
+      );
+      
+      // Только админы могут удалять промокоды
+      allow delete: if isAdmin();
     }
     
     // Ответы на callback queries
