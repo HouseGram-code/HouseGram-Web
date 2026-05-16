@@ -2,154 +2,241 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Phone, MapPin, Bookmark, Settings, HelpCircle, Lock, User, Shield, LogOut, BadgeCheck, Info, Radio, PlusCircle, UsersRound, Star, Wallet, Gamepad2, Bot } from 'lucide-react';
+import {
+  Bookmark, Settings, HelpCircle, User, Shield, LogOut,
+  BadgeCheck, Info, PlusCircle, Zap, Wallet, Gamepad2,
+  Bot, Newspaper, ChevronRight, Smartphone, Monitor, Crown
+} from 'lucide-react';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 export default function SideMenu() {
   const { isSideMenuOpen, setSideMenuOpen, setView, themeColor, userProfile, setActiveChatId, isAdmin, logout } = useChat();
+  const [isDesktopMode, setIsDesktopMode] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsDesktopMode(window.innerWidth >= 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const toggleDesktop = () => {
+    window.dispatchEvent(new CustomEvent('toggleDesktopMode'));
+    setIsDesktopMode(p => !p);
+    setSideMenuOpen(false);
+  };
+
+  const go = (view: string) => { setView(view as any); setSideMenuOpen(false); };
 
   return (
     <AnimatePresence>
       {isSideMenuOpen && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSideMenuOpen(false)}
-            className="absolute inset-0 bg-overlay-bg z-40 backdrop-blur-sm"
+            className="absolute inset-0 z-40"
+            style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
           />
+
+          {/* Drawer */}
           <motion.div
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="absolute top-0 left-0 w-[85%] max-w-[340px] h-full bg-side-menu-bg z-50 flex flex-col shadow-2xl"
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+            className="absolute top-0 left-0 h-full z-50 flex flex-col shadow-2xl overflow-hidden"
+            style={{
+              width: 'min(85vw, 320px)',
+              backgroundColor: '#ffffff',
+            }}
           >
-            {/* Header with gradient */}
-            <div 
-              className="p-5 pt-12 pb-6 flex flex-col gap-3 text-white relative overflow-hidden"
-              style={{ 
-                background: `linear-gradient(135deg, ${themeColor} 0%, ${themeColor}dd 100%)`
+            {/* ── Profile Header ── */}
+            <div
+              className="relative flex flex-col justify-end px-5 pb-5 pt-12 text-white overflow-hidden shrink-0"
+              style={{
+                background: `linear-gradient(155deg, ${themeColor} 0%, ${themeColor}cc 60%, ${themeColor}99 100%)`,
+                minHeight: 170,
               }}
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-              <div className="relative z-10 flex items-center gap-3">
-                <div className="w-[64px] h-[64px] rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-medium overflow-hidden ring-2 ring-white/30 shadow-lg">
+              {/* Декоративные пузыри */}
+              <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/10 blur-2xl" />
+              <div className="absolute top-10 -left-4 w-20 h-20 rounded-full bg-white/8 blur-xl" />
+
+              <div className="relative z-10 flex items-end gap-4">
+                {/* Avatar */}
+                <div
+                  className="w-16 h-16 rounded-full overflow-hidden shrink-0 ring-2 ring-white/40 shadow-xl"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+                >
                   {userProfile.avatarUrl ? (
-                    <Image 
-                      src={userProfile.avatarUrl} 
-                      alt="Avatar" 
-                      fill 
-                      className="object-cover"
+                    <Image
+                      src={userProfile.avatarUrl}
+                      alt="Avatar"
+                      width={64}
+                      height={64}
+                      className="object-cover w-full h-full"
                       unoptimized
                     />
                   ) : (
-                    <User size={32} className="text-white/90" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User size={30} className="text-white/90" />
+                    </div>
                   )}
                 </div>
-                <div className="flex-grow">
-                  <div className="font-semibold text-[16px] flex items-center gap-1.5 drop-shadow-sm">
-                    {userProfile.name}
-                    {userProfile.isOfficial && <BadgeCheck size={18} className="text-blue-400 fill-white" />}
+
+                {/* Name + status */}
+                <div className="flex-grow min-w-0 pb-0.5">
+                  <div className="flex items-center gap-1.5 font-bold text-[17px] leading-snug drop-shadow">
+                    <span className="truncate">{userProfile.name || 'Пользователь'}</span>
+                    {userProfile.isOfficial && (
+                      <BadgeCheck size={17} className="shrink-0 text-white/90" fill="rgba(255,255,255,0.3)" />
+                    )}
                   </div>
-                  <div className="text-xs text-white/80 mt-0.5 font-medium">онлайн</div>
+                  {userProfile.username && (
+                    <div className="text-[13px] text-white/75 font-medium truncate">
+                      {userProfile.username.startsWith('@') ? userProfile.username : `@${userProfile.username}`}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-300 shadow-sm shadow-green-300" />
+                    <span className="text-[12px] text-white/70 font-medium">онлайн</span>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            {/* Menu items */}
-            <ul className="py-2 flex-grow overflow-y-auto px-2">
-              {/* Create Section */}
-              <li className="px-3 py-2">
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Создать</div>
-              </li>
-              <MenuItem 
-                icon={<PlusCircle size={22} strokeWidth={2} />} 
-                text="Создать канал" 
-                onClick={() => { setView('create-channel'); setSideMenuOpen(false); }}
-                accent
+
+            {/* ── Scrollable menu ── */}
+            <ul className="flex-grow overflow-y-auto py-2 px-2" style={{ backgroundColor: '#ffffff' }}>
+
+              {/* — Основное — */}
+              <SectionLabel label="Основное" />
+              <MenuItem
+                icon={<PlusCircle size={20} />}
+                text="Создать канал"
+                color={themeColor}
+                onClick={() => go('create-channel')}
               />
-              <MenuItem icon={<UsersRound size={22} strokeWidth={2} />} text="Новая группа" locked />
-              
-              {/* Contacts Section */}
-              <div className="my-2 border-t border-gray-100 dark:border-gray-800" />
-              <li className="px-3 py-2">
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Общение</div>
-              </li>
-              <MenuItem icon={<Users size={22} strokeWidth={2} />} text="Контакты" locked />
-              <MenuItem icon={<Phone size={22} strokeWidth={2} />} text="Звонки" locked />
-              <MenuItem icon={<MapPin size={22} strokeWidth={2} />} text="Люди рядом" locked />
-              
-              {/* Saved & Settings Section */}
-              <div className="my-2 border-t border-gray-100 dark:border-gray-800" />
-              <li className="px-3 py-2">
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Приложение</div>
-              </li>
-              <MenuItem 
-                icon={<Wallet size={22} strokeWidth={2} />} 
-                text="Кошелёк" 
-                onClick={() => { setView('wallet'); setSideMenuOpen(false); }}
-                accent
+              <MenuItem
+                icon={<Bookmark size={20} />}
+                text="Избранное"
+                color="#6366f1"
+                onClick={() => { setActiveChatId('saved_messages'); setView('chat' as any); setSideMenuOpen(false); }}
               />
-              <MenuItem 
-                icon={<Gamepad2 size={22} strokeWidth={2} />} 
-                text="Мини-игры" 
-                onClick={() => { setView('mini-games'); setSideMenuOpen(false); }}
-                accent
+
+              <Divider />
+
+              {/* — Возможности — */}
+              <SectionLabel label="Возможности" />
+              <MenuItem
+                icon={<Zap size={20} />}
+                text="Молнии"
+                color="#f59e0b"
+                onClick={() => go('stars')}
               />
-              <MenuItem 
-                icon={<Bot size={22} strokeWidth={2} />} 
-                text="BotMaster" 
-                onClick={() => { setView('botfather'); setSideMenuOpen(false); }}
-                accent
+              <MenuItem
+                icon={<Crown size={20} />}
+                text="HouseGram Premium"
+                color="#a855f7"
+                onClick={() => go('premium')}
               />
-              <MenuItem 
-                icon={<Star size={22} strokeWidth={2} />} 
-                text="Избранное" 
-                onClick={() => { setActiveChatId('saved_messages'); setView('chat'); setSideMenuOpen(false); }} 
+              <MenuItem
+                icon={<Wallet size={20} />}
+                text="Кошелёк"
+                color="#10b981"
+                onClick={() => go('wallet')}
               />
-              <MenuItem 
-                icon={<Settings size={22} strokeWidth={2} />} 
-                text="Настройки" 
-                onClick={() => { setView('settings'); setSideMenuOpen(false); }} 
+              <MenuItem
+                icon={<Gamepad2 size={20} />}
+                text="Мини-игры"
+                color="#3b82f6"
+                onClick={() => go('mini-games')}
               />
-              <MenuItem 
-                icon={<HelpCircle size={22} strokeWidth={2} />} 
-                text="Возможности HouseGram" 
-                onClick={() => { setView('features'); setSideMenuOpen(false); }} 
+              <MenuItem
+                icon={<Bot size={20} />}
+                text="BotMaster"
+                color="#8b5cf6"
+                onClick={() => go('botfather')}
               />
-              <MenuItem 
-                icon={<Info size={22} strokeWidth={2} />} 
-                text="О приложении" 
-                onClick={() => { setView('info'); setSideMenuOpen(false); }} 
+              <MenuItem
+                icon={<Newspaper size={20} />}
+                text="Новости"
+                color="#ef4444"
+                onClick={() => go('news')}
               />
-              
-              {/* Admin & Logout Section */}
+
+              <Divider />
+
+              {/* — Настройки — */}
+              <SectionLabel label="Настройки" />
+              <MenuItem
+                icon={<Settings size={20} />}
+                text="Настройки"
+                color="#64748b"
+                onClick={() => go('settings')}
+              />
+              <MenuItem
+                icon={<HelpCircle size={20} />}
+                text="Возможности HouseGram"
+                color="#0ea5e9"
+                onClick={() => go('features')}
+              />
+              <MenuItem
+                icon={<Info size={20} />}
+                text="О приложении"
+                color="#94a3b8"
+                onClick={() => go('info')}
+              />
+              <MenuItem
+                icon={isDesktopMode ? <Smartphone size={20} /> : <Monitor size={20} />}
+                text={isDesktopMode ? 'Мобильный режим' : 'Desktop режим'}
+                color="#475569"
+                onClick={toggleDesktop}
+              />
+
+              {/* — Админ — */}
               {isAdmin && (
                 <>
-                  <div className="my-2 border-t border-gray-100 dark:border-gray-800" />
-                  <MenuItem 
-                    icon={<Shield size={22} strokeWidth={2} />} 
-                    text="Админ Панель" 
-                    onClick={() => { setView('admin'); setSideMenuOpen(false); }}
+                  <Divider />
+                  <MenuItem
+                    icon={<Shield size={20} />}
+                    text="Панель администратора"
+                    color="#ef4444"
+                    onClick={() => go('admin')}
                     danger
                   />
                 </>
               )}
-              <div className="my-2 border-t border-gray-100 dark:border-gray-800" />
-              <MenuItem 
-                icon={<LogOut size={22} strokeWidth={2} />} 
-                text="Выйти" 
+
+              <Divider />
+              <MenuItem
+                icon={<LogOut size={20} />}
+                text="Выйти из аккаунта"
+                color="#ef4444"
                 onClick={() => { logout(); setSideMenuOpen(false); }}
                 danger
               />
             </ul>
-            
-            {/* Footer */}
-            <div className="p-4 text-center text-gray-400 text-xs border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30">
-              <div className="font-semibold text-gray-600 dark:text-gray-300">HouseGram Web</div>
-              <div className="mt-1 text-[10px] text-gray-400">v2.2 beta • Быстро. Безопасно. Удобно.</div>
+
+            {/* ── Footer ── */}
+            <div
+              className="px-5 py-3 flex items-center justify-between shrink-0"
+              style={{ borderTop: '1px solid #f1f5f9', backgroundColor: '#fafafa' }}
+            >
+              <div>
+                <div className="text-[13px] font-semibold text-gray-600">HouseGram Web</div>
+                <div className="text-[11px] text-gray-400 mt-0.5">v2.2 beta · Быстро. Безопасно.</div>
+              </div>
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: themeColor + '18' }}
+              >
+                <Zap size={15} style={{ color: themeColor }} />
+              </div>
             </div>
           </motion.div>
         </>
@@ -158,33 +245,49 @@ export default function SideMenu() {
   );
 }
 
-function MenuItem({ icon, text, locked, onClick, accent, danger }: { 
-  icon: React.ReactNode; 
-  text: string; 
-  locked?: boolean; 
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <li className="px-4 pt-3 pb-1">
+      <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">{label}</span>
+    </li>
+  );
+}
+
+function Divider() {
+  return <li className="my-1 mx-3" style={{ height: 1, backgroundColor: '#f1f5f9' }} />;
+}
+
+function MenuItem({
+  icon, text, color, onClick, danger,
+}: {
+  icon: React.ReactNode;
+  text: string;
+  color: string;
   onClick?: () => void;
-  accent?: boolean;
   danger?: boolean;
 }) {
   return (
-    <li 
-      onClick={!locked ? onClick : undefined} 
-      className={`flex items-center px-4 py-2.5 gap-4 rounded-xl mb-1 transition-all duration-200 group relative
-        ${locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-[0.98]'}
-        ${accent ? 'bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/20' : ''}
-        ${danger ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-side-menu-text-color'}
-      `}
+    <li
+      onClick={onClick}
+      className="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 cursor-pointer transition-all duration-150 group active:scale-[0.98]"
+      style={{ '--hover-bg': danger ? '#fef2f2' : '#f8fafc' } as React.CSSProperties}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = danger ? '#fef2f2' : '#f8fafc'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
     >
-      <div className={`${danger ? 'text-red-500' : accent ? 'text-blue-500' : 'text-side-menu-icon-color'} group-hover:scale-110 transition-transform`}>
+      {/* Icon bubble */}
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
+        style={{ backgroundColor: (danger ? '#ef4444' : color) + '18', color: danger ? '#ef4444' : color }}
+      >
         {icon}
       </div>
-      <span className="text-[15px] font-medium flex-grow">{text}</span>
-      {locked && (
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-1.5 rounded-full shadow-sm">
-          <Lock size={11} strokeWidth={2.5} />
-          <span>Soon</span>
-        </div>
-      )}
+      <span
+        className="text-[15px] font-medium flex-grow"
+        style={{ color: danger ? '#ef4444' : '#1e293b' }}
+      >
+        {text}
+      </span>
+      <ChevronRight size={15} className="text-gray-300 group-hover:text-gray-400 transition-colors" />
     </li>
   );
 }

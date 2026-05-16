@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import { Menu, Search, Edit2, Bookmark, ArrowLeft, BadgeCheck, Monitor, Smartphone, Check, CheckCheck } from 'lucide-react';
+import { Menu, Search, Edit2, Bookmark, ArrowLeft, BadgeCheck, Check, CheckCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -37,24 +37,6 @@ export default function ChatList() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [selectedPremiumUser, setSelectedPremiumUser] = useState<string>('');
-  const [isDesktopMode, setIsDesktopMode] = useState(false);
-
-  // Check if desktop mode on mount
-  useEffect(() => {
-    const checkDesktop = () => {
-      setIsDesktopMode(window.innerWidth >= 1024);
-    };
-    checkDesktop();
-    window.addEventListener('resize', checkDesktop);
-    return () => window.removeEventListener('resize', checkDesktop);
-  }, []);
-
-  const toggleDesktopMode = () => {
-    console.log('Toggle button clicked, current isDesktopMode:', isDesktopMode);
-    window.dispatchEvent(new CustomEvent('toggleDesktopMode'));
-    setIsDesktopMode(!isDesktopMode);
-  };
-
   // Debounce поиска (300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -232,38 +214,6 @@ export default function ChatList() {
               <div className="flex-grow text-[19px] font-semibold tracking-tight">
                 HouseGram
               </div>
-              <button 
-                onClick={toggleDesktopMode}
-                className="p-2 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
-                title={isDesktopMode ? "Мобильный режим" : "Desktop режим"}
-              >
-                {isDesktopMode ? <Smartphone size={22} /> : <Monitor size={22} />}
-              </button>
-              <button 
-                onClick={() => setView('botfather')}
-                className="p-2 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
-                title="BotMaster - Создать бота"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="10" rx="2"/>
-                  <circle cx="12" cy="5" r="2"/>
-                  <path d="M12 7v4"/>
-                  <line x1="8" y1="16" x2="8" y2="16"/>
-                  <line x1="16" y1="16" x2="16" y2="16"/>
-                </svg>
-              </button>
-              <button 
-                onClick={() => setView('news')}
-                className="p-2 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
-                title="Новости"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/>
-                  <path d="M18 14h-8"/>
-                  <path d="M15 18h-5"/>
-                  <path d="M10 6h8v4h-8z"/>
-                </svg>
-              </button>
               <button 
                 onClick={() => setIsSearching(true)}
                 className="p-2 rounded-full hover:bg-white/15 active:bg-white/25 transition-all duration-200"
