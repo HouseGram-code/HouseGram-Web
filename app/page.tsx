@@ -136,6 +136,7 @@ const BotMasterView = dynamic(() => import('@/components/BotMasterView'), {
 const ConnectionLoader = dynamic(() => import('@/components/ConnectionLoader'));
 const FrozenAccountScreen = dynamic(() => import('@/components/FrozenAccountScreen'));
 const VictoryDayTheme = dynamic(() => import('@/components/VictoryDayTheme'), { ssr: false });
+const BottomTabBar = dynamic(() => import('@/components/BottomTabBar'), { ssr: false });
 
 function LoadingSpinner() {
   return (
@@ -454,18 +455,25 @@ function AppContent() {
   // Mobile Layout
   return (
     <MobileShell>
-      {/* Connection Loader */}
-      <ConnectionLoader 
-        isVisible={showConnectionLoader} 
-        onComplete={handleConnectionComplete} 
-      />
+      {/* Flex-column wrapper: content area + bottom tab bar */}
+      <div className="absolute inset-0 flex flex-col">
+        {/* Content area — views render here via absolute inset-0 */}
+        <div className="flex-1 relative overflow-hidden min-h-0">
+          <ConnectionLoader
+            isVisible={showConnectionLoader}
+            onComplete={handleConnectionComplete}
+          />
+          {isAppReady && (
+            <AnimatePresence initial={false} mode="popLayout">
+              {ActiveView && <ActiveView key={`${view}-${activeChatId || 'none'}`} />}
+            </AnimatePresence>
+          )}
+        </div>
 
-      {/* Main App Content */}
-      {isAppReady && (
-        <AnimatePresence initial={false} mode="popLayout">
-          {ActiveView && <ActiveView key={`${view}-${activeChatId || 'none'}`} />}
-        </AnimatePresence>
-      )}
+        {/* Bottom Tab Bar — only on non-chat views */}
+        <BottomTabBar />
+      </div>
+
       <SideMenu />
     </MobileShell>
   );

@@ -25,7 +25,7 @@ const colorThemes = [
 ];
 
 export default function SettingsView() {
-  const { setView, themeColor, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile, user, isDarkMode, setIsDarkMode, setThemeColor, isPremium, premiumExpiry, aiRequestsToday, maxAiRequests } = useChat();
+  const { setView, themeColor, wallpaper, isGlassEnabled, setIsGlassEnabled, userProfile, setUserProfile, user, isDarkMode, setIsDarkMode, setThemeColor, isPremium, premiumExpiry, aiRequestsToday, maxAiRequests } = useChat();
   const [isEditing, setIsEditing] = useState(false);
   const [editProfile, setEditProfile] = useState(userProfile);
   const [isUploading, setIsUploading] = useState(false);
@@ -391,6 +391,54 @@ export default function SettingsView() {
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── Chat Settings Feature Card ── */}
+        {!isEditing && (
+          <div className="px-4 pt-2">
+            <SLabel text="Настройки чата" dark={isDarkMode} />
+            <motion.div
+              className={`rounded-2xl overflow-hidden shadow-sm cursor-pointer active:opacity-80 ${isDarkMode ? 'bg-[#1c1c1d] border border-[#2c2c2e]' : 'bg-white'}`}
+              onClick={() => setView('chat-settings')}
+              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.005 }}
+            >
+              {/* Live wallpaper preview with fake bubbles */}
+              <div
+                className="h-[80px] relative overflow-hidden flex items-end px-3 pb-2.5"
+                style={{
+                  background: wallpaper
+                    ? wallpaper.startsWith('http') ? `url(${wallpaper}) center/cover` : wallpaper
+                    : `linear-gradient(135deg, ${themeColor}30 0%, ${themeColor}18 100%)`,
+                }}
+              >
+                <div className="absolute inset-0 bg-black/5" />
+                <div className="flex flex-col gap-1.5 w-full relative z-10">
+                  <div className="self-start bg-white/90 dark:bg-white/80 rounded-2xl rounded-bl-sm px-2.5 py-1 max-w-[55%] shadow">
+                    <div className="text-[11px] text-gray-800 font-medium">Привет! 👋</div>
+                  </div>
+                  <div className="self-end px-2.5 py-1 max-w-[55%] rounded-2xl rounded-br-sm shadow" style={{ backgroundColor: themeColor }}>
+                    <div className="text-[11px] text-white font-medium">Как дела? 😊</div>
+                  </div>
+                </div>
+                {/* Change background badge */}
+                <div className="absolute top-2 right-2 bg-black/30 backdrop-blur-sm rounded-full px-2 py-0.5">
+                  <span className="text-[10px] text-white font-medium">Оформление</span>
+                </div>
+              </div>
+              {/* Action row */}
+              <div className="px-4 py-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0" style={{ backgroundColor: '#6366f1' }}>
+                  <MessageCircle size={18} className="text-white" />
+                </div>
+                <div className="flex-grow">
+                  <div className={`text-[15px] font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Фон, обои и тема</div>
+                  <div className={`text-[13px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Обои, цвета, пузыри, ночной режим</div>
+                </div>
+                <ChevronRight size={18} className={isDarkMode ? 'text-gray-600' : 'text-gray-300'} />
+              </div>
+            </motion.div>
           </div>
         )}
 
