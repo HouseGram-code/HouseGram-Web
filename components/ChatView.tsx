@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, Sparkles, Lock, Phone, Video, BellOff, Palette, UserMinus, Gift } from 'lucide-react';
+import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, Sparkles, Lock, Phone, Video, BellOff, Palette, UserMinus, Gift, Zap } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import NextImage from 'next/image';
 import { auth, db } from '@/lib/firebase';
