@@ -125,99 +125,131 @@ export default function MyGiftsView() {
       </motion.div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 bg-[#f2f2f7] dark:bg-[#0f0f0f]">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 size={48} className="animate-spin text-gray-400" />
-          </div>
-        ) : gifts.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Gift size={64} className="mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Пока нет подарков</h3>
-              <p className="text-gray-500 text-sm">
-                Когда вам отправят подарок, он появится здесь
-              </p>
+            <div className="flex flex-col items-center gap-3">
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
+                <Loader2 size={40} className="text-gray-300" />
+              </motion.div>
+              <p className="text-[14px] text-gray-400">Загрузка...</p>
             </div>
           </div>
+        ) : gifts.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center h-full text-center px-6"
+          >
+            <motion.div
+              animate={{ y: [0, -10, 0], rotate: [-5, 5, -5] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="text-[72px] mb-4"
+            >
+              🎁
+            </motion.div>
+            <h3 className="text-[20px] font-bold text-gray-800 dark:text-white mb-2">Пока нет подарков</h3>
+            <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed max-w-[260px]">
+              Попросите друзей отправить вам подарок, и он появится здесь
+            </p>
+          </motion.div>
         ) : (
           <div className="grid grid-cols-1 gap-3">
             <AnimatePresence>
-              {gifts.map((gift, index) => (
-                <motion.div
-                  key={gift.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-white rounded-2xl p-4 shadow-sm"
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Gift Icon */}
-                    <motion.div
-                      className="flex-shrink-0"
-                      whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      {getGiftAnimatedUrl(gift.gift_id) ? (
-                        <Image
-                          src={getGiftAnimatedUrl(gift.gift_id)!}
-                          alt={gift.name}
-                          width={60}
-                          height={60}
-                          className="object-contain"
-                          unoptimized
-                        />
-                      ) : (
-                        <span className="text-[60px]">{gift.emoji}</span>
+              {gifts.map((gift, index) => {
+                const isSpace = gift.gift_id === 'cosmonaut';
+                const isEaster = gift.gift_id === 'easter_bunny';
+                const isMay = gift.gift_id === 'may_1';
+                const gradientClass = isSpace
+                  ? 'from-indigo-900 via-purple-900 to-black'
+                  : isEaster
+                  ? 'from-pink-400 via-purple-400 to-blue-400'
+                  : isMay
+                  ? 'from-red-500 via-rose-500 to-orange-400'
+                  : null;
+                
+                return (
+                  <motion.div
+                    key={gift.id}
+                    initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ delay: Math.min(index * 0.04, 0.3) }}
+                    className={`rounded-2xl overflow-hidden shadow-sm ${
+                      gradientClass ? `bg-gradient-to-br ${gradientClass} text-white` : 'bg-white dark:bg-[#1c1c1d]'
+                    }`}
+                  >
+                    <div className="p-4">
+                      <div className="flex items-start gap-4">
+                        {/* Gift Icon */}
+                        <motion.div
+                          className="flex-shrink-0"
+                          animate={gradientClass ? { y: [0, -4, 0], rotate: [0, -5, 5, 0] } : {}}
+                          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                        >
+                          {getGiftAnimatedUrl(gift.gift_id) ? (
+                            <Image src={getGiftAnimatedUrl(gift.gift_id)!} alt={gift.name} width={72} height={72} className="object-contain" unoptimized />
+                          ) : (
+                            <span className="text-[72px] leading-none">{gift.emoji}</span>
+                          )}
+                        </motion.div>
+
+                        {/* Gift Info */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`text-[17px] font-bold mb-0.5 ${gradientClass ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                            {gift.name}
+                          </h3>
+                          <p className={`text-[13px] mb-1 ${gradientClass ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                            От {gift.from_name}
+                          </p>
+                          <p className={`text-[11px] mb-2 ${gradientClass ? 'text-white/60' : 'text-gray-400 dark:text-gray-500'}`}>
+                            {formatDate(gift.received_at)}
+                          </p>
+                          {/* Greeting */}
+                          {(gift as any).greeting && (
+                            <p className={`text-[13px] italic mb-2 leading-relaxed ${
+                              gradientClass ? 'text-white/85' : 'text-gray-600 dark:text-gray-300'
+                            }`}>
+                              «{(gift as any).greeting}»
+                            </p>
+                          )}
+                          <div className={`flex items-center gap-1 ${gradientClass ? 'text-yellow-200' : 'text-yellow-600'}`}>
+                            <Zap size={13} fill="currentColor" />
+                            <span className="text-[13px] font-bold">{gift.cost}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Convert Button */}
+                      {gift.can_convert && (
+                        <motion.button
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => handleConvert(gift.id)}
+                          disabled={converting === gift.id}
+                          className={`w-full mt-3 py-2.5 rounded-xl font-semibold text-[14px] flex items-center justify-center gap-2 disabled:opacity-50 transition-all ${
+                            gradientClass
+                              ? 'bg-white/20 hover:bg-white/30 text-white'
+                              : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md shadow-orange-200/50 dark:shadow-none'
+                          }`}
+                        >
+                          {converting === gift.id ? (
+                            <><Loader2 size={16} className="animate-spin" /> Обработка...</>
+                          ) : (
+                            <><Sparkles size={16} /> Конвертировать в ⚡</>
+                          )}
+                        </motion.button>
                       )}
-                    </motion.div>
-
-                    {/* Gift Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[16px] font-semibold text-gray-900 mb-1">
-                        {gift.name}
-                      </h3>
-                      <p className="text-[13px] text-gray-600 mb-1">
-                        От: {gift.from_name}
-                      </p>
-                      <p className="text-[12px] text-gray-400">
-                        {formatDate(gift.received_at)}
-                      </p>
-                      <div className="flex items-center gap-1 mt-2 text-yellow-600">
-                        <Zap size={14} fill="currentColor" />
-                        <span className="text-[13px] font-semibold">{gift.cost}</span>
-                      </div>
+                      {!gift.can_convert && (
+                        <div className={`mt-3 text-center text-[12px] font-medium ${
+                          gradientClass ? 'text-white/50' : 'text-gray-400 dark:text-gray-500'
+                        }`}>
+                          ✓ Конвертирован
+                        </div>
+                      )}
                     </div>
-
-                    {/* Convert Button */}
-                    {gift.can_convert && (
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleConvert(gift.id)}
-                        disabled={converting === gift.id}
-                        className="flex-shrink-0 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl font-medium text-[13px] flex items-center gap-2 disabled:opacity-50 shadow-md"
-                      >
-                        {converting === gift.id ? (
-                          <Loader2 size={16} className="animate-spin" />
-                        ) : (
-                          <>
-                            <Sparkles size={16} />
-                            <span>Конвертировать</span>
-                          </>
-                        )}
-                      </motion.button>
-                    )}
-                    
-                    {!gift.can_convert && (
-                      <div className="flex-shrink-0 text-[12px] text-gray-400 bg-gray-100 px-3 py-2 rounded-xl">
-                        Конвертирован
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
         )}

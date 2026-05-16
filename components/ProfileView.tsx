@@ -173,24 +173,25 @@ export default function ProfileView() {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="absolute inset-0 bg-tg-profile-bg flex flex-col z-20"
     >
+      {/* Gradient overlay header — floats over banner */}
       <div 
-        className={`text-tg-header-text px-2.5 h-12 flex items-center gap-4 shrink-0 absolute top-0 left-0 w-full z-30 transition-colors ${isGlassEnabled ? 'backdrop-blur-md border-b border-black/10' : ''}`}
-        style={{ backgroundColor: isGlassEnabled ? themeColor + 'CC' : themeColor }}
+        className="text-white px-3 h-14 flex items-center gap-3 shrink-0 absolute top-0 left-0 w-full z-30"
+        style={{ background: `linear-gradient(180deg, ${themeColor}EE 0%, ${themeColor}66 65%, transparent 100%)` }}
       >
         <button 
-          onClick={() => setView('chat')} 
-          className="p-1.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
+          onClick={() => setView(contact ? 'chat' : 'menu')} 
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/15 active:bg-white/25 transition-all"
         >
-          <ArrowLeft size={24} />
+          <ArrowLeft size={22} />
         </button>
-        <div className="text-[17px] font-medium flex-grow">Инфо</div>
+        <div className="text-[18px] font-semibold flex-grow">Инфо</div>
       </div>
 
-      <div className="flex-grow overflow-y-auto pt-14 no-scrollbar bg-gray-50 dark:bg-[#0f0f0f]">
+      <div className="flex-grow overflow-y-auto no-scrollbar bg-[#f2f2f7] dark:bg-[#0f0f0f]">
         {/* Header Card with Banner and Avatar */}
         <div className="relative">
           {/* Banner */}
-          <div className="relative h-32 overflow-hidden">
+          <div className="relative h-44 overflow-hidden">
             {userStats.bannerUrl ? (
               <Image
                 src={userStats.bannerUrl}
@@ -322,48 +323,61 @@ export default function ProfileView() {
           
           {/* Avatar Section */}
           <div className="relative px-6 pb-6">
-            <div className="flex flex-col items-center text-center -mt-12">
+            <div className="flex flex-col items-center text-center -mt-16 pb-2">
               {displayContact.id === 'saved_messages' ? (
                 <div
-                  className="w-[96px] h-[96px] rounded-full flex items-center justify-center text-white shrink-0 mb-3 border-4 border-gray-50 dark:border-[#0f0f0f]"
+                  className="w-28 h-28 rounded-full flex items-center justify-center text-white shrink-0 mb-4 ring-[5px] ring-white/70 shadow-2xl"
                   style={{ backgroundColor: displayContact.avatarColor }}
                 >
-                  <Bookmark size={40} fill="currentColor" />
+                  <Bookmark size={44} fill="currentColor" />
                 </div>
               ) : displayContact.avatarUrl ? (
                 <div className="relative mb-3">
                   <Image
                     src={displayContact.avatarUrl}
                     alt={displayContact.name}
-                    width={96}
-                    height={96}
-                    className="rounded-full object-cover shrink-0 border-4 border-gray-50 dark:border-[#0f0f0f]"
+                    width={112}
+                    height={112}
+                    className="rounded-full object-cover ring-[5px] ring-white/70 shadow-2xl"
                     referrerPolicy="no-referrer"
                     unoptimized
                   />
                   {displayContact.statusOffline === 'в сети' && (
-                    <div className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-50 dark:border-[#0f0f0f]" />
+                    <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-[3px] border-white dark:border-[#0f0f0f]" />
                   )}
                 </div>
               ) : (
                 <div
-                  className="w-[96px] h-[96px] rounded-full flex items-center justify-center text-white font-medium text-[38px] shrink-0 mb-3 border-4 border-gray-50 dark:border-[#0f0f0f]"
+                  className="w-28 h-28 rounded-full flex items-center justify-center text-white font-bold text-[44px] shrink-0 mb-4 ring-[5px] ring-white/70 shadow-2xl"
                   style={{ backgroundColor: displayContact.avatarColor }}
                 >
                   {displayContact.initial}
                 </div>
               )}
               
-              <div className="text-[22px] font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-                {displayContact.name}
+              <h1 className="text-[24px] font-bold text-gray-900 dark:text-white mb-0.5 flex items-center gap-1.5">
+                <span>{displayContact.name}</span>
                 {userStats.isFounder && <FounderBadge size={26} />}
                 {displayContact.isOfficial && !userStats.isFounder && <BadgeCheck size={22} className="text-blue-500 fill-blue-500" />}
-              </div>
+              </h1>
 
-              <div className="text-[14px] text-gray-500 dark:text-gray-400 mb-1">{displayContact.statusOffline}</div>
+              <div className="text-[14px] text-gray-500 dark:text-gray-400">{displayContact.statusOffline}</div>
 
               {displayContact.username && (
-                <div className="text-[14px]" style={{ color: themeColor }}>{displayContact.username}</div>
+                <div className="text-[14px] font-semibold mt-1" style={{ color: themeColor }}>
+                  {displayContact.username.startsWith('@') ? displayContact.username : `@${displayContact.username}`}
+                </div>
+              )}
+
+              {/* Quick action buttons */}
+              {!displayContact.isChannel && displayContact.id !== 'saved_messages' && (
+                <div className="flex gap-4 mt-6">
+                  <QuickBtn color={themeColor} icon={<MessageCircle size={22} />} label="Написать" onClick={() => setView('chat')} />
+                  {displayContact.id !== 'test_bot' && (
+                    <QuickBtn color={themeColor} icon={<Gift size={22} />} label="Подарок" onClick={() => { localStorage.setItem('sendGiftToUser', displayContact.id); setView('send-gift'); }} />
+                  )}
+                  <QuickBtn color={themeColor} icon={<User size={22} />} label="Поделиться" onClick={() => setShowShareModal(true)} />
+                </div>
               )}
             </div>
           </div>
@@ -424,21 +438,20 @@ export default function ProfileView() {
             выводим только публичную статистику подарков (отправлено/получено). */}
         {!displayContact.isChannel && displayContact.id !== 'saved_messages' && displayContact.id !== 'test_bot' && (
           <div className="mx-4 mt-4 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-xl overflow-hidden">
-            <div className="px-4 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Статистика</div>
-            <div className={`grid ${isOwnProfile ? 'grid-cols-3' : 'grid-cols-2'} px-2 pb-3`}>
+            <div className={`grid divide-x divide-gray-100 dark:divide-[#2c2c2e] ${isOwnProfile ? 'grid-cols-3' : 'grid-cols-2'}`}>
               {isOwnProfile && (
-                <div className="p-2 text-center">
-                  <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userStats.stars}</div>
-                  <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">⚡ Молний</div>
+                <div className="py-4 text-center">
+                  <div className="text-[26px] font-bold tabular-nums" style={{ color: themeColor }}>{userStats.stars}</div>
+                  <div className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5">⚡ Молний</div>
                 </div>
               )}
-              <div className="p-2 text-center">
-                <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userStats.giftsSent}</div>
-                <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">🎁 Отправлено</div>
+              <div className="py-4 text-center">
+                <div className="text-[26px] font-bold tabular-nums" style={{ color: themeColor }}>{userStats.giftsSent}</div>
+                <div className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5">🎁 Отправил</div>
               </div>
-              <div className="p-2 text-center">
-                <div className="text-[22px] font-semibold tabular-nums" style={{ color: themeColor }}>{userStats.giftsReceived}</div>
-                <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">🎁 Получено</div>
+              <div className="py-4 text-center">
+                <div className="text-[26px] font-bold tabular-nums" style={{ color: themeColor }}>{userStats.giftsReceived}</div>
+                <div className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5">🎁 Получил</div>
               </div>
             </div>
           </div>
@@ -449,54 +462,52 @@ export default function ProfileView() {
           <div className="px-4 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Информация</div>
           
           {displayContact.bio && (
-            <div className="px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e]">
-              <div className="flex items-start gap-3">
-                <User size={20} className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1">О себе</div>
-                  <div className="text-[15px] text-gray-900 dark:text-white leading-relaxed">{displayContact.bio}</div>
-                </div>
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e] flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 bg-blue-50 dark:bg-blue-500/15">
+                <User size={18} className="text-blue-500" />
+              </div>
+              <div className="flex-grow min-w-0">
+                <div className="text-[12px] text-gray-400 dark:text-gray-500 mb-0.5">О себе</div>
+                <div className="text-[15px] text-gray-900 dark:text-white leading-relaxed">{displayContact.bio}</div>
               </div>
             </div>
           )}
           
           {displayContact.username && !displayContact.isChannel && (
-            <div className="px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e]">
-              <div className="flex items-start gap-3">
-                <MessageCircle size={20} className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1">Имя пользователя</div>
-                  <div className="text-[15px] font-medium" style={{ color: themeColor }}>{displayContact.username}</div>
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e] flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 bg-green-50 dark:bg-green-500/15">
+                <MessageCircle size={18} className="text-green-500" />
+              </div>
+              <div className="flex-grow min-w-0">
+                <div className="text-[12px] text-gray-400 dark:text-gray-500 mb-0.5">Имя пользователя</div>
+                <div className="text-[15px] font-semibold" style={{ color: themeColor }}>
+                  {displayContact.username.startsWith('@') ? displayContact.username : `@${displayContact.username}`}
                 </div>
               </div>
             </div>
           )}
           
           {displayContact.phone && displayContact.phone !== '+7 9XX XXX XX XX' && (
-            <div className="px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e]">
-              <div className="flex items-start gap-3">
-                <Phone size={20} className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1">Телефон</div>
-                  <div className="text-[15px] text-gray-900 dark:text-white">{displayContact.phone}</div>
-                </div>
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-[#2c2c2e] flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 bg-green-50 dark:bg-green-500/15">
+                <Phone size={18} className="text-green-500" />
+              </div>
+              <div className="flex-grow min-w-0">
+                <div className="text-[12px] text-gray-400 dark:text-gray-500 mb-0.5">Телефон</div>
+                <div className="text-[15px] text-gray-900 dark:text-white">{displayContact.phone}</div>
               </div>
             </div>
           )}
           
           {userStats.joinedDate && (
-            <div className="px-4 py-3">
-              <div className="flex items-start gap-3">
-                <Calendar size={20} className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1">Дата регистрации</div>
-                  <div className="text-[15px] text-gray-900 dark:text-white">
-                    {userStats.joinedDate.toLocaleDateString('ru-RU', { 
-                      day: 'numeric', 
-                      month: 'long', 
-                      year: 'numeric' 
-                    })}
-                  </div>
+            <div className="px-4 py-3 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 bg-purple-50 dark:bg-purple-500/15">
+                <Calendar size={18} className="text-purple-500" />
+              </div>
+              <div className="flex-grow min-w-0">
+                <div className="text-[12px] text-gray-400 dark:text-gray-500 mb-0.5">Дата регистрации</div>
+                <div className="text-[15px] text-gray-900 dark:text-white">
+                  {userStats.joinedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
               </div>
             </div>
@@ -504,40 +515,24 @@ export default function ProfileView() {
         </div>
 
         {/* Actions Section */}
-        <div className="mx-4 mt-4 mb-6 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-xl overflow-hidden">
-          {!displayContact.isChannel && (
-            <ActionButton 
-              text="Отправить сообщение" 
-              icon={<MessageCircle size={20} />}
-              onClick={() => setView('chat')} 
-              color={themeColor} 
-            />
-          )}
-          {!displayContact.isChannel && displayContact.id !== 'saved_messages' && displayContact.id !== 'test_bot' && (
-            <ActionButton 
-              text="Посмотреть подарки" 
-              icon={<Gift size={20} />}
-              onClick={() => setView('user-gifts')} 
-              color={themeColor} 
-            />
-          )}
-          {!displayContact.isChannel && displayContact.id !== 'saved_messages' && (
-            <>
+        {!displayContact.isChannel && displayContact.id !== 'saved_messages' && (
+          <div className="mx-4 mt-4 mb-8 bg-white dark:bg-[#1c1c1d] dark:border dark:border-[#2c2c2e] rounded-2xl overflow-hidden shadow-sm">
+            {displayContact.id !== 'test_bot' && (
               <ActionButton 
-                text="Поделиться контактом" 
-                icon={<User size={20} />}
-                onClick={() => setShowShareModal(true)} 
+                text="Посмотреть подарки" 
+                icon={<Gift size={20} className="text-pink-500" />}
+                onClick={() => setView('user-gifts')} 
                 color={themeColor} 
               />
-              <ActionButton 
-                text="Заблокировать пользователя" 
-                icon={<Shield size={20} />}
-                onClick={() => setShowBlockModal(true)} 
-                isDestructive 
-              />
-            </>
-          )}
-        </div>
+            )}
+            <ActionButton 
+              text="Заблокировать пользователя" 
+              icon={<Shield size={20} />}
+              onClick={() => setShowBlockModal(true)} 
+              isDestructive 
+            />
+          </div>
+        )}
       </div>
 
       {/* Share Modal */}
@@ -628,20 +623,31 @@ export default function ProfileView() {
   );
 }
 
+function QuickBtn({ color, icon, label, onClick }: { color: string; icon: React.ReactNode; label: string; onClick?: () => void }) {
+  return (
+    <button onClick={onClick} className="flex flex-col items-center gap-1.5 w-16 active:opacity-70 transition-opacity">
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md" style={{ backgroundColor: color }}>
+        {icon}
+      </div>
+      <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400 text-center leading-tight">{label}</span>
+    </button>
+  );
+}
+
 function ActionButton({ text, isDestructive, onClick, color, icon }: { text: string; isDestructive?: boolean; onClick?: () => void; color?: string; icon?: React.ReactNode }) {
   return (
-    <button
+    <div
       onClick={onClick}
-      className={`block w-full px-4 py-3 text-left text-[15px] border-b border-gray-100 dark:border-[#2c2c2e] last:border-b-0 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 ${
+      className={`flex items-center px-4 py-3.5 gap-3 cursor-pointer border-b border-gray-100 dark:border-[#2c2c2e] last:border-b-0 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 ${
         isDestructive ? 'text-red-500' : ''
-      } flex items-center gap-3 font-normal`}
+      }`}
       style={!isDestructive && color ? { color } : {}}
     >
-      {icon && <span className="shrink-0">{icon}</span>}
-      <span className="flex-grow">{text}</span>
-      <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className="shrink-0 text-gray-400 dark:text-gray-500">
+      {icon && <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center" style={isDestructive ? { backgroundColor: 'rgba(239,68,68,0.1)' } : { backgroundColor: color ? color + '18' : '#f0f0f0' }}>{icon}</div>}
+      <span className="flex-grow text-[15px] font-medium">{text}</span>
+      <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor" className="shrink-0 text-gray-300 dark:text-gray-600">
         <path d="M7.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L11.586 10 7.293 5.707a1 1 0 010-1.414z" />
       </svg>
-    </button>
+    </div>
   );
 }

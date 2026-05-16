@@ -82,8 +82,16 @@ export default function SendGiftView() {
 
   // Проверяем отправку себе
   useEffect(() => {
+    if (!currentUser?.id) return;
+    const targetUserId = localStorage.getItem('sendGiftToUser');
+    if (targetUserId) {
+      setSelectedUserId(targetUserId);
+      setStep('select-gift');
+      localStorage.removeItem('sendGiftToUser');
+      return;
+    }
     const shouldSendToSelf = localStorage.getItem('sendGiftToSelf');
-    if (shouldSendToSelf === 'true' && currentUser?.id) {
+    if (shouldSendToSelf === 'true') {
       setSendToSelf(true);
       setSelectedUserId(currentUser.id);
       setStep('select-gift');

@@ -2,7 +2,7 @@
 
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, Sparkles, Lock, Phone, Video, BellOff, Palette, UserMinus } from 'lucide-react';
+import { ArrowLeft, Paperclip, Send, Mic, MoreVertical, Check, CheckCheck, Clock, Smile, Image as ImageIcon, Music, File as FileIcon, Square, Bookmark, CheckCircle, BadgeCheck, Edit3, Trash2, Repeat2, Reply, Download, Plus, Search, X, Sticker, Eye, Info, Sparkles, Lock, Phone, Video, BellOff, Palette, UserMinus, Gift } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import NextImage from 'next/image';
 import { auth, db } from '@/lib/firebase';
@@ -834,6 +834,33 @@ export default function ChatView() {
                         : 'bg-white'
                     }`}
                   >
+                    <button 
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setView('profile');
+                      }}
+                      className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
+                        isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <Info size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      Инфо
+                    </button>
+                    {contact.id !== 'saved_messages' && contact.id !== 'test_bot' && !contact.isChannel && (
+                      <button 
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          localStorage.setItem('sendGiftToUser', contact.id);
+                          setView('send-gift');
+                        }}
+                        className={`w-full text-left px-4 py-3 text-[16px] transition-colors flex items-center gap-5 ${
+                          isDarkMode ? 'hover:bg-white/5 text-gray-100' : 'hover:bg-gray-100 text-gray-900'
+                        }`}
+                      >
+                        <Gift size={22} className="text-pink-500" />
+                        Отправить подарок
+                      </button>
+                    )}
                     <button 
                       onClick={() => {
                         setIsMenuOpen(false);
