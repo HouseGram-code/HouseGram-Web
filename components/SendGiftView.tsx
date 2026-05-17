@@ -829,13 +829,13 @@ export default function SendGiftView() {
               <div className="flex items-center justify-center mb-4 relative z-10">
                 <div className="flex flex-col items-center gap-1.5">
                   {selectedContact.avatarUrl ? (
-                    <Image src={selectedContact.avatarUrl} alt={selectedContact.name} width={52} height={52} className="rounded-full ring-2 ring-white/40 shadow-lg" referrerPolicy="no-referrer" unoptimized />
+                    <Image src={selectedContact.avatarUrl} alt={selectedContact.name} width={52} height={52} className="rounded-full object-cover ring-2 ring-white/40 shadow-lg" referrerPolicy="no-referrer" unoptimized />
                   ) : (
-                    <div className="w-13 h-13 w-[52px] h-[52px] rounded-full flex items-center justify-center text-white font-bold text-[20px] ring-2 ring-white/40" style={{ backgroundColor: selectedContact.avatarColor || '#7c3aed' }}>
+                    <div className="w-[52px] h-[52px] rounded-full flex items-center justify-center text-white font-bold text-[20px] ring-2 ring-white/40 shadow-lg" style={{ backgroundColor: selectedContact.avatarColor || '#7c3aed' }}>
                       {selectedContact.initial || selectedContact.name?.charAt(0)}
                     </div>
                   )}
-                  <div className="text-[13px] text-white/80 font-medium">{sendToSelf ? 'Себе' : selectedContact.name}</div>
+                  <div className="text-[13px] text-white/90 font-medium max-w-[180px] truncate">{sendToSelf ? 'Себе' : selectedContact.name}</div>
                 </div>
               </div>
 
@@ -854,7 +854,7 @@ export default function SendGiftView() {
                 )}
               </motion.div>
               
-              <motion.h3 className="text-[20px] font-extrabold mb-1 relative z-10" initial={{ y:10,opacity:0 }} animate={{ y:0,opacity:1 }} transition={{ delay:0.25 }}>
+              <motion.h3 className="text-[20px] font-extrabold mb-1 relative z-10 break-words px-1" initial={{ y:10,opacity:0 }} animate={{ y:0,opacity:1 }} transition={{ delay:0.25 }}>
                 {selectedGift.name}
               </motion.h3>
 
@@ -1021,7 +1021,7 @@ export default function SendGiftView() {
             </div>
 
             <motion.div 
-              className="bg-white rounded-3xl p-8 text-center relative z-10 shadow-2xl"
+              className="bg-white rounded-3xl p-6 sm:p-8 text-center relative z-10 shadow-2xl w-[min(86vw,360px)] max-w-[360px]"
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ 
@@ -1071,14 +1071,14 @@ export default function SendGiftView() {
                 transition={{ delay: 0.7, type: "spring" }}
                 className="space-y-2"
               >
-                <p className="text-[18px] font-bold text-gray-900">
+                <p className="text-[18px] font-bold text-gray-900 break-words px-1">
                   {selectedGift?.emoji} {selectedGift?.name}
                 </p>
-                <p className="text-[14px] text-gray-500">
+                <p className="text-[14px] text-gray-500 break-words px-1">
                   → {sendToSelf ? 'Себе' : selectedContact?.name}
                 </p>
                 {greeting && (
-                  <p className="text-[13px] text-gray-500 italic max-w-[200px] mx-auto leading-relaxed">
+                  <p className="text-[13px] text-gray-500 italic mx-auto leading-relaxed break-words whitespace-pre-wrap px-2">
                     «{greeting}»
                   </p>
                 )}

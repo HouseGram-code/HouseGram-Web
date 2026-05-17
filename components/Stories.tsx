@@ -11,6 +11,7 @@ import { auth, db } from '@/lib/firebase';
 import { collection, addDoc, query, where, getDocs, orderBy, updateDoc, doc, arrayUnion, getDoc, onSnapshot, FirestoreError } from 'firebase/firestore';
 import { uploadFile } from '@/lib/storage-wrapper';
 import StoryViewer from './StoryViewer';
+import { useChat } from '@/context/ChatContext';
 
 interface Story {
   id: string;
@@ -25,6 +26,7 @@ interface Story {
 }
 
 export default function Stories() {
+  const { isDarkMode } = useChat();
   const [stories, setStories] = useState<Story[]>([]);
   const [viewingStories, setViewingStories] = useState<Story[] | null>(null);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -256,7 +258,7 @@ export default function Stories() {
   const userStoryGroups = Object.values(groupedStories).map(group => group[0]);
 
   return (
-    <div className="px-4 py-3 border-b border-gray-100 bg-white">
+    <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-gray-800 bg-[#0f0f0f]' : 'border-gray-100 bg-white'}`}>
       <div className="flex gap-3 overflow-x-auto no-scrollbar">
         {/* Кнопка создания истории */}
         <motion.div
@@ -265,13 +267,13 @@ export default function Stories() {
           className="flex flex-col items-center gap-1 shrink-0 cursor-pointer"
         >
           <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800' : 'bg-gradient-to-br from-gray-100 to-gray-200'}`}>
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-[#1a1a1a]' : 'bg-white'}`}>
                 <Plus size={24} className="text-blue-500" strokeWidth={2.5} />
               </div>
             </div>
           </div>
-          <span className="text-[11px] text-gray-600 font-medium">Ваша история</span>
+          <span className={`text-[11px] font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Ваша история</span>
         </motion.div>
 
         {/* Истории пользователей */}
@@ -290,9 +292,9 @@ export default function Stories() {
                 <div className={`w-16 h-16 rounded-full ${
                   !isViewed 
                     ? 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500' 
-                    : 'bg-gray-300'
+                    : isDarkMode ? 'bg-gray-700' : 'bg-gray-300'
                 } p-[2px]`}>
-                  <div className="w-full h-full rounded-full bg-white p-[2px]">
+                  <div className={`w-full h-full rounded-full p-[2px] ${isDarkMode ? 'bg-[#0f0f0f]' : 'bg-white'}`}>
                     {story.userAvatar ? (
                       <img 
                         src={story.userAvatar} 
@@ -307,7 +309,7 @@ export default function Stories() {
                   </div>
                 </div>
               </div>
-              <span className="text-[11px] text-gray-600 font-medium max-w-[64px] truncate">
+              <span className={`text-[11px] font-medium max-w-[64px] truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 {story.userName}
               </span>
             </motion.div>
@@ -317,7 +319,7 @@ export default function Stories() {
         {/* Заглушка если нет историй */}
         {stories.length === 0 && !uploading && (
           <div className="flex items-center justify-center w-full py-2">
-            <p className="text-[13px] text-gray-400">
+            <p className={`text-[13px] ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
               Пока нет историй. Будьте первым!
             </p>
           </div>

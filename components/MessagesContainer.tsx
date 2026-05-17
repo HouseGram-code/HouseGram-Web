@@ -83,7 +83,7 @@ const MessagesContainer = memo(function MessagesContainer({
               initial={false}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              className={`rounded-2xl p-4 text-white text-center min-w-[200px] relative overflow-hidden mb-1.5 ${
+              className={`rounded-2xl px-5 py-4 text-white text-center w-[min(86vw,340px)] max-w-[340px] relative overflow-hidden mb-1.5 shadow-lg ${
                 isOwn ? 'self-end' : 'self-start'
               } ${
                 msg.gift.id === 'cosmonaut'
@@ -122,17 +122,17 @@ const MessagesContainer = memo(function MessagesContainer({
                   <Image
                     src={getGiftAnimatedUrl(msg.gift.id)!}
                     alt={msg.gift.name}
-                    width={80}
-                    height={80}
-                    className="object-contain"
+                    width={104}
+                    height={104}
+                    className="object-contain drop-shadow-lg"
                     unoptimized
                   />
                 ) : (
-                  <span className="text-[80px]">{msg.gift.emoji}</span>
+                  <span className="text-[96px] leading-none drop-shadow-lg">{msg.gift.emoji}</span>
                 )}
               </motion.div>
-              <div className="text-[16px] font-bold mb-1 relative z-10">{msg.gift.name}</div>
-              <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10">
+              <div className="text-[18px] font-extrabold mb-1 relative z-10 break-words px-1">{msg.gift.name}</div>
+              <div className="text-[13px] text-white/90 flex items-center justify-center gap-1 relative z-10 break-words px-1">
                 Подарок от {isOwn ? 'вас' : contact.name}
               </div>
             </motion.div>

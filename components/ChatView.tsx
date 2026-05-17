@@ -993,7 +993,11 @@ export default function ChatView() {
           const showAvatar = isLastInGroup && !isOwn;
           const marginTop = isFirstInGroup ? 'mt-2' : 'mt-0.5';
 
-          // Если это подарок, рендерим его отдельно (с анимациями)
+          // Если это подарок, рендерим его отдельно (с анимациями).
+          // Карточка подарка должна быть достаточно широкой, чтобы помещались
+          // длинные имена, поздравления и подписи: даём ей расти до 86% ширины
+          // экрана на мобильных и до 340px на планшетах/десктопе. Раньше было
+          // жёсткое max-w-[280px] из-за чего контент часто обрезался.
           if (msg.gift) {
             return (
               <motion.div
@@ -1001,7 +1005,7 @@ export default function ChatView() {
                 initial={{ scale: 0.7, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className={`rounded-3xl px-4 py-5 text-white text-center min-w-[220px] max-w-[280px] relative overflow-hidden mb-1.5 shadow-lg ${
+                className={`rounded-3xl px-5 py-5 text-white text-center w-[min(86vw,340px)] max-w-[340px] relative overflow-hidden mb-1.5 shadow-lg ${
                   isOwn ? 'self-end' : 'self-start'
                 } ${
                   msg.gift.id === 'cosmonaut'
@@ -1181,23 +1185,23 @@ export default function ChatView() {
                     <NextImage
                       src={getGiftAnimatedUrl(msg.gift.id)!}
                       alt={msg.gift.name}
-                      width={80}
-                      height={80}
-                      className="object-contain"
+                      width={104}
+                      height={104}
+                      className="object-contain drop-shadow-lg"
                       unoptimized
                     />
                   ) : (
-                    <span className="text-[80px]">{msg.gift.emoji}</span>
+                    <span className="text-[96px] leading-none drop-shadow-lg">{msg.gift.emoji}</span>
                   )}
                 </motion.div>
                 {/* Gift name */}
-                <div className="text-[18px] font-extrabold mb-1.5 relative z-10 tracking-tight">{msg.gift.name}</div>
+                <div className="text-[19px] font-extrabold mb-1.5 relative z-10 tracking-tight break-words px-1">{msg.gift.name}</div>
 
                 {/* Sender → Receiver */}
-                <div className="text-[12px] text-white/75 flex items-center justify-center gap-1.5 mb-2 relative z-10">
-                  <span className="font-medium">{isOwn ? 'Вы' : contact.name}</span>
+                <div className="text-[12px] text-white/80 flex items-center justify-center gap-1.5 mb-2 relative z-10 flex-wrap px-1">
+                  <span className="font-medium break-words max-w-[40%] truncate">{isOwn ? 'Вы' : contact.name}</span>
                   <span className="opacity-60">→</span>
-                  <span className="font-medium">{isOwn ? contact.name : 'Вам'}</span>
+                  <span className="font-medium break-words max-w-[40%] truncate">{isOwn ? contact.name : 'Вам'}</span>
                 </div>
 
                 {/* Greeting message */}
@@ -1206,7 +1210,7 @@ export default function ChatView() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="text-[13px] text-white/90 italic px-3 py-2 bg-white/15 rounded-2xl mb-2.5 relative z-10 leading-relaxed"
+                    className="text-[13px] text-white/95 italic px-3 py-2 bg-white/15 backdrop-blur-sm rounded-2xl mb-2.5 relative z-10 leading-relaxed break-words whitespace-pre-wrap"
                   >
                     «{(msg.gift as any).greeting}»
                   </motion.div>
@@ -1214,9 +1218,9 @@ export default function ChatView() {
 
                 {/* Cost badge */}
                 <div className="flex items-center justify-center gap-1 relative z-10">
-                  <div className="flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-1">
-                    <Zap size={12} fill="currentColor" className="text-yellow-200" />
-                    <span className="text-[12px] font-bold text-yellow-100">{msg.gift.cost}</span>
+                  <div className="flex items-center gap-1 bg-white/20 rounded-full px-3 py-1">
+                    <Zap size={13} fill="currentColor" className="text-yellow-200" />
+                    <span className="text-[13px] font-bold text-yellow-100">{msg.gift.cost}</span>
                   </div>
                 </div>
 
