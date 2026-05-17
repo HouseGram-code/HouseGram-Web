@@ -1,62 +1,35 @@
 /**
- * Server-side Firebase Admin SDK с lazy-инициализацией.
+ * Тонкий совместимый шим: раньше тут был `firebase-admin` с сервисным
+ * ключом. Теперь все API-роуты пользуются `verifyIdToken.ts`, который
+ * проверяет токен по публичным JWK Google — без секретов на сервере.
  *
- * Используется в API-роутах, где нужно проверить ID-токен пользователя
- * (verifyIdToken) или выполнять привилегированные операции с Firestore
- * в обход security rules. Все секреты берутся из env-переменных:
- *   FIREBASE_PROJECT_ID
- *   FIREBASE_CLIENT_EMAIL
- *   FIREBASE_PRIVATE_KEY  (с экранированными \n)
+ * Файл оставлен для обратной совместимости (на случай, если где-то ещё
+ * есть `import { verifyAuthToken } from '@/lib/firebaseAdmin'`).
  *
- * Если переменные не заданы — функции бросают ошибку. Это лучше, чем
- * молча "пропускать" авторизацию (как было в send-notification).
+ * Он берёт `projectId` из публичной переменной NEXT_PUBLIC_FIREBASE_PROJECT_ID.
  */
 
-import admin from 'firebase-admin';
+import { extractBearer, verifyFirebaseIdToken } from './verifyIdToken';
 
-let initialized = false;
-
-function ensureInitialized(): void {
-  if (initialized) return;
-  if (admin.apps.length > 0) {
-    initialized = true;
-    return;
-  }
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-  if (!projectId || !clientEmail || !privateKey) {
-    throw new Error(
-      'Firebase Admin не сконфигурирован: задайте FIREBASE_PROJECT_ID, ' +
-        'FIREBASE_CLIENT_EMAIL и FIREBASE_PRIVATE_KEY в окружении.',
-    );
-  }
-
-  admin.initializeApp({
-    credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
-  });
-  initialized = true;
-}
-
-export function getAdmin(): typeof admin {
-  ensureInitialized();
-  return admin;
+function getProjectId(): string {
+  const id =
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+    process.env.FIREBASE_PROJECT_ID ||
+    '';
+  return id;
 }
 
 /**
- * Проверяет Firebase ID-токен из заголовка Authorization: Bearer <token>.
- * Возвращает uid пользователя или null, если токен отсутствует/невалиден.
+ * Проверяет Bearer-токен из заголовка Authorization. Возвращает uid
+ * пользователя или null. Никаких сервисных ключей не требуется.
  */
-export async function verifyAuthToken(authHeader: string | null): Promise<string | null> {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.slice('Bearer '.length).trim();
+export async function verifyAuthToken(
+  authHeader: string | null,
+): Promise<string | null> {
+  const token = extractBearer(authHeader);
   if (!token) return null;
-  try {
-    ensureInitialized();
-    const decoded = await admin.auth().verifyIdToken(token);
-    return decoded.uid;
-  } catch {
-    return null;
-  }
+  const projectId = getProjectId();
+  if (!projectId) return null;
+  const decoded = await verifyFirebaseIdToken(token, projectId);
+  return decoded?.uid ?? null;
 }

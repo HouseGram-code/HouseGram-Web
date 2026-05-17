@@ -48,14 +48,6 @@ service cloud.firestore {
              request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
     }
 
-    // Возвращает true, если меняется только список ключей, переданный в
-    // allowedKeys, и при этом каждое числовое значение в keys увеличилось
-    // ровно на +1. Используется для счётчиков (giftsReceived, views).
-    function isStrictIncrementBy1(allowedKeys, keys) {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedKeys) &&
-             keys.size() > 0;
-    }
-
     // ===============================================================
     // Domain Validators
     // ===============================================================
