@@ -407,7 +407,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         // /api/update-status верифицирует его и проверяет, что
         // userId совпадает с uid из токена.
         const u = auth.currentUser;
-        u.getIdToken().then((idToken) => {
+        u.getIdToken().then((idToken: string) => {
           const data = JSON.stringify({
             userId: u.uid,
             status: 'offline',
