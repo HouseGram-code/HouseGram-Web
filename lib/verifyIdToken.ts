@@ -158,11 +158,17 @@ export async function verifyFirebaseIdToken(
   const signature = base64UrlDecodeToBytes(sigB64);
   const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
 
+  // crypto.subtle.verify требует BufferSource поверх ArrayBuffer.
+  // Uint8Array.buffer формально может быть SharedArrayBuffer, поэтому
+  // копируем в свежий ArrayBuffer, чтобы успокоить строгий TS Vercel.
+  const sigBuf = signature.slice().buffer as ArrayBuffer;
+  const dataBuf = data.slice().buffer as ArrayBuffer;
+
   const ok = await crypto.subtle.verify(
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     publicKey,
-    signature,
-    data,
+    sigBuf,
+    dataBuf,
   );
   if (!ok) return null;
 
