@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Lock, Key, Delete, Shield, Smartphone, LogOut, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Lock, Key, Delete, Shield, Smartphone, LogOut, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { doc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import SecurityInfoModal from './SecurityInfoModal';
 
 export default function SecurityView() {
-  const { setView, themeColor, isGlassEnabled, passcode, updatePasscode, logout } = useChat();
+  const { setView, themeColor, isGlassEnabled, passcode, updatePasscode, logout, isDarkMode } = useChat();
   const [isSetting, setIsSetting] = useState(false);
   const [step, setStep] = useState<'enter' | 'confirm' | 'disable'>('enter');
   const [tempCode, setTempCode] = useState('');
@@ -18,6 +19,7 @@ export default function SecurityView() {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showActiveSessions, setShowActiveSessions] = useState(false);
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
+  const [showSecurityInfo, setShowSecurityInfo] = useState(false);
   
   useEffect(() => {
     if (showActiveSessions) {
@@ -178,6 +180,51 @@ export default function SecurityView() {
                 </div>
               </div>
 
+              {/* Кнопка-карточка "Как защищён HouseGram" — открывает
+                  информационное окно с анимированными эмоджи и пунктами
+                  реальной защиты, которая включена в коде и правилах. */}
+              <motion.button
+                onClick={() => setShowSecurityInfo(true)}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className="relative mx-4 mb-4 w-[calc(100%-2rem)] rounded-2xl overflow-hidden shadow-md text-left"
+                style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}aa)` }}
+              >
+                <div className="absolute inset-0 pointer-events-none">
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute text-white/40 text-[10px]"
+                      style={{ left: `${(i * 17) % 100}%`, top: `${(i * 31 + 5) % 100}%` }}
+                      animate={{ opacity: [0, 1, 0], scale: [0, 1, 0], rotate: [0, 180] }}
+                      transition={{ duration: 2.4 + i * 0.15, repeat: Infinity, delay: i * 0.18 }}
+                    >
+                      ✦
+                    </motion.div>
+                  ))}
+                </div>
+                <div className="relative z-10 flex items-center gap-4 px-4 py-4 text-white">
+                  <motion.div
+                    className="text-[36px] leading-none drop-shadow"
+                    animate={{ rotate: [0, -8, 8, -4, 0], scale: [1, 1.08, 1] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                    aria-hidden
+                  >
+                    🛡️
+                  </motion.div>
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <ShieldCheck size={16} className="text-white/90" />
+                      <span className="text-[15px] font-bold">Как защищён HouseGram</span>
+                    </div>
+                    <p className="text-[12.5px] text-white/85 leading-snug mt-0.5">
+                      Посмотри, какие реальные меры защиты включены: rules, headers, токены, rate-limit
+                    </p>
+                  </div>
+                  <div className="text-white/70 text-[18px] font-semibold">›</div>
+                </div>
+              </motion.button>
+
               <div className="px-4 py-3 text-[13px] text-gray-500 bg-gray-50">
                 Защитите свой аккаунт с помощью дополнительных мер безопасности.
               </div>
@@ -225,6 +272,13 @@ export default function SecurityView() {
           )}
         </AnimatePresence>
       </div>
+
+      <SecurityInfoModal
+        isOpen={showSecurityInfo}
+        onClose={() => setShowSecurityInfo(false)}
+        themeColor={themeColor}
+        isDarkMode={isDarkMode}
+      />
     </motion.div>
   );
 }
