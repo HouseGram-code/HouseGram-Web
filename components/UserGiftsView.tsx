@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { getGiftAnimatedUrl } from '@/lib/gifts';
 import Image from 'next/image';
+import GiftImage from './GiftImage';
 
 interface SentGift {
   id: string;
@@ -178,13 +179,13 @@ export default function UserGiftsView() {
                         transition={{ duration: 0.5 }}
                       >
                         {getGiftAnimatedUrl(gift.gift_id) ? (
-                          <Image
+                          <GiftImage
                             src={getGiftAnimatedUrl(gift.gift_id)!}
                             alt={giftInfo.name}
+                            emoji={giftInfo.emoji}
                             width={60}
                             height={60}
-                            className="object-contain"
-                            unoptimized
+                            imgClassName="object-contain"
                           />
                         ) : (
                           <span className="text-[60px]">{giftInfo.emoji}</span>

@@ -42,7 +42,10 @@ export const GIFTS: Gift[] = [
     id: 'red_heart',
     name: 'Красное сердце',
     emoji: '❤️',
-    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Red%20Heart.webp',
+    // В репозитории Tarikul-Islam-Anik/Telegram-Animated-Emojis сердце лежит
+    // в папке Symbols, а не Smileys (старый путь возвращал 404, поэтому в
+    // выборе подарков отображался сломанный плейсхолдер).
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Symbols/Red%20Heart.webp',
     cost: 10,
     animation: 'pulse',
     available: true,
@@ -82,7 +85,11 @@ export const GIFTS: Gift[] = [
     id: 'gift_box',
     name: 'Подарочная коробка',
     emoji: '🎁',
-    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Activity/Wrapped%20Gift.webp',
+    // В репозитории Telegram-Animated-Emojis нет файла «Wrapped Gift», но
+    // есть тематический «Confetti Ball» в Activity — используем его как
+    // ближайшую анимацию для подарка-коробки. Если в будущем появится
+    // подходящий ассет, легко заменить.
+    animatedUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Activity/Confetti%20Ball.webp',
     cost: 25,
     animation: 'bounce',
     available: true,

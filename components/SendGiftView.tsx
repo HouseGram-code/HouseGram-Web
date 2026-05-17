@@ -14,6 +14,7 @@ import { collection, addDoc, doc, updateDoc, getDoc, setDoc, serverTimestamp } f
 import Image from 'next/image';
 import { GIFTS, getGiftAnimatedUrl } from '@/lib/gifts';
 import Toast, { type ToastState, nextToastId } from './Toast';
+import GiftImage from './GiftImage';
 
 const MAX_GREETING_LENGTH = 140;
 
@@ -637,13 +638,13 @@ export default function SendGiftView() {
                         }}
                       >
                         {gift.animated && gift.animatedUrl ? (
-                          <Image
+                          <GiftImage
                             src={gift.animatedUrl}
                             alt={gift.name}
+                            emoji={gift.emoji}
                             width={60}
                             height={60}
-                            className="object-contain"
-                            unoptimized
+                            imgClassName="object-contain"
                           />
                         ) : (
                           <span className="text-[60px]">{gift.emoji}</span>
@@ -848,7 +849,7 @@ export default function SendGiftView() {
                 whileHover={{ scale: 1.1, rotate: [0,-8,8,-4,0], transition: { duration: 0.4 } }}
               >
                 {selectedGift.animated && selectedGift.animatedUrl ? (
-                  <Image src={selectedGift.animatedUrl} alt={selectedGift.name} width={96} height={96} className="object-contain" unoptimized />
+                  <GiftImage src={selectedGift.animatedUrl} alt={selectedGift.name} emoji={selectedGift.emoji} width={96} height={96} imgClassName="object-contain" />
                 ) : (
                   <span className="text-[96px]">{selectedGift.emoji}</span>
                 )}

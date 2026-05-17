@@ -6,6 +6,7 @@ import { Bookmark } from 'lucide-react';
 import Message from './Message';
 import { getGiftAnimatedUrl } from '@/lib/gifts';
 import Image from 'next/image';
+import GiftImage from './GiftImage';
 
 interface MessagesContainerProps {
   contact: any;
@@ -119,13 +120,13 @@ const MessagesContainer = memo(function MessagesContainer({
                 className="mb-2 relative z-10 flex items-center justify-center"
               >
                 {getGiftAnimatedUrl(msg.gift.id) ? (
-                  <Image
+                  <GiftImage
                     src={getGiftAnimatedUrl(msg.gift.id)!}
                     alt={msg.gift.name}
+                    emoji={msg.gift.emoji}
                     width={104}
                     height={104}
-                    className="object-contain drop-shadow-lg"
-                    unoptimized
+                    imgClassName="object-contain drop-shadow-lg"
                   />
                 ) : (
                   <span className="text-[96px] leading-none drop-shadow-lg">{msg.gift.emoji}</span>
