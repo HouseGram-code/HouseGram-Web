@@ -53,6 +53,9 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    /* Глобальный масштаб шрифта чата. Меняется в Настройки → Чат →
+       Размер шрифта (compact/normal/large). По умолчанию 1. */
+    font-size: calc(16px * var(--tg-font-scale, 1));
   }
 
   body {
