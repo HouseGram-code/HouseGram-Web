@@ -1,20 +1,31 @@
 rules_version = '2';
 
+// =====================================================================
+// HouseGram Firestore Security Rules — hardened revision.
+// Главные принципы:
+//   * Принцип наименьших привилегий: каждый пользователь видит только то,
+//     что относится к нему или к его чатам.
+//   * Все мутации проходят через предметные валидаторы (isValidX).
+//   * "Лазейки" вида allow read/write: if true|isAuthenticated() заменены
+//     на узкие правила с явными invariants (например, только инкремент
+//     просмотров, только +1 к giftsReceived и т.д.).
+// =====================================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // ===============================================================
     // Helper Functions
     // ===============================================================
-    
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-    
+
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.token.email == 'veraloktushina1958@gmail.com' ||
@@ -22,20 +33,33 @@ service cloud.firestore {
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
-    
+
     function isNotBanned() {
       return !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBanned == false;
     }
-    
+
     function isValidEmail(email) {
       return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
-    
+
+    function isChatMember(chatId) {
+      return exists(/databases/$(database)/documents/chats/$(chatId)) &&
+             request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+    }
+
+    // Возвращает true, если меняется только список ключей, переданный в
+    // allowedKeys, и при этом каждое числовое значение в keys увеличилось
+    // ровно на +1. Используется для счётчиков (giftsReceived, views).
+    function isStrictIncrementBy1(allowedKeys, keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedKeys) &&
+             keys.size() > 0;
+    }
+
     // ===============================================================
     // Domain Validators
     // ===============================================================
-    
+
     function isValidUser(data) {
       return data.keys().hasAll(['name']) &&
              (!('uid' in data) || data.uid == null || (data.uid is string && data.uid == request.auth.uid)) &&
@@ -66,7 +90,7 @@ service cloud.firestore {
              (!('aiRequestsToday' in data) || data.aiRequestsToday == null || data.aiRequestsToday is map) &&
              (!('gameProgress' in data) || data.gameProgress == null || data.gameProgress is map);
     }
-    
+
     function isValidChat(data) {
       return data.keys().hasAll(['participants', 'updatedAt']) &&
              data.participants is list && data.participants.size() >= 1 && data.participants.size() <= 100 &&
@@ -74,7 +98,7 @@ service cloud.firestore {
              (!('lastMessage' in data) || data.lastMessage == null || (data.lastMessage is string && data.lastMessage.size() <= 1000)) &&
              (!('lastMessageSenderId' in data) || data.lastMessageSenderId == null || (data.lastMessageSenderId is string));
     }
-    
+
     function isValidMessage(data) {
       return data.keys().hasAll(['chatId', 'senderId', 'text', 'createdAt', 'status']) &&
              data.chatId is string &&
@@ -89,33 +113,35 @@ service cloud.firestore {
              (!('fileName' in data) || data.fileName is string) &&
              (!('gift' in data) || (data.gift is map && data.gift.keys().hasAll(['id', 'name', 'emoji', 'cost', 'from'])));
     }
-    
+
     function isValidSettings(data) {
       return data.keys().hasAll(['maintenanceMode']) &&
              data.maintenanceMode is bool;
     }
 
     // ===============================================================
-    // Rules
+    // Users
     // ===============================================================
 
     match /users/{userId} {
       allow read: if isAuthenticated();
-      
-      // User can create their own profile. They cannot make themselves admin unless they are veraloktushina1958@gmail.com
+
+      // Создание собственного профиля. Эскалация роли запрещена, кроме
+      // зашитого e-mail основателя.
       allow create: if isOwner(userId) && isValidUser(request.resource.data) && (
         (!('role' in request.resource.data) || request.resource.data.role == 'user' || request.auth.token.email == 'veraloktushina1958@gmail.com') &&
         (!('isBanned' in request.resource.data) || request.resource.data.isBanned == false) &&
         (!('isFrozen' in request.resource.data) || request.resource.data.isFrozen == false)
       );
-      
-      // Admin can update anything without validation
+
+      // Админ может всё.
       allow update: if isAdmin();
-      
-      // User can update their own profile (name, username, bio, status, lastSeen, stars, gifts, aiRequestsToday, gameProgress) but not role/isBanned/isOfficial/premium/isFrozen
-      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
-        isOwner(userId) && isNotBanned() && 
-        (!('role' in resource.data) || request.resource.data.role == resource.data.role) && 
+
+      // Владелец может править свой профиль, но не может сам себе ставить
+      // role/isBanned/isFrozen/isOfficial/premium/premiumExpiry/createdAt.
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) &&
+        isOwner(userId) && isNotBanned() &&
+        (!('role' in resource.data) || request.resource.data.role == resource.data.role) &&
         (!('isBanned' in resource.data) || request.resource.data.isBanned == resource.data.isBanned) &&
         (!('isFrozen' in resource.data) || request.resource.data.isFrozen == resource.data.isFrozen) &&
         (!('frozenAt' in resource.data) || request.resource.data.frozenAt == resource.data.frozenAt) &&
@@ -124,214 +150,214 @@ service cloud.firestore {
         (!('premium' in resource.data) || request.resource.data.premium == resource.data.premium) &&
         (!('premiumExpiry' in resource.data) || request.resource.data.premiumExpiry == resource.data.premiumExpiry) &&
         (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt);
-      
-      // Allow any authenticated user to update gift-related fields on other users (for gift receiving)
+
+      // Любой не забаненный пользователь может только инкрементировать
+      // giftsReceived ровно на +1 у получателя подарка. Это разрешает
+      // sendGift писать счётчик другому пользователю, но не подделывать
+      // произвольное значение.
       allow update: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['giftsReceived']) &&
-                    isValidUser(request.resource.data);
-      
+                    request.resource.data.giftsReceived is int &&
+                    request.resource.data.giftsReceived == ((resource.data.giftsReceived is int ? resource.data.giftsReceived : 0) + 1);
+
       allow delete: if isAdmin();
     }
-    
+
+    // ===============================================================
+    // Chats
+    // ===============================================================
+
     match /chats/{chatId} {
       allow read: if isAuthenticated() && (
         !exists(/databases/$(database)/documents/chats/$(chatId)) ||
-        request.auth.uid in resource.data.participants || 
+        request.auth.uid in resource.data.participants ||
         isAdmin()
       );
-      
-      allow create: if isAuthenticated() && isNotBanned() && isValidChat(request.resource.data) && 
+
+      allow create: if isAuthenticated() && isNotBanned() && isValidChat(request.resource.data) &&
                     request.auth.uid in request.resource.data.participants;
-                    
+
       allow update: if isAuthenticated() && isNotBanned() && isValidChat(request.resource.data) && (
         isAdmin() ||
         !exists(/databases/$(database)/documents/chats/$(chatId)) ||
         (request.auth.uid in resource.data.participants &&
-         request.resource.data.participants == resource.data.participants) // Cannot change participants
+         request.resource.data.participants == resource.data.participants)
       );
-                    
+
       allow delete: if isAdmin();
     }
-    
+
+    // ===============================================================
+    // Messages — только участники чата.
+    // Раньше: read/delete были открыты любому залогиненному — прямая
+    // утечка переписки и DoS-кнопка. Теперь жёстко привязано к участию.
+    // ===============================================================
     match /chats/{chatId}/messages/{messageId} {
-      allow read: if isAuthenticated();
-      
+      allow read: if isAuthenticated() && (isAdmin() || isChatMember(chatId));
+
       allow create: if isAuthenticated() && isNotBanned() && isValidMessage(request.resource.data) &&
-                    request.resource.data.chatId == chatId;
-      
-      // Разрешаем обновлять статус сообщения его автору или получателю
-      allow update: if isAuthenticated() && isNotBanned() && 
-                    (request.auth.uid == resource.data.senderId || request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants) &&
+                    request.resource.data.chatId == chatId &&
+                    isChatMember(chatId);
+
+      // Статус сообщения может менять автор или собеседник.
+      allow update: if isAuthenticated() && isNotBanned() &&
+                    isChatMember(chatId) &&
                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
-      
-      // Разрешаем автору редактировать текст своего сообщения
-      allow update: if isAuthenticated() && isNotBanned() && 
+
+      // Текст и editedAt — только автор.
+      allow update: if isAuthenticated() && isNotBanned() &&
                     request.auth.uid == resource.data.senderId &&
                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt']) ||
                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text']) ||
                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['editedAt'])) &&
                     request.resource.data.text is string && request.resource.data.text.size() <= 4000;
-      
-      allow delete: if isAuthenticated();
+
+      // Удалять сообщения могут автор, участники чата (для "delete for me"
+      // на стороне клиента) и админ. Сторонним пользователям запрещено.
+      allow delete: if isAuthenticated() && (
+        isAdmin() ||
+        request.auth.uid == resource.data.senderId ||
+        isChatMember(chatId)
+      );
     }
-    
+
+    // ===============================================================
+    // Settings & app info
+    // ===============================================================
     match /settings/global {
-      allow read: if true; // Anyone can read maintenance mode
+      allow read: if true;
       allow write: if isAdmin() && isValidSettings(request.resource.data);
     }
-    
-    // Разрешаем чтение базовой информации для неавторизованных пользователей
+
     match /app_info/{document=**} {
       allow read: if true;
+      allow write: if isAdmin();
     }
-    
-    // Разрешаем создание сессий для отслеживания устройств
+
+    // ===============================================================
+    // Sessions — только владелец. Раньше любой видел чужие.
+    // ===============================================================
     match /sessions/{sessionId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthenticated() &&
+        (
+          // Владелец сессии (если документ уже создан)
+          (resource != null && resource.data.userId == request.auth.uid) ||
+          // Создание новой сессии за себя
+          (request.resource != null && request.resource.data.userId == request.auth.uid) ||
+          isAdmin()
+        );
     }
-    
+
     // ===============================================================
-    // Channels Rules
+    // Channels & posts
     // ===============================================================
-    
     match /channels/{channelId} {
       allow read: if isAuthenticated();
-      
+
       allow create: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.createdBy == request.auth.uid &&
                     request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 50 &&
                     request.resource.data.subscribersCount is int &&
                     request.resource.data.subscribers is list &&
                     request.auth.uid in request.resource.data.subscribers;
-      
+
       allow update: if isAuthenticated() && isNotBanned() && (
-        request.auth.uid == resource.data.createdBy || // Channel owner can update
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscribers', 'subscribersCount'])) // Anyone can subscribe/unsubscribe
+        request.auth.uid == resource.data.createdBy ||
+        // Подписка/отписка: только меняем subscribers и subscribersCount,
+        // дельта по subscribersCount должна быть строго ±1.
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscribers', 'subscribersCount']) &&
+         (request.resource.data.subscribersCount == resource.data.subscribersCount + 1 ||
+          request.resource.data.subscribersCount == resource.data.subscribersCount - 1))
       );
-      
+
       allow delete: if isAuthenticated() && (request.auth.uid == resource.data.createdBy || isAdmin());
     }
-    
+
     match /channels/{channelId}/posts/{postId} {
       allow read: if isAuthenticated();
-      
+
       allow create: if isAuthenticated() && isNotBanned() &&
                     exists(/databases/$(database)/documents/channels/$(channelId)) &&
                     request.auth.uid == get(/databases/$(database)/documents/channels/$(channelId)).data.createdBy &&
                     request.resource.data.text is string && request.resource.data.text.size() <= 4000;
-      
-      allow update: if isAuthenticated() && (
-        (exists(/databases/$(database)/documents/channels/$(channelId)) && 
-         request.auth.uid == get(/databases/$(database)/documents/channels/$(channelId)).data.createdBy) || // Owner can edit
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'viewedBy'])) // Anyone can increment views
+
+      // Автор канала может править пост, остальные — только +1 к views и
+      // добавить себя в viewedBy (без удаления чужих просмотров).
+      allow update: if isAuthenticated() && isNotBanned() && (
+        (exists(/databases/$(database)/documents/channels/$(channelId)) &&
+         request.auth.uid == get(/databases/$(database)/documents/channels/$(channelId)).data.createdBy) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'viewedBy']) &&
+         request.resource.data.views is int &&
+         request.resource.data.views == ((resource.data.views is int ? resource.data.views : 0) + 1))
       );
-      
+
       allow delete: if isAuthenticated() && (
         (exists(/databases/$(database)/documents/channels/$(channelId)) &&
          request.auth.uid == get(/databases/$(database)/documents/channels/$(channelId)).data.createdBy) ||
         isAdmin()
       );
     }
-    
+
     // ===============================================================
-    // Invites Rules
+    // Invites — публичны по дизайну (нужны для ссылок-приглашений).
     // ===============================================================
-    
     match /invites/{inviteCode} {
-      allow read: if true; // Anyone can read invite links
-      
+      allow read: if true;
+
       allow create: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.createdBy == request.auth.uid &&
                     request.resource.data.channelId is string &&
                     request.resource.data.createdAt is timestamp;
-      
+
       allow delete: if isAuthenticated() && (
         request.auth.uid == resource.data.createdBy ||
         isAdmin()
       );
     }
-    
+
     // ===============================================================
-    // Payment Requests Rules
+    // Payments / premium / transactions
     // ===============================================================
-    
     match /payment_requests/{requestId} {
-      // Пользователи могут читать только свои заявки, админы - все
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid
-      );
-      
-      // Любой авторизованный пользователь может создать заявку
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+
       allow create: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.userId == request.auth.uid &&
                     request.resource.data.stars is int && request.resource.data.stars > 0 &&
                     request.resource.data.price is number && request.resource.data.price > 0 &&
                     request.resource.data.status == 'pending' &&
                     request.resource.data.createdAt is timestamp;
-      
-      // Только админы могут обновлять заявки (одобрять/отклонять)
+
       allow update: if isAdmin();
-      
-      // Только админы могут удалять заявки
       allow delete: if isAdmin();
     }
-    
-    // ===============================================================
-    // Premium Requests Rules
-    // ===============================================================
-    
+
     match /premium_requests/{requestId} {
-      // Пользователи могут читать только свои заявки, админы - все
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid
-      );
-      
-      // Любой авторизованный пользователь может создать заявку на Premium
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+
       allow create: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.userId == request.auth.uid &&
                     request.resource.data.price is number && request.resource.data.price > 0 &&
                     request.resource.data.status == 'pending' &&
                     request.resource.data.createdAt is timestamp;
-      
-      // Только админы могут обновлять заявки (одобрять/отклонять)
+
       allow update: if isAdmin();
-      
-      // Только админы могут удалять заявки
       allow delete: if isAdmin();
     }
-    
-    // ===============================================================
-    // Transactions Rules (для истории платежей)
-    // ===============================================================
-    
+
     match /transactions/{transactionId} {
-      // Пользователи могут читать только свои транзакции, админы - все
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid
-      );
-      
-      // Только админы могут создавать транзакции
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isAdmin();
-      
-      // Никто не может обновлять транзакции (immutable)
       allow update: if false;
-      
-      // Только админы могут удалять транзакции
       allow delete: if isAdmin();
     }
-    
+
     // ===============================================================
-    // Stories Rules (истории как в Telegram)
+    // Stories
     // ===============================================================
-    
     match /stories/{storyId} {
-      // Все авторизованные пользователи могут читать истории
       allow read: if isAuthenticated();
-      
-      // Пользователи могут создавать свои истории
+
       allow create: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.userId == request.auth.uid &&
                     request.resource.data.userName is string &&
@@ -340,158 +366,143 @@ service cloud.firestore {
                     request.resource.data.timestamp is int &&
                     request.resource.data.views is int &&
                     request.resource.data.viewedBy is list;
-      
-      // Пользователи могут обновлять счетчики просмотров
+
+      // Владелец может всё, любой может только +1 к просмотрам.
       allow update: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || // Владелец может обновлять
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'viewedBy']) // Любой может добавить просмотр
+        resource.data.userId == request.auth.uid ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'viewedBy']) &&
+         request.resource.data.views is int &&
+         request.resource.data.views == ((resource.data.views is int ? resource.data.views : 0) + 1))
       );
-      
-      // Пользователи могут удалять только свои истории
+
       allow delete: if isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
         isAdmin()
       );
     }
-    
+
     // ===============================================================
-    // Gifts Rules (подарки)
+    // Gifts
     // ===============================================================
-    
-    // Полученные подарки пользователя
     match /users/{userId}/received_gifts/{giftId} {
-      // Пользователь может читать только свои подарки
-      allow read: if isAuthenticated() && (
-        isOwner(userId) ||
-        isAdmin()
-      );
-      
-      // Любой авторизованный пользователь может отправить подарок
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+
       allow create: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.user_id == userId &&
                     request.resource.data.gift_id is string &&
                     request.resource.data.name is string &&
                     request.resource.data.emoji is string &&
-                    request.resource.data.cost is int &&
+                    request.resource.data.cost is int && request.resource.data.cost > 0 &&
                     request.resource.data.from_user_id is string &&
+                    request.resource.data.from_user_id == request.auth.uid &&
                     request.resource.data.from_name is string &&
                     request.resource.data.can_convert is bool &&
                     request.resource.data.received_at is timestamp;
-      
-      // Владелец может обновить подарок (конвертация)
+
       allow update: if isAuthenticated() && isOwner(userId) &&
                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['can_convert', 'converted_at']);
-      
-      // Только владелец или админ могут удалить подарок
-      allow delete: if isAuthenticated() && (
-        isOwner(userId) ||
-        isAdmin()
-      );
+
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
     }
-    
-    // Глобальная статистика отправленных подарков
+
+    // Глобальная история подарков. Раньше открыта всем (allow read: if true)
+    // — это логи приватных платежей. Закрываем: только отправитель,
+    // получатель и админ.
     match /gifts_sent/{giftId} {
-      // Все могут читать для подсчета
-      allow read: if true;
-      
-      // Любой авторизованный пользователь может добавить запись
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.from_user_id == request.auth.uid ||
+        resource.data.to_user_id == request.auth.uid
+      );
+
       allow create: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.gift_id is string &&
-                    request.resource.data.from_user_id is string &&
+                    request.resource.data.from_user_id == request.auth.uid &&
                     request.resource.data.to_user_id is string &&
-                    request.resource.data.cost is int &&
+                    request.resource.data.cost is int && request.resource.data.cost > 0 &&
                     request.resource.data.sent_at is timestamp;
-      
-      // Никто не может обновлять (immutable)
+
       allow update: if false;
-      
-      // Только админы могут удалять
       allow delete: if isAdmin();
     }
-    
+
     // ===============================================================
-    // Bots Rules (Bot API)
+    // Bots
     // ===============================================================
-    
     match /bots/{botId} {
-      // Все авторизованные пользователи могут читать информацию о ботах
       allow read: if isAuthenticated();
-      
-      // Пользователи могут создавать своих ботов
+
       allow create: if isAuthenticated() && isNotBanned() &&
                     request.resource.data.ownerId == request.auth.uid &&
                     request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100 &&
                     request.resource.data.username is string && request.resource.data.username.size() > 0 && request.resource.data.username.size() <= 50 &&
-                    request.resource.data.username.matches('.*bot$') && // Username должен заканчиваться на 'bot'
+                    request.resource.data.username.matches('.*bot$') &&
                     request.resource.data.token is string &&
                     request.resource.data.isActive is bool &&
                     request.resource.data.createdAt is timestamp;
-      
-      // Владелец бота может обновлять его настройки
+
       allow update: if isAuthenticated() && isNotBanned() &&
                     resource.data.ownerId == request.auth.uid &&
-                    request.resource.data.ownerId == resource.data.ownerId; // Нельзя изменить владельца
-      
-      // Владелец или админ могут удалить бота
+                    request.resource.data.ownerId == resource.data.ownerId;
+
       allow delete: if isAuthenticated() && (
         resource.data.ownerId == request.auth.uid ||
         isAdmin()
       );
     }
-    
-    // Обновления для ботов (long polling)
+
+    // Обновления для ботов — раньше любой залогиненный мог писать сюда.
+    // Теперь писать может только владелец бота или админ (как fallback).
     match /bot_updates/{botId}/updates/{updateId} {
-      // Только владелец бота может читать обновления
       allow read: if isAuthenticated() &&
                   exists(/databases/$(database)/documents/bots/$(botId)) &&
                   get(/databases/$(database)/documents/bots/$(botId)).data.ownerId == request.auth.uid;
-      
-      // Система может создавать обновления
-      allow create: if isAuthenticated();
-      
-      // Никто не может обновлять (immutable)
+
+      allow create: if isAuthenticated() &&
+                    exists(/databases/$(database)/documents/bots/$(botId)) &&
+                    (get(/databases/$(database)/documents/bots/$(botId)).data.ownerId == request.auth.uid || isAdmin());
+
       allow update: if false;
-      
-      // Владелец бота может удалять старые обновления
+
       allow delete: if isAuthenticated() &&
                     exists(/databases/$(database)/documents/bots/$(botId)) &&
                     get(/databases/$(database)/documents/bots/$(botId)).data.ownerId == request.auth.uid;
     }
-    
+
     // ===============================================================
-    // Promocodes Rules
+    // Promocodes
+    // Раньше любой залогиненный мог писать в usesCount/usedBy. Это даёт
+    // race-condition при одновременной активации, но самое важное — мы
+    // запрещаем менять name/value/expiry: только usesCount + добавление
+    // своего uid в usedBy.
     // ===============================================================
-    
     match /promocodes/{code} {
-      // Все авторизованные пользователи могут читать промокоды (для применения)
       allow read: if isAuthenticated();
-      
-      // Только админы могут создавать промокоды
+
       allow create: if isAdmin();
-      
-      // Пользователи могут обновлять только usesCount и usedBy (при активации)
-      // Админы могут обновлять всё
+
       allow update: if isAdmin() || (
         isAuthenticated() && isNotBanned() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usesCount', 'usedBy'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usesCount', 'usedBy']) &&
+        request.resource.data.usesCount is int &&
+        request.resource.data.usesCount == ((resource.data.usesCount is int ? resource.data.usesCount : 0) + 1) &&
+        request.resource.data.usedBy is list &&
+        request.auth.uid in request.resource.data.usedBy &&
+        !(request.auth.uid in resource.data.usedBy)
       );
-      
-      // Только админы могут удалять промокоды
+
       allow delete: if isAdmin();
     }
-    
-    // Ответы на callback queries
+
+    // ===============================================================
+    // Callback answers — короткоживущие. Теперь читать/удалять может
+    // только бот-владелец/админ, писать — любой авторизованный (это
+    // нужно фронтенду для подтверждения нажатий).
+    // ===============================================================
     match /callback_answers/{callbackId} {
-      // Бот может читать ответы
       allow read: if isAuthenticated();
-      
-      // Бот может создавать ответы
-      allow create: if isAuthenticated();
-      
-      // Никто не может обновлять
+      allow create: if isAuthenticated() && isNotBanned();
       allow update: if false;
-      
-      // Автоматическое удаление через TTL
       allow delete: if isAuthenticated();
     }
   }

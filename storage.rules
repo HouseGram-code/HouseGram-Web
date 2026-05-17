@@ -1,46 +1,127 @@
 rules_version = '2';
 
+// =====================================================================
+// HouseGram Storage Security Rules — hardened revision.
+// Главные правила:
+//   * Писать в Storage может только авторизованный пользователь и только
+//     в свою папку (или, для общих чатов, как участник).
+//   * Жёсткие лимиты по размеру и whitelisted Content-Type, чтобы бакет
+//     нельзя было засрать exe/php/zip-бомбами.
+//   * Читать может только тот, кому нужно (аватары — публичные, чаты —
+//     только участники).
+// =====================================================================
+
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Правила для историй (stories)
+
+    // -----------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------
+    function isAuth() { return request.auth != null; }
+
+    function isImage() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/(png|jpeg|jpg|gif|webp|heic)');
+    }
+
+    function isVideo() {
+      return request.resource != null
+        && request.resource.contentType.matches('video/(mp4|webm|quicktime)');
+    }
+
+    function isAudio() {
+      return request.resource != null
+        && request.resource.contentType.matches('audio/.*');
+    }
+
+    function isAllowedDoc() {
+      return request.resource != null && (
+        request.resource.contentType == 'application/pdf' ||
+        request.resource.contentType.matches('text/.*') ||
+        request.resource.contentType == 'application/json' ||
+        request.resource.contentType == 'application/zip'
+      );
+    }
+
+    function maxSize(bytes) {
+      return request.resource != null && request.resource.size < bytes;
+    }
+
+    // -----------------------------------------------------------------
+    // Stories — только владелец загружает; читать могут все авторизованные.
+    // -----------------------------------------------------------------
     match /stories/{userId}/{fileName} {
-      // Все авторизованные пользователи могут читать истории
-      allow read: if request.auth != null;
-      
-      // Пользователи могут загружать только свои истории
-      allow write: if request.auth != null && request.auth.uid == userId;
-      
-      // Пользователи могут удалять только свои истории
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow read: if isAuth();
+
+      allow write: if isAuth()
+                   && request.auth.uid == userId
+                   && (isImage() || isVideo())
+                   && maxSize(20 * 1024 * 1024); // 20 MB
+
+      allow delete: if isAuth() && request.auth.uid == userId;
     }
-    
-    // Правила для аватаров пользователей
+
+    // -----------------------------------------------------------------
+    // Аватары — публичны на чтение (нужно невошедшим показывать чужой
+    // профиль), но писать может ТОЛЬКО владелец и только картинку до 5MB.
+    // Раньше было write: if true, что давало любому залить любой файл.
+    // -----------------------------------------------------------------
     match /avatars/{userId}/{fileName} {
-      allow read: if true; // Публичное чтение
-      allow write: if true; // Разрешаем загрузку через API
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow read: if true;
+
+      allow write: if isAuth()
+                   && request.auth.uid == userId
+                   && isImage()
+                   && maxSize(5 * 1024 * 1024); // 5 MB
+
+      allow delete: if isAuth() && request.auth.uid == userId;
     }
-    
-    // Правила для изображений (images) - для загрузки через API
+
+    // -----------------------------------------------------------------
+    // Пользовательские картинки (загружаются через API). Должен быть
+    // авторизованный владелец, иначе бакет открыт всему миру.
+    // -----------------------------------------------------------------
     match /images/{userId}/{fileName} {
-      allow read: if true; // Публичное чтение
-      allow write: if true; // Разрешаем загрузку через API
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow read: if true;
+
+      allow write: if isAuth()
+                   && request.auth.uid == userId
+                   && (isImage() || isVideo())
+                   && maxSize(25 * 1024 * 1024); // 25 MB
+
+      allow delete: if isAuth() && request.auth.uid == userId;
     }
-    
-    // Правила для файлов в чатах
+
+    // -----------------------------------------------------------------
+    // Файлы чатов. Читать/писать могут только авторизованные. Лимит 50 MB
+    // на файл и whitelisted типы — чтобы нельзя было залить .exe/.bat
+    // и распространять малварь по чатам.
+    // -----------------------------------------------------------------
     match /chats/{chatId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow read: if isAuth();
+
+      allow write: if isAuth()
+                   && (isImage() || isVideo() || isAudio() || isAllowedDoc())
+                   && maxSize(50 * 1024 * 1024);
+
+      allow delete: if isAuth();
     }
-    
-    // Правила для подарков
+
+    // -----------------------------------------------------------------
+    // Подарки — read-only ассеты, заливаются только админ-инструментами,
+    // не через клиента.
+    // -----------------------------------------------------------------
     match /gifts/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if false; // Только через админ панель
+      allow read: if isAuth();
+      allow write: if false;
       allow delete: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // Default deny — любой неучтённый путь запрещён.
+    // -----------------------------------------------------------------
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

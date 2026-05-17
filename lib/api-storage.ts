@@ -2,6 +2,8 @@
  * API Storage - загрузка файлов через серверный API (обход CORS)
  */
 
+import { auth } from './firebase';
+
 export type FileType = 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'gif';
 
 export interface UploadProgress {
@@ -56,6 +58,11 @@ export const uploadFile = async (
     formData.append('userId', userId);
     formData.append('fileType', type);
 
+    // Authorization Bearer <Firebase ID-token>: серверный /api/upload
+    // принимает запросы только от авторизованных пользователей и
+    // проверяет, что userId совпадает с uid из токена.
+    const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+
     // Используем XMLHttpRequest для отслеживания прогресса
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -109,6 +116,7 @@ export const uploadFile = async (
 
       // Отправка запроса
       xhr.open('POST', '/api/upload');
+      if (idToken) xhr.setRequestHeader('Authorization', `Bearer ${idToken}`);
       xhr.send(formData);
     });
   } catch (error: any) {

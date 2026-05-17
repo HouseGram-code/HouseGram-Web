@@ -252,10 +252,17 @@ export const sendMessageNotification = async (
       return; // Тихо возвращаемся, не блокируя отправку сообщения
     }
 
+    const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+    if (!idToken) {
+      console.warn('No auth token, skipping notification');
+      return;
+    }
+
     const response = await fetch('/api/send-notification', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
       },
       body: JSON.stringify({
         token: fcmToken,
@@ -297,7 +304,13 @@ export const sendChannelPostNotification = async (
 
     const subscribers = channelDoc.data().subscribers || [];
     const createdBy = channelDoc.data().createdBy;
-    
+
+    const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+    if (!idToken) {
+      console.warn('No auth token, skipping channel post notifications');
+      return;
+    }
+
     // Отправляем уведомления всем подписчикам (кроме автора)
     const notifications = subscribers
       .filter((userId: string) => userId !== createdBy)
@@ -313,6 +326,7 @@ export const sendChannelPostNotification = async (
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
             },
             body: JSON.stringify({
               token: fcmToken,

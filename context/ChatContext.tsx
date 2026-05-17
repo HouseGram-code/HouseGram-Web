@@ -402,18 +402,26 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     
     const handleBeforeUnload = () => {
       if (auth.currentUser) {
-        // Используем sendBeacon для надежной отправки при закрытии
-        const data = JSON.stringify({
-          userId: auth.currentUser.uid,
-          status: 'offline',
-          lastSeen: new Date().toISOString()
-        });
-        
-        // Пытаемся отправить через API
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon('/api/update-status', data);
-        }
-        
+        // sendBeacon не поддерживает кастомные заголовки, поэтому
+        // прокидываем Firebase ID-токен прямо в теле — серверный
+        // /api/update-status верифицирует его и проверяет, что
+        // userId совпадает с uid из токена.
+        const u = auth.currentUser;
+        u.getIdToken().then((idToken) => {
+          const data = JSON.stringify({
+            userId: u.uid,
+            status: 'offline',
+            lastSeen: new Date().toISOString(),
+            idToken,
+          });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(
+              '/api/update-status',
+              new Blob([data], { type: 'application/json' }),
+            );
+          }
+        }).catch(() => {});
+
         // Также пытаемся обновить напрямую (может не успеть)
         try {
           updateDoc(doc(db, 'users', auth.currentUser.uid), { 

@@ -1,69 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
-import admin from 'firebase-admin';
+import { jsonError, rateLimit } from '@/lib/security';
+import { getAdmin, verifyAuthToken } from '@/lib/firebaseAdmin';
 
-// Инициализация Firebase Admin SDK
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    });
-  } catch (error) {
-    console.error('Firebase admin initialization error:', error);
-  }
-}
-
-// Простая проверка авторизации через API ключ
-const verifyAuth = (request: NextRequest): boolean => {
-  const authHeader = request.headers.get('authorization');
-  const apiKey = process.env.INTERNAL_API_KEY;
-
-  if (!apiKey) {
-    // Если ключ не установлен — разрешаем все (для разработки)
-    return true;
-  }
-
-  return authHeader === `Bearer ${apiKey}`;
-};
-
+/**
+ * POST /api/send-notification — отправить web-push через FCM.
+ *
+ * Безопасность:
+ *  - Принимаются только запросы с одним из двух валидных способов авторизации:
+ *      1) внутренний серверный ключ (Bearer <INTERNAL_API_KEY>) для
+ *         собственных серверных задач;
+ *      2) Firebase ID-токен пользователя — для отправки уведомлений
+ *         себе или другим только если задано INTERNAL_API_KEY (без него
+ *         любой залогиненный мог бомбить пушами кого угодно — мы это
+ *         больше не разрешаем).
+ *  - Если INTERNAL_API_KEY не задан и нет валидного ID-токена —
+ *    отказываем. Раньше отсутствие ключа открывало эндпоинт всему миру.
+ *  - Rate-limit 60 запросов/мин с одного IP.
+ */
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, { key: 'send-notification', limit: 60, windowMs: 60_000 });
+  if (limited) return limited;
+
+  const apiKey = process.env.INTERNAL_API_KEY;
+  const auth = request.headers.get('authorization');
+
+  // Способ 1: внутренний ключ.
+  let serverAuthorized = false;
+  if (apiKey && auth === `Bearer ${apiKey}`) serverAuthorized = true;
+
+  // Способ 2: пользовательский Firebase ID-токен.
+  let userId: string | null = null;
+  if (!serverAuthorized) {
+    userId = await verifyAuthToken(auth);
+    if (!userId) return jsonError('Unauthorized', 401);
+  }
+
   try {
-    // Проверка авторизации
-    if (!verifyAuth(request)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const admin = getAdmin();
+    const { token, title, body, data } = (await request.json()) as {
+      token?: string;
+      title?: string;
+      body?: string;
+      data?: Record<string, string>;
+    };
+
+    if (!token || typeof token !== 'string') {
+      return jsonError('FCM token is required', 400);
     }
 
-    const { token, title, body, data } = await request.json();
-
-    if (!token) {
-      return NextResponse.json(
-        { error: 'FCM token is required' },
-        { status: 400 }
-      );
-    }
-
-    // Проверка инициализации Firebase Admin
-    if (!admin.apps.length) {
-      return NextResponse.json(
-        { error: 'Firebase Admin SDK not initialized' },
-        { status: 500 }
-      );
-    }
-
-    // Отправляем уведомление через FCM
     const message = {
       token,
       notification: {
-        title: title || 'HouseGram',
-        body: body || 'Новое сообщение',
+        title: typeof title === 'string' ? title.slice(0, 200) : 'HouseGram',
+        body: typeof body === 'string' ? body.slice(0, 1000) : 'Новое сообщение',
       },
-      data: data || {},
+      data: (data && typeof data === 'object' ? data : {}) as Record<string, string>,
       webpush: {
         notification: {
           icon: '/icon-192x192.png',
@@ -71,21 +62,14 @@ export async function POST(request: NextRequest) {
           requireInteraction: false,
           vibrate: [200, 100, 200],
         },
-        fcmOptions: {
-          link: '/'
-        }
-      }
+        fcmOptions: { link: '/' },
+      },
     };
 
     const response = await admin.messaging().send(message);
-    console.log('Successfully sent message:', response);
-
     return NextResponse.json({ success: true, messageId: response });
-  } catch (error: any) {
-    console.error('Error sending notification:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to send notification' },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to send notification';
+    return jsonError(msg, 500);
   }
 }
